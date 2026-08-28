@@ -1,0 +1,11 @@
+{
+  "Id": "W40KRT_DialogueExporter",
+  "DisplayName": "W40K RT - Dialogue Exporter",
+  "Author": "wallge",
+  "Version": "0.1.0",
+  "ManagerVersion": "0.25.0",
+  "Requirements": [],
+  "AssemblyName": "W40KRT_DialogueExporter.dll",
+  "EntryMethod": "DialogueExporter.Main.Load",
+  "HomePage": "https://github.com/wallge/W40KRogueTraderNeuralSpeechMod"
+}

@@ -1,0 +1,11 @@
+reference/
+data/raw/
+*.dll.*.cache*
+bin/
+obj/
+.vs/
+__pycache__/
+*.pyc
+.venv/
+data/strings.enGB.json
+data/conversations.enGB.json

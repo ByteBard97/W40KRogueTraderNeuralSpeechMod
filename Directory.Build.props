@@ -1,0 +1,25 @@
+<Project>
+  <!--
+    Game locations. Override on the command line or in a local GamePath.props (gitignored):
+      dotnet build -p:RogueTraderInstallDir=... -p:RogueTraderData=...
+    RogueTraderData is the LocalLow folder that holds UnityModManager/ (mods, UnityModManager.dll) and Player.log.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)GamePath.props" Condition="Exists('$(MSBuildThisFileDirectory)GamePath.props')" />
+
+  <PropertyGroup>
+    <RogueTraderInstallDir Condition="'$(RogueTraderInstallDir)' == ''">/mnt/games/SteamLibrary/steamapps/common/Warhammer 40,000 Rogue Trader</RogueTraderInstallDir>
+    <RogueTraderData Condition="'$(RogueTraderData)' == ''">/mnt/games/SteamLibrary/steamapps/compatdata/2186680/pfx/drive_c/users/steamuser/AppData/LocalLow/Owlcat Games/Warhammer 40000 Rogue Trader</RogueTraderData>
+    <RogueTraderManaged>$(RogueTraderInstallDir)/WH40KRT_Data/Managed</RogueTraderManaged>
+    <RogueTraderModsDir>$(RogueTraderData)/UnityModManager</RogueTraderModsDir>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net481</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+</Project>

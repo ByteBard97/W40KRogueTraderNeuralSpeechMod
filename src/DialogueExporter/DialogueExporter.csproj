@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>W40KRT_DialogueExporter</AssemblyName>
+    <RootNamespace>DialogueExporter</RootNamespace>
+    <Version>0.1.0</Version>
+    <Description>Dumps Rogue Trader's dialogue graph (dialogs, cues, answers, speakers) to JSON for offline annotation.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(RogueTraderManaged)/0Harmony.dll" Private="false" />
+    <Reference Include="$(RogueTraderManaged)/Code.dll" Publicize="true" Private="false" />
+    <Reference Include="$(RogueTraderManaged)/Kingmaker*.dll" Publicize="true" Private="false" />
+    <Reference Include="$(RogueTraderManaged)/LocalizationShared.dll" Private="false" />
+    <Reference Include="$(RogueTraderManaged)/Newtonsoft.Json.dll" Private="false" />
+    <Reference Include="$(RogueTraderManaged)/Owlcat*.dll" Publicize="true" Private="false" />
+    <Reference Include="$(RogueTraderManaged)/UnityEngine*.dll" Private="false" />
+    <Reference Include="$(RogueTraderManaged)/RogueTrader*.dll" Publicize="true" Private="false" />
+    <Reference Include="$(RogueTraderModsDir)/UnityModManager.dll" Publicize="true" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Info.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3" PrivateAssets="all" IncludeAssets="build; contentfiles" />
+  </ItemGroup>
+
+  <!-- `dotnet build -t:Deploy` copies the built mod into the game's UnityModManager folder. -->
+  <Target Name="Deploy" DependsOnTargets="Build">
+    <ItemGroup>
+      <ModFiles Include="$(TargetDir)**/*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ModFiles)" DestinationFiles="@(ModFiles->'$(RogueTraderModsDir)/$(AssemblyName)/%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Message Importance="high" Text="Deployed to $(RogueTraderModsDir)/$(AssemblyName)" />
+  </Target>
+
+</Project>

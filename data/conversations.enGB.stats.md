@@ -1,0 +1,84 @@
+# Conversation stats (enGB)
+
+- dialogs: 1329
+- nodes: 63440 (cue=35714, answer=19462, answers_list=4121, sequence=1961, check=1553, book_page=629)
+- cues with text: 31572; voiced: 3052 (9.7%)
+- answers with text: 17407
+- cue text chars: 7,329,994 (~1,832,498 tokens)
+- nodes not reachable from any dialog: 7681
+- units referenced: 479
+
+## Cues per speaker (top 40)
+
+- default_speaker: 15544
+- narrator: 2329
+- Heinrix: 749
+- Jae: 692
+- Pasqal: 670
+- Yrliet: 580
+- High Factotum Janris Danrok: 551
+- Vox Master Vigdis: 551
+- Abelard: 524
+- Solomorne: 495
+- Kibellah: 471
+- Cassia: 462
+- Marazhai: 436
+- Eogunn: 393
+- Argenta: 381
+- Idira: 364
+- Ulfar: 254
+- Jocasta Sauerback: 233
+- Master Helmsman Ravor: 183
+- Incendia Chorda: 159
+- Seberian: 132
+- Calligos Winterscale: 128
+- Vedka Dunawski: 123
+- Clementia Werserian: 118
+- Xavier Calcazar: 113
+- Einrich Monteg: 93
+- Regent Aaronto: 92
+- Nomos: 87
+- Vladaym Tocara the Liege: 86
+- Governor Ruoldo: 84
+- Muaran: 75
+- Izdrig Batoshski: 75
+- Marshal Gregoras Strachs: 73
+- Prefect Inscribia Vultur: 72
+- Achilleas Scalander: 69
+- Theobald Orsellio: 63
+- Bluff the Court Fool: 59
+- Sergeant Janur: 58
+- Sergeant Malgar: 58
+- Octaviana: 55
+
+## Cue animations
+
+- None: 30428
+- Bow: 116
+- CalmShort01: 108
+- DialogCalmLong05: 107
+- HeadYes: 94
+- HeadNo: 94
+- CalmShort02: 78
+- Angry: 71
+- CalmShort04: 71
+- CalmShort03: 70
+- Neutral: 56
+- CalmShort05: 45
+- DialogCalmLong01: 38
+- Shrug: 34
+- PointForward: 33
+- Salute01: 33
+- HeadScratch: 19
+- Asking: 15
+- Despair: 15
+- Laugh: 11
+- HandsOnHips: 11
+- PointLeft: 6
+- Hail: 5
+- PointBehind: 5
+- PointRight: 4
+- Applause: 2
+- Whisper: 1
+- ShowTheDirection: 1
+- Wave: 1
