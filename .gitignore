@@ -9,3 +9,5 @@ __pycache__/
 .venv/
 data/strings.enGB.json
 data/conversations.enGB.json
+data/voices/
+.venv-tts/
