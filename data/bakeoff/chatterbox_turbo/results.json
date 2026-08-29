@@ -1,0 +1,737 @@
+{
+ "engine": "chatterbox_turbo",
+ "load_seconds": 8.9,
+ "items": [
+  {
+   "id": "t000",
+   "speaker": "Abelard",
+   "chars": 129
+  },
+  {
+   "id": "t001",
+   "speaker": "Abelard",
+   "chars": 324
+  },
+  {
+   "id": "t002",
+   "speaker": "Abelard",
+   "chars": 661
+  },
+  {
+   "id": "t003",
+   "speaker": "Abelard",
+   "chars": 26
+  },
+  {
+   "id": "t004",
+   "speaker": "Abelard",
+   "chars": 182
+  },
+  {
+   "id": "t005",
+   "speaker": "Abelard",
+   "chars": 30
+  },
+  {
+   "id": "t006",
+   "speaker": "Abelard",
+   "chars": 152
+  },
+  {
+   "id": "t007",
+   "speaker": "Abelard",
+   "chars": 621
+  },
+  {
+   "id": "t008",
+   "speaker": "Abelard",
+   "chars": 26
+  },
+  {
+   "id": "t009",
+   "speaker": "Abelard",
+   "chars": 167
+  },
+  {
+   "id": "t010",
+   "speaker": "Argenta",
+   "chars": 143
+  },
+  {
+   "id": "t011",
+   "speaker": "Argenta",
+   "chars": 125
+  },
+  {
+   "id": "t012",
+   "speaker": "Argenta",
+   "chars": 549
+  },
+  {
+   "id": "t013",
+   "speaker": "Argenta",
+   "chars": 28
+  },
+  {
+   "id": "t014",
+   "speaker": "Argenta",
+   "chars": 177
+  },
+  {
+   "id": "t015",
+   "speaker": "Argenta",
+   "chars": 114
+  },
+  {
+   "id": "t016",
+   "speaker": "Argenta",
+   "chars": 80
+  },
+  {
+   "id": "t017",
+   "speaker": "Argenta",
+   "chars": 527
+  },
+  {
+   "id": "t018",
+   "speaker": "Argenta",
+   "chars": 28
+  },
+  {
+   "id": "t019",
+   "speaker": "Argenta",
+   "chars": 126
+  },
+  {
+   "id": "t020",
+   "speaker": "Cassia",
+   "chars": 110
+  },
+  {
+   "id": "t021",
+   "speaker": "Cassia",
+   "chars": 132
+  },
+  {
+   "id": "t022",
+   "speaker": "Cassia",
+   "chars": 602
+  },
+  {
+   "id": "t023",
+   "speaker": "Cassia",
+   "chars": 25
+  },
+  {
+   "id": "t024",
+   "speaker": "Cassia",
+   "chars": 134
+  },
+  {
+   "id": "t025",
+   "speaker": "Cassia",
+   "chars": 88
+  },
+  {
+   "id": "t026",
+   "speaker": "Cassia",
+   "chars": 82
+  },
+  {
+   "id": "t027",
+   "speaker": "Cassia",
+   "chars": 590
+  },
+  {
+   "id": "t028",
+   "speaker": "Cassia",
+   "chars": 25
+  },
+  {
+   "id": "t029",
+   "speaker": "Cassia",
+   "chars": 195
+  },
+  {
+   "id": "t030",
+   "speaker": "Heinrix",
+   "chars": 329
+  },
+  {
+   "id": "t031",
+   "speaker": "Heinrix",
+   "chars": 190
+  },
+  {
+   "id": "t032",
+   "speaker": "Heinrix",
+   "chars": 726
+  },
+  {
+   "id": "t033",
+   "speaker": "Heinrix",
+   "chars": 25
+  },
+  {
+   "id": "t034",
+   "speaker": "Heinrix",
+   "chars": 94
+  },
+  {
+   "id": "t035",
+   "speaker": "Heinrix",
+   "chars": 161
+  },
+  {
+   "id": "t036",
+   "speaker": "Heinrix",
+   "chars": 209
+  },
+  {
+   "id": "t037",
+   "speaker": "Heinrix",
+   "chars": 638
+  },
+  {
+   "id": "t038",
+   "speaker": "Heinrix",
+   "chars": 26
+  },
+  {
+   "id": "t039",
+   "speaker": "Heinrix",
+   "chars": 92
+  },
+  {
+   "id": "t040",
+   "speaker": "Idira",
+   "chars": 339
+  },
+  {
+   "id": "t041",
+   "speaker": "Idira",
+   "chars": 543
+  },
+  {
+   "id": "t042",
+   "speaker": "Idira",
+   "chars": 577
+  },
+  {
+   "id": "t043",
+   "speaker": "Idira",
+   "chars": 26
+  },
+  {
+   "id": "t044",
+   "speaker": "Idira",
+   "chars": 148
+  },
+  {
+   "id": "t045",
+   "speaker": "Idira",
+   "chars": 336
+  },
+  {
+   "id": "t046",
+   "speaker": "Idira",
+   "chars": 173
+  },
+  {
+   "id": "t047",
+   "speaker": "Idira",
+   "chars": 505
+  },
+  {
+   "id": "t048",
+   "speaker": "Idira",
+   "chars": 27
+  },
+  {
+   "id": "t049",
+   "speaker": "Idira",
+   "chars": 160
+  },
+  {
+   "id": "t050",
+   "speaker": "Jae",
+   "chars": 261
+  },
+  {
+   "id": "t051",
+   "speaker": "Jae",
+   "chars": 193
+  },
+  {
+   "id": "t052",
+   "speaker": "Jae",
+   "chars": 662
+  },
+  {
+   "id": "t053",
+   "speaker": "Jae",
+   "chars": 25
+  },
+  {
+   "id": "t054",
+   "speaker": "Jae",
+   "chars": 161
+  },
+  {
+   "id": "t055",
+   "speaker": "Jae",
+   "chars": 222
+  },
+  {
+   "id": "t056",
+   "speaker": "Jae",
+   "chars": 273
+  },
+  {
+   "id": "t057",
+   "speaker": "Jae",
+   "chars": 622
+  },
+  {
+   "id": "t058",
+   "speaker": "Jae",
+   "chars": 25
+  },
+  {
+   "id": "t059",
+   "speaker": "Jae",
+   "chars": 146
+  },
+  {
+   "id": "t060",
+   "speaker": "Pasqal",
+   "chars": 191
+  },
+  {
+   "id": "t061",
+   "speaker": "Pasqal",
+   "chars": 49
+  },
+  {
+   "id": "t062",
+   "speaker": "Pasqal",
+   "chars": 614
+  },
+  {
+   "id": "t063",
+   "speaker": "Pasqal",
+   "chars": 25
+  },
+  {
+   "id": "t064",
+   "speaker": "Pasqal",
+   "chars": 134
+  },
+  {
+   "id": "t065",
+   "speaker": "Pasqal",
+   "chars": 295
+  },
+  {
+   "id": "t066",
+   "speaker": "Pasqal",
+   "chars": 357
+  },
+  {
+   "id": "t067",
+   "speaker": "Pasqal",
+   "chars": 573
+  },
+  {
+   "id": "t068",
+   "speaker": "Pasqal",
+   "chars": 25
+  },
+  {
+   "id": "t069",
+   "speaker": "Pasqal",
+   "chars": 143
+  },
+  {
+   "id": "t070",
+   "speaker": "Yrliet",
+   "chars": 327
+  },
+  {
+   "id": "t071",
+   "speaker": "Yrliet",
+   "chars": 75
+  },
+  {
+   "id": "t072",
+   "speaker": "Yrliet",
+   "chars": 647
+  },
+  {
+   "id": "t073",
+   "speaker": "Yrliet",
+   "chars": 25
+  },
+  {
+   "id": "t074",
+   "speaker": "Yrliet",
+   "chars": 181
+  },
+  {
+   "id": "t075",
+   "speaker": "Yrliet",
+   "chars": 241
+  },
+  {
+   "id": "t076",
+   "speaker": "Yrliet",
+   "chars": 163
+  },
+  {
+   "id": "t077",
+   "speaker": "Yrliet",
+   "chars": 646
+  },
+  {
+   "id": "t078",
+   "speaker": "Yrliet",
+   "chars": 25
+  },
+  {
+   "id": "t079",
+   "speaker": "Yrliet",
+   "chars": 94
+  },
+  {
+   "id": "t080",
+   "speaker": "Marazhai",
+   "chars": 119
+  },
+  {
+   "id": "t081",
+   "speaker": "Marazhai",
+   "chars": 95
+  },
+  {
+   "id": "t082",
+   "speaker": "Marazhai",
+   "chars": 557
+  },
+  {
+   "id": "t083",
+   "speaker": "Marazhai",
+   "chars": 25
+  },
+  {
+   "id": "t084",
+   "speaker": "Marazhai",
+   "chars": 106
+  },
+  {
+   "id": "t085",
+   "speaker": "Marazhai",
+   "chars": 176
+  },
+  {
+   "id": "t086",
+   "speaker": "Marazhai",
+   "chars": 32
+  },
+  {
+   "id": "t087",
+   "speaker": "Marazhai",
+   "chars": 537
+  },
+  {
+   "id": "t088",
+   "speaker": "Marazhai",
+   "chars": 25
+  },
+  {
+   "id": "t089",
+   "speaker": "Marazhai",
+   "chars": 105
+  },
+  {
+   "id": "t090",
+   "speaker": "Ulfar",
+   "chars": 173
+  },
+  {
+   "id": "t091",
+   "speaker": "Ulfar",
+   "chars": 256
+  },
+  {
+   "id": "t092",
+   "speaker": "Ulfar",
+   "chars": 402
+  },
+  {
+   "id": "t093",
+   "speaker": "Ulfar",
+   "chars": 28
+  },
+  {
+   "id": "t094",
+   "speaker": "Ulfar",
+   "chars": 91
+  },
+  {
+   "id": "t095",
+   "speaker": "Ulfar",
+   "chars": 347
+  },
+  {
+   "id": "t096",
+   "speaker": "Ulfar",
+   "chars": 79
+  },
+  {
+   "id": "t097",
+   "speaker": "Ulfar",
+   "chars": 401
+  },
+  {
+   "id": "t098",
+   "speaker": "Ulfar",
+   "chars": 32
+  },
+  {
+   "id": "t099",
+   "speaker": "Ulfar",
+   "chars": 137
+  },
+  {
+   "id": "t100",
+   "speaker": "Kibellah",
+   "chars": 46
+  },
+  {
+   "id": "t101",
+   "speaker": "Kibellah",
+   "chars": 321
+  },
+  {
+   "id": "t102",
+   "speaker": "Kibellah",
+   "chars": 572
+  },
+  {
+   "id": "t103",
+   "speaker": "Kibellah",
+   "chars": 25
+  },
+  {
+   "id": "t104",
+   "speaker": "Kibellah",
+   "chars": 145
+  },
+  {
+   "id": "t105",
+   "speaker": "Kibellah",
+   "chars": 119
+  },
+  {
+   "id": "t106",
+   "speaker": "Kibellah",
+   "chars": 57
+  },
+  {
+   "id": "t107",
+   "speaker": "Kibellah",
+   "chars": 445
+  },
+  {
+   "id": "t108",
+   "speaker": "Kibellah",
+   "chars": 26
+  },
+  {
+   "id": "t109",
+   "speaker": "Kibellah",
+   "chars": 94
+  },
+  {
+   "id": "t110",
+   "speaker": "Solomorne",
+   "chars": 69
+  },
+  {
+   "id": "t111",
+   "speaker": "Solomorne",
+   "chars": 223
+  },
+  {
+   "id": "t112",
+   "speaker": "Solomorne",
+   "chars": 704
+  },
+  {
+   "id": "t113",
+   "speaker": "Solomorne",
+   "chars": 25
+  },
+  {
+   "id": "t114",
+   "speaker": "Solomorne",
+   "chars": 96
+  },
+  {
+   "id": "t115",
+   "speaker": "Solomorne",
+   "chars": 185
+  },
+  {
+   "id": "t116",
+   "speaker": "Solomorne",
+   "chars": 77
+  },
+  {
+   "id": "t117",
+   "speaker": "Solomorne",
+   "chars": 484
+  },
+  {
+   "id": "t118",
+   "speaker": "Solomorne",
+   "chars": 25
+  },
+  {
+   "id": "t119",
+   "speaker": "Solomorne",
+   "chars": 93
+  },
+  {
+   "id": "t120",
+   "speaker": "Eogunn",
+   "chars": 224,
+   "synth_seconds": 2.41,
+   "audio_seconds": 13.48
+  },
+  {
+   "id": "t121",
+   "speaker": "Eogunn",
+   "chars": 215,
+   "synth_seconds": 1.67,
+   "audio_seconds": 12.88
+  },
+  {
+   "id": "t122",
+   "speaker": "Eogunn",
+   "chars": 718,
+   "synth_seconds": 6.23,
+   "audio_seconds": 40.16
+  },
+  {
+   "id": "t123",
+   "speaker": "Eogunn",
+   "chars": 26,
+   "synth_seconds": 0.4,
+   "audio_seconds": 2.36
+  },
+  {
+   "id": "t124",
+   "speaker": "Eogunn",
+   "chars": 148,
+   "synth_seconds": 1.27,
+   "audio_seconds": 9.8
+  },
+  {
+   "id": "t125",
+   "speaker": "Eogunn",
+   "chars": 241,
+   "synth_seconds": 2.01,
+   "audio_seconds": 15.44
+  },
+  {
+   "id": "t126",
+   "speaker": "Eogunn",
+   "chars": 290,
+   "synth_seconds": 2.6,
+   "audio_seconds": 19.68
+  },
+  {
+   "id": "t127",
+   "speaker": "Eogunn",
+   "chars": 592,
+   "synth_seconds": 5.25,
+   "audio_seconds": 35.4
+  },
+  {
+   "id": "t128",
+   "speaker": "Eogunn",
+   "chars": 28,
+   "synth_seconds": 0.35,
+   "audio_seconds": 2.04
+  },
+  {
+   "id": "t129",
+   "speaker": "Eogunn",
+   "chars": 172,
+   "synth_seconds": 1.38,
+   "audio_seconds": 10.6
+  },
+  {
+   "id": "t130",
+   "speaker": "narrator",
+   "chars": 89
+  },
+  {
+   "id": "t131",
+   "speaker": "narrator",
+   "chars": 465
+  },
+  {
+   "id": "t132",
+   "speaker": "narrator",
+   "chars": 1054
+  },
+  {
+   "id": "t133",
+   "speaker": "narrator",
+   "chars": 60
+  },
+  {
+   "id": "t134",
+   "speaker": "narrator",
+   "chars": 198
+  },
+  {
+   "id": "t135",
+   "speaker": "narrator",
+   "chars": 129
+  },
+  {
+   "id": "t136",
+   "speaker": "narrator",
+   "chars": 150
+  },
+  {
+   "id": "t137",
+   "speaker": "narrator",
+   "chars": 833
+  },
+  {
+   "id": "t138",
+   "speaker": "narrator",
+   "chars": 60
+  },
+  {
+   "id": "t139",
+   "speaker": "narrator",
+   "chars": 185
+  },
+  {
+   "id": "t140",
+   "speaker": "narrator",
+   "chars": 523
+  },
+  {
+   "id": "t141",
+   "speaker": "narrator",
+   "chars": 195
+  }
+ ],
+ "rtf": 0.146
+}

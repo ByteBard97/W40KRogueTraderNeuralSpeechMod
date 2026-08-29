@@ -22,6 +22,7 @@ def ollama(system: str, user: str, schema: dict, model: str = "qwen3:14b", host:
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         "stream": False,
         "format": schema,
+        "think": False,  # qwen3/deepseek-r1-class models: skip the reasoning trace, we only need the JSON
         "options": {"temperature": 0.2, "num_ctx": 16384},
     }
     req = urllib.request.Request(f"{host}/api/chat", data=json.dumps(body).encode(),

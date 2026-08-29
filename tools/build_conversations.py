@@ -129,6 +129,41 @@ def walk_dialog(dialog: dict, nodes: dict, units: dict, voiced: dict, plain: dic
     return lines
 
 
+def resolve_default_speakers(conversations: list[dict], min_share: float = 0.6, min_votes: int = 2) -> dict:
+    """Attribute 'default_speaker' cues (no explicit speaker blueprint - the game substitutes
+    whoever the player is talking to) to a concrete NPC, per dialog.
+
+    Signal: within one dialog, tally the explicit ("unit") speakers seen on other cues. If one
+    name dominates (>= min_share of explicit-speaker cues, >= min_votes), every default_speaker
+    cue in that dialog is attributed to them with provenance "dialog_majority". This only uses
+    within-dialog evidence, so it's conservative by construction - a dialog split evenly between
+    two NPCs' cues is correctly left unresolved rather than guessed.
+    Mutates lines in place; returns resolution stats.
+    """
+    resolved = ambiguous = 0
+    for conv in conversations:
+        votes: Counter = Counter()
+        for l in conv["lines"]:
+            sp = l.get("speaker")
+            if sp and sp.get("kind") == "unit" and sp.get("name"):
+                votes[sp["name"]] += 1
+        total = sum(votes.values())
+        owner = None
+        if total >= min_votes:
+            name, n = votes.most_common(1)[0]
+            if n / total >= min_share:
+                owner = name
+        for l in conv["lines"]:
+            sp = l.get("speaker")
+            if sp and sp.get("kind") == "default_speaker":
+                if owner:
+                    l["speaker"] = {"kind": "unit_guess", "name": owner, "provenance": "dialog_majority"}
+                    resolved += 1
+                else:
+                    ambiguous += 1
+    return {"resolved": resolved, "ambiguous": ambiguous}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("script", help="script.json produced by the DialogueExporter mod")
@@ -160,6 +195,8 @@ def main() -> None:
             "lines": lines,
         })
 
+    resolution = resolve_default_speakers(conversations)
+
     out_path = Path(args.out) / f"conversations.{args.locale}.json"
     out_path.write_text(json.dumps(conversations, ensure_ascii=False, indent=1), encoding="utf-8")
 
@@ -172,9 +209,13 @@ def main() -> None:
     by_speaker: Counter = Counter()
     chars = 0
     for c in cues:
-        sp = speaker_info(c, units)
-        by_speaker[sp.get("name") or sp.get("kind") if sp else "?"] += 1
         chars += len(c.get("text") or "")
+    for conv in conversations:
+        for l in conv["lines"]:
+            if l.get("kind") != "cue" or not l.get("text_key"):
+                continue
+            sp = l.get("speaker") or {}
+            by_speaker[sp.get("name") or sp.get("kind") or "?"] += 1
     anim = Counter(c.get("animation") for c in cues)
     stats = [
         f"# Conversation stats ({args.locale})",
@@ -186,8 +227,10 @@ def main() -> None:
         f"- cue text chars: {chars:,} (~{chars//4:,} tokens)",
         f"- nodes not reachable from any dialog: {len(unreached)}",
         f"- units referenced: {len(units)}",
+        f"- default_speaker cues resolved to an NPC by dialog majority: {resolution['resolved']} "
+        f"(left ambiguous: {resolution['ambiguous']})",
         "",
-        "## Cues per speaker (top 40)",
+        "## Cues per speaker (top 40, after default_speaker resolution)",
         "",
         *[f"- {name}: {n}" for name, n in by_speaker.most_common(40)],
         "",

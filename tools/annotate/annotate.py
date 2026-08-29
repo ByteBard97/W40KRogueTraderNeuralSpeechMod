@@ -116,29 +116,37 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--shard", default="0/1", help="i/n - annotate conversations where hash%%n==i")
     ap.add_argument("--merge", action="store_true", help="merge cache into annotations.enGB.json and exit")
+    ap.add_argument("--input", default=None, help="override conversations JSON (default data/conversations.enGB.json)")
+    ap.add_argument("--cache-dir", default=None, help="override cache dir (default data/annotations/cache)")
+    ap.add_argument("--host", default="http://localhost:11434", help="ollama host")
     args = ap.parse_args()
 
-    CACHE.mkdir(parents=True, exist_ok=True)
-    convs = json.load(open(ROOT / "data/conversations.enGB.json", encoding="utf-8"))
+    cache_dir = Path(args.cache_dir) if args.cache_dir else CACHE
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    convs = json.load(open(args.input or (ROOT / "data/conversations.enGB.json"), encoding="utf-8"))
 
     if args.merge:
         merged = {}
-        for f in CACHE.glob("*.json"):
+        for f in cache_dir.glob("*.json"):
             for r in json.load(open(f, encoding="utf-8"))["lines"]:
                 merged[r["guid"]] = {k: v for k, v in r.items() if k != "guid"}
         out = ROOT / "data/annotations/annotations.enGB.json"
         out.write_text(json.dumps(merged, ensure_ascii=False, indent=0), encoding="utf-8")
-        print(f"merged {len(merged)} annotations from {len(list(CACHE.glob('*.json')))} conversations -> {out}")
+        print(f"merged {len(merged)} annotations from {len(list(cache_dir.glob('*.json')))} conversations -> {out}")
         return
 
     shard_i, shard_n = (int(x) for x in args.shard.split("/"))
-    backend = BACKENDS[args.backend]
+    raw_backend = BACKENDS[args.backend]
+    if args.backend == "ollama":
+        backend = lambda system, user, schema, model: raw_backend(system, user, schema, model=model, host=args.host)  # noqa: E731
+    else:
+        backend = raw_backend
     done = failed = 0
     t0 = time.time()
     for conv in convs:
         if int(conv["guid"][:8], 16) % shard_n != shard_i:
             continue
-        cache_file = CACHE / f"{conv['guid']}.json"
+        cache_file = cache_dir / f"{conv['guid']}.json"
         if cache_file.exists():
             continue
         try:

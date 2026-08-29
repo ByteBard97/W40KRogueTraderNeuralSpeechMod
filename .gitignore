@@ -11,3 +11,9 @@ data/strings.enGB.json
 data/conversations.enGB.json
 data/voices/
 .venv-tts/
+data/annotations/cache*/
+data/annotations/annotations.enGB.json
+data/bakeoff/*/*.wav
+tools/tts_bakeoff/.venv-qwen/
+reference/index-tts/
+reference/fish-speech/

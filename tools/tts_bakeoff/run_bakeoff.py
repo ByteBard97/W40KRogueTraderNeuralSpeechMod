@@ -64,8 +64,10 @@ def main() -> None:
         sp = item["speaker"]
         prompt_wav = prompt_text = None
         bank = prompts.get(sp) or []
-        if bank:
-            p = bank[min(args.prompt_rank, len(bank)) - 1]
+        # some engines need >=5s prompts; prefer the requested rank among long-enough clips
+        usable = [p for p in bank if p.get("duration", 0) >= 5.5] or bank
+        if usable:
+            p = usable[min(args.prompt_rank, len(usable)) - 1]
             prompt_wav = str(ROOT / "data/voices" / p["wav"])
             prompt_text = p["text"]
         wav_path = out_dir / f"{item['id']}_{sp}.wav"

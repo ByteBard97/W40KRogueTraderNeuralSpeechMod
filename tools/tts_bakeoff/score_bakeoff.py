@@ -48,7 +48,11 @@ def main() -> None:
     whisper = WhisperModel("small.en", device=device, compute_type="float16" if device == "cuda" else "int8")
 
     def embed(path: Path):
-        sig, sr = torchaudio.load(str(path))
+        import soundfile as sf
+        data, sr = sf.read(str(path), dtype="float32", always_2d=True)
+        sig = torch.from_numpy(data.T)
+        if sig.shape[0] > 1:
+            sig = sig.mean(dim=0, keepdim=True)
         if sr != 16000:
             sig = torchaudio.functional.resample(sig, sr, 16000)
         with torch.no_grad():
