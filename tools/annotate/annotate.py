@@ -98,22 +98,40 @@ def validate(result: dict, lines: list[dict]) -> list[dict]:
     return out
 
 
+MAX_CHUNK = 30  # lines per LLM call - matches the corpus's own median conversation size (most
+                 # conversations already run fine at this scale); a 42-line test call took 195s
+                 # and still dropped 3 guids, so bigger chunks mean rarer but far more expensive
+                 # retries, not real time saved
+
+
 def annotate_conv(conv: dict, backend, model: str) -> list[dict] | None:
     user, lines = conv_payload(conv)
     if not lines:
         return []
-    # split recursively if the model can't handle the whole conversation
-    def go(lines_subset: list[dict], depth=0) -> list[dict]:
+
+    # Split further if the model drops a guid; bounded by chunk size, not recursion depth - a
+    # depth cap alone can't reach a small-enough chunk for a very long conversation (some run
+    # 1000+ lines, e.g. the multi-companion epilogue montage), so it must give up long before
+    # getting anywhere near a reliable size.
+    def go(lines_subset: list[dict]) -> list[dict]:
         script = "\n".join(f"[{l['guid']}] {l['speaker']}: {l['text']}" for l in lines_subset)
         user = f"Annotate every line.\n\n{script}"
         try:
             result = backend(SYSTEM, user, JSON_SCHEMA, model=model)
             return validate(result, lines_subset)
         except BackendError:
-            if depth >= 3 or len(lines_subset) <= 2:
+            if len(lines_subset) <= 2:
                 raise
             mid = len(lines_subset) // 2
-            return go(lines_subset[:mid], depth + 1) + go(lines_subset[mid:], depth + 1)
+            return go(lines_subset[:mid]) + go(lines_subset[mid:])
+
+    # Pre-chunk long conversations instead of always attempting the whole thing first and
+    # relying on failure-triggered halving to eventually find a workable size - for an
+    # already-oversized first call, that wastes a guaranteed-to-fail attempt before it even
+    # starts working.
+    if len(lines) > MAX_CHUNK:
+        chunks = [lines[i:i + MAX_CHUNK] for i in range(0, len(lines), MAX_CHUNK)]
+        return [r for chunk in chunks for r in go(chunk)]
     return go(lines)
 
 

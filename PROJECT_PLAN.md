@@ -105,11 +105,19 @@ an opt-in local tool builds voice references from the *user's own* game files.
 
 ### Next (rough order)
 - [ ] **Bulk annotation pass in progress**: 1,329 conversations, sharded Linux (RTX 5080,
-      qwen3:8b via ollama) + Windows (RTX 4070, same model) - both workers alive and producing
-      output, ~40+/665 per shard so far, zero failures. Model choice is settled (see above) -
-      just let it run to completion, then `--merge`, sample-check against compare_to_gold.py,
-      and copy the merged file to src/RogueTraderNeuralSpeechMod/Voice/annotations.enGB.json so
-      it ships (the csproj's copy-item is already conditioned on that file existing).
+      qwen3:8b via ollama) + Windows (RTX 4070, same model). Caught and fixed a real bug at
+      ~10% through the corpus: the recursive halving-retry (for when the model drops a guid)
+      was capped at depth 3, which for the long tail of large conversations (50 run >200 lines;
+      the biggest, a multi-companion epilogue montage, runs 1,363) never reaches a small enough
+      chunk to reliably succeed - those conversations failed permanently, every time, on both
+      machines. Fixed in tools/annotate/annotate.py: conversations are now pre-chunked to <=30
+      lines up front, and the retry-halving is bounded by chunk size (down to 2 lines) rather
+      than depth, so it can't give up early regardless of how long the conversation is. Verified
+      against the two known-bad conversations before rolling out; both workers restarted with
+      the fix (cache-file resumability means only previously-failed conversations need to
+      re-run). Once complete: `--merge`, sample-check against compare_to_gold.py, and copy the
+      merged file to src/RogueTraderNeuralSpeechMod/Voice/annotations.enGB.json so it ships (the
+      csproj's copy-item is already conditioned on that file existing).
 - [ ] Have an actual human (the user) confirm they can HEAR the test lines - the automated
       self-test confirms MCI returns success codes, which is strong evidence but not literally
       the same as a human ear on real speakers. Cheap: run `speech_test.request` again without
