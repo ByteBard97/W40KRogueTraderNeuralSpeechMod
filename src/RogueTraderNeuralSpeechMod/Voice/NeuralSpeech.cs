@@ -65,12 +65,33 @@ public class NeuralSpeech : ISpeech
         }
         // Matches upstream: gender-specific routing for dialog lines is gated behind this
         // setting; UseProtagonistSpecificVoice only affects SpeakAs call sites (player answers).
-        if (Main.Settings?.UseGenderSpecificVoices != true)
+        var cueGuid = Game.Instance?.DialogController?.CurrentCue?.Text?.Key;
+        var speaker = Game.Instance?.DialogController?.CurrentSpeaker;
+        var guid = speaker?.Blueprint?.AssetGuid;
+        if (!string.IsNullOrEmpty(guid) && SpeakerMap.Resolve(guid) != null)
         {
-            Speak(text, delay);
+            SpeakAsCharacter(text, guid, VoiceType.Narrator, delay, cueGuid);
             return;
         }
-        SpeakAs(text, ResolveCurrentSpeakerVoice(), delay);
+
+        if (Main.Settings?.UseGenderSpecificVoices != true)
+        {
+            SpeakAs(text, VoiceType.Narrator, delay, cueGuid);
+            return;
+        }
+        SpeakAs(text, ResolveCurrentSpeakerVoice(), delay, cueGuid);
+    }
+
+    public void SpeakAsCharacter(string text, string blueprintGuid, VoiceType fallbackVoice, float delay = 0f, string cueGuid = null)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            Main.Logger?.Warning("No text to speak!");
+            return;
+        }
+        text = TagPattern.Replace(text.PrepareText(), "");
+        var resolved = SpeakerMap.Resolve(blueprintGuid) ?? SpeakerFor(fallbackVoice);
+        NeuralVoiceUnity.Speak(text, resolved, delay, cueGuid);
     }
 
     /// <summary>
@@ -92,7 +113,7 @@ public class NeuralSpeech : ISpeech
         };
     }
 
-    public void SpeakAs(string text, VoiceType voiceType, float delay = 0f)
+    public void SpeakAs(string text, VoiceType voiceType, float delay = 0f, string cueGuid = null)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -100,7 +121,7 @@ public class NeuralSpeech : ISpeech
             return;
         }
         text = TagPattern.Replace(text.PrepareText(), "");
-        NeuralVoiceUnity.Speak(text, SpeakerFor(voiceType), delay);
+        NeuralVoiceUnity.Speak(text, SpeakerFor(voiceType), delay, cueGuid);
     }
 
     public void Speak(string text, float delay = 0f)

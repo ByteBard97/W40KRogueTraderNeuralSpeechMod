@@ -38,36 +38,88 @@ an opt-in local tool builds voice references from the *user's own* game files.
       documented ceiling (~7,297 cues are dynamic-NPC templates, unresolvable offline - same
       limitation AIVO hit; runtime CurrentSpeaker resolution is the real fix, see memory)
 - [x] 40K/RT pronunciation lexicon v1 (191 terms, IPA + respelling) at data/lexicon/lexicon.json
-- [x] TTS bake-off infra + first two engines fully run: chatterbox_turbo (142/142,
-      sim=0.622 wer=0.100) and qwen3_tts (142/142). IndexTTS-2.5 and fish-speech envs built,
-      not yet run through the bake-off.
+- [x] TTS bake-off complete for the three license-clean/reference candidates: chatterbox_turbo
+      (sim=0.640, wer=0.097, MIT), qwen3_tts (sim=0.642, **wer=0.041 best**, Apache 2.0),
+      indextts2 (sim=0.628, wer=0.067, weights non-commercial - reference only, not a release
+      candidate). All three cluster within ECAPA noise on similarity; WER and speed are the
+      real discriminators. Fish Audio S2 was dropped before completing a run: non-commercial,
+      largest model, smoke test hung indefinitely holding 7-9 GB VRAM for zero payoff on an
+      axis that doesn't discriminate between engines anyway. See data/bakeoff/RESULTS.md.
 - [x] Gold annotation set: 255 hand-checked lines (14 conversations, all companions + narrator),
-      data/annotations/gold.json. compare_to_gold.py scorer written.
+      data/annotations/gold.json. compare_to_gold.py scorer written. Tracked so far:
+      qwen3:8b_no_think emotion_match=0.470, qwen3:8b_calibrated=0.517 (after adding explicit
+      neutral-bias calibration to the SYSTEM prompt - see data/annotations/gold_comparison.md).
+      claude-haiku-cli comparison tried and abandoned: `claude -p` keeps its assistant persona
+      even with --restricted --strict-mcp-config (can refuse a prompt it reads as suspicious)
+      and has no constrained decoding (JSON extracted from prose, 2/2 gold conversations failed
+      outright vs zero failures from the ollama bulk run so far) - worse fit for unattended bulk
+      classification regardless of any accuracy difference. See gold_comparison.md. Sticking
+      with qwen3:8b_calibrated.
+- [x] **Sidecar smoke-tested end-to-end**: /health, /voices, /synth (incl. annotation-driven
+      synthesis and GUID+content-hash cache hit/miss) all verified working.
+- [x] **Unity-audio spike resolved (was the biggest open risk)**: confirmed via UnityPy against
+      `globalgamemanagers` that `AudioManager.m_DisableAudio = True` - Unity's own audio engine
+      is off in this game (Wwise-only title), so the original NeuralVoiceUnity design
+      (AudioSource/AudioClip) would have been silently silent in-game. Fixed by bypassing both
+      Unity and Wwise audio entirely: NativeAudioPlayer (Voice/NativeAudioPlayer.cs) plays WAVs
+      straight to the OS device - MCI (winmm.dll) on Windows/Proton (Wine implements winmm
+      completely, so this works unmodified under Proton), afplay/paplay/aplay subprocess on
+      macOS/native Linux. NeuralVoiceUnity now fetches raw bytes via UnityWebRequest (unaffected
+      by disabled Unity audio - it's networking, not audio) and hands the WAV to
+      NativeAudioPlayer instead of AudioSource.Play(). Not yet verified with real audio hardware
+      in a live game session (see Next).
+- [x] **Per-character voice routing**: ISpeech gained `SpeakAsCharacter(text, blueprintGuid,
+      fallbackVoice, delay, cueGuid)`. Voice/speaker_map.json (generated from data/raw/
+      script.json's per-unit character_name, cross-referenced against the prompt bank) maps
+      21/22 known companions' blueprint AssetGuid -> prompt-bank speaker name (only "Manipulus"
+      unmatched - name-collision, falls back to gender voice). Keyed on AssetGuid, not the
+      localized CharacterName, so it survives non-enGB locales. Wired into Dialog_Patch (via
+      NeuralSpeech.SpeakDialog, which now resolves DialogController.CurrentSpeaker's blueprint
+      guid before falling back to gender-based routing) and BarkPlayer_Patch (bark speaker's
+      own guid, same fallback chain).
+- [x] **Runtime annotation plumbing wired** (was previously a dead end - NeuralVoiceUnity only
+      sent {text, speaker}): NeuralVoiceUnity/NeuralSpeech now thread a `cueGuid` through
+      SpeakDialog/SpeakAs/SpeakAsCharacter, and AnnotationStore.cs looks it up in a shipped
+      Voice/annotations.enGB.json (same load pattern as speaker_map.json - gracefully absent
+      until the bulk annotation pass below is merged and copied in). The sidecar's /synth
+      already expected {cue_guid, annotation}; this closes the gap on the C# side.
 - [x] **Runtime mod fork**: src/RogueTraderNeuralSpeechMod, forked from Osmodium SpeechMod (MIT,
-      attribution preserved in LICENSE-SpeechMod-upstream.txt). Builds clean (0 errors) against
-      game DLLs and deploys via `dotnet build -t:Deploy`. NeuralSpeech (ISpeech impl) + 
-      NeuralVoiceUnity (UnityWebRequest -> sidecar -> AudioClip) replace the SAPI/`say` backends;
-      same platform now works everywhere. v0.1 scope: routes through upstream's 4 VoiceType
-      categories (Narrator/Female/Male/Protagonist), NOT yet per-character (Heinrix-as-Heinrix)
-      voices - that needs a new ISpeech entry point taking a speaker GUID, next up.
-      NOT YET RUN IN-GAME (compiles + deploys only; no game launch since the export run).
+      attribution preserved in LICENSE-SpeechMod-upstream.txt). Builds clean (0 errors, verified
+      on both Linux and native Windows) against game DLLs and deploys via `dotnet build
+      -t:Deploy`.
+- [x] **First live in-game audio test: PASSED.** Added a `speech_test.request` control-file
+      self-test to Main.cs (mirrors DialogueExporter's pattern): on an unattended launch it fires
+      SpeakPreview (narrator) and SpeakAsCharacter (a known companion) a few seconds after load,
+      logs results, and quits. Round 1 caught a real bug: two concurrent Speak() calls wrote to
+      the same fixed temp WAV path, and MCI holding the first file open for playback caused an
+      `IOException: Sharing violation` on the second write - a real race that would hit in normal
+      play (overlapping bark + dialogue line, quick successive answers), not a test artifact.
+      Fixed with a unique GUID-named temp file per request (NativeAudioPlayer deletes the
+      previous one once its device is closed). Round 3 (after also fixing ambiguous logging)
+      confirmed clean: `Player.log` shows `NativeAudioPlayer: MCI open rc=0 play rc=0` for both
+      calls, on two distinct files, no exceptions - the full chain (sidecar HTTP -> WAV bytes ->
+      unique temp file -> winmm MCI under Proton) works end-to-end.
 - [x] **TTS sidecar**: src/TtsSidecar/server.py (FastAPI), lexicon.py (applies data/lexicon),
       annotation_bridge.py (neutral schema -> per-engine directives), GUID+content-hash disk
-      cache. Engine adapters shared with the bake-off harness at tools/tts_engines/. NOT YET
-      SMOKE-TESTED end-to-end (GPU was saturated by bake-off runs when written).
+      cache. Engine adapters shared with the bake-off harness at tools/tts_engines/.
 
 ### Next (rough order)
-- [ ] Smoke-test the sidecar end-to-end (start it, curl /synth, confirm cache hit/miss)
-- [ ] Score qwen3_tts bake-off; run IndexTTS-2.5 + fish-speech through the bake-off; build a
-      blind A/B listening page for the user + friends
-- [ ] Bulk annotation pass (local models, sharded across Linux 5080 + Mac M4 + Windows 4070),
-      validated against the gold set via compare_to_gold.py before trusting it
-- [ ] Spike: is Unity audio enabled in-game? (the mod assumes yes; untested) - decides whether
-      NeuralVoiceUnity's AudioSource approach works or needs a Wwise external-source swap
-- [ ] Per-character voice routing: new ISpeech method taking a speaker GUID (not just VoiceType),
-      wired through Dialog_Patch/BarkPlayer_Patch/DialogAnswerBaseView_Patch, sidecar voice map
-      keyed by data/voices/prompts/prompts.json
-- [ ] First actual in-game test (requires launching the game - check with user first)
+- [ ] **Bulk annotation pass in progress**: 1,329 conversations, sharded Linux (RTX 5080,
+      qwen3:8b via ollama) + Windows (RTX 4070, same model) - both workers alive and producing
+      output, ~40+/665 per shard so far, zero failures. Model choice is settled (see above) -
+      just let it run to completion, then `--merge`, sample-check against compare_to_gold.py,
+      and copy the merged file to src/RogueTraderNeuralSpeechMod/Voice/annotations.enGB.json so
+      it ships (the csproj's copy-item is already conditioned on that file existing).
+- [ ] Have an actual human (the user) confirm they can HEAR the test lines - the automated
+      self-test confirms MCI returns success codes, which is strong evidence but not literally
+      the same as a human ear on real speakers. Cheap: run `speech_test.request` again without
+      the "quit" content and stay at the main menu to listen.
+- [ ] Build a blind A/B listening page for the user + friends - now the actual tiebreaker for
+      the default engine, since chatterbox/qwen3/indextts2 are statistically indistinguishable
+      on the objective bake-off metrics (WER and speed are known trade-offs, not "sounds right").
+- [ ] Exercise Chatterbox's paralinguistic tags / Qwen3's instruct-text path against real
+      annotation output (currently bake-off used plain text only; the two pipelines haven't been
+      combined yet).
 - [ ] Later: user-side voice-clone builder tool; Windows packaging; Nexus/GitHub release
 
 ## Environment

@@ -1,0 +1,997 @@
+{
+ "engine": "indextts2",
+ "load_seconds": 14.3,
+ "items": [
+  {
+   "id": "t000",
+   "speaker": "Abelard",
+   "chars": 129
+  },
+  {
+   "id": "t001",
+   "speaker": "Abelard",
+   "chars": 324
+  },
+  {
+   "id": "t002",
+   "speaker": "Abelard",
+   "chars": 661,
+   "synth_seconds": 11.04,
+   "audio_seconds": 33.94
+  },
+  {
+   "id": "t003",
+   "speaker": "Abelard",
+   "chars": 26,
+   "synth_seconds": 1.13,
+   "audio_seconds": 2.43
+  },
+  {
+   "id": "t004",
+   "speaker": "Abelard",
+   "chars": 182,
+   "synth_seconds": 3.32,
+   "audio_seconds": 11.33
+  },
+  {
+   "id": "t005",
+   "speaker": "Abelard",
+   "chars": 30,
+   "synth_seconds": 1.08,
+   "audio_seconds": 2.64
+  },
+  {
+   "id": "t006",
+   "speaker": "Abelard",
+   "chars": 152,
+   "synth_seconds": 2.7,
+   "audio_seconds": 8.54
+  },
+  {
+   "id": "t007",
+   "speaker": "Abelard",
+   "chars": 621,
+   "synth_seconds": 10.14,
+   "audio_seconds": 33.46
+  },
+  {
+   "id": "t008",
+   "speaker": "Abelard",
+   "chars": 26,
+   "synth_seconds": 0.91,
+   "audio_seconds": 2.19
+  },
+  {
+   "id": "t009",
+   "speaker": "Abelard",
+   "chars": 167,
+   "synth_seconds": 3.21,
+   "audio_seconds": 10.54
+  },
+  {
+   "id": "t010",
+   "speaker": "Argenta",
+   "chars": 143,
+   "synth_seconds": 2.76,
+   "audio_seconds": 7.99
+  },
+  {
+   "id": "t011",
+   "speaker": "Argenta",
+   "chars": 125,
+   "synth_seconds": 2.67,
+   "audio_seconds": 8.19
+  },
+  {
+   "id": "t012",
+   "speaker": "Argenta",
+   "chars": 549,
+   "synth_seconds": 10.63,
+   "audio_seconds": 34.77
+  },
+  {
+   "id": "t013",
+   "speaker": "Argenta",
+   "chars": 28,
+   "synth_seconds": 1.28,
+   "audio_seconds": 3.39
+  },
+  {
+   "id": "t014",
+   "speaker": "Argenta",
+   "chars": 177,
+   "synth_seconds": 3.53,
+   "audio_seconds": 11.9
+  },
+  {
+   "id": "t015",
+   "speaker": "Argenta",
+   "chars": 114,
+   "synth_seconds": 2.48,
+   "audio_seconds": 7.66
+  },
+  {
+   "id": "t016",
+   "speaker": "Argenta",
+   "chars": 80,
+   "synth_seconds": 2.0,
+   "audio_seconds": 6.39
+  },
+  {
+   "id": "t017",
+   "speaker": "Argenta",
+   "chars": 527,
+   "synth_seconds": 8.52,
+   "audio_seconds": 28.03
+  },
+  {
+   "id": "t018",
+   "speaker": "Argenta",
+   "chars": 28,
+   "synth_seconds": 1.26,
+   "audio_seconds": 3.31
+  },
+  {
+   "id": "t019",
+   "speaker": "Argenta",
+   "chars": 126,
+   "synth_seconds": 2.63,
+   "audio_seconds": 8.22
+  },
+  {
+   "id": "t020",
+   "speaker": "Cassia",
+   "chars": 110,
+   "synth_seconds": 2.2,
+   "audio_seconds": 6.3
+  },
+  {
+   "id": "t021",
+   "speaker": "Cassia",
+   "chars": 132,
+   "synth_seconds": 2.27,
+   "audio_seconds": 7.34
+  },
+  {
+   "id": "t022",
+   "speaker": "Cassia",
+   "chars": 602,
+   "synth_seconds": 9.62,
+   "audio_seconds": 30.86
+  },
+  {
+   "id": "t023",
+   "speaker": "Cassia",
+   "chars": 25,
+   "synth_seconds": 1.15,
+   "audio_seconds": 2.91
+  },
+  {
+   "id": "t024",
+   "speaker": "Cassia",
+   "chars": 134,
+   "synth_seconds": 2.2,
+   "audio_seconds": 7.14
+  },
+  {
+   "id": "t025",
+   "speaker": "Cassia",
+   "chars": 88,
+   "synth_seconds": 1.83,
+   "audio_seconds": 5.58
+  },
+  {
+   "id": "t026",
+   "speaker": "Cassia",
+   "chars": 82,
+   "synth_seconds": 1.84,
+   "audio_seconds": 5.55
+  },
+  {
+   "id": "t027",
+   "speaker": "Cassia",
+   "chars": 590,
+   "synth_seconds": 9.45,
+   "audio_seconds": 31.02
+  },
+  {
+   "id": "t028",
+   "speaker": "Cassia",
+   "chars": 25,
+   "synth_seconds": 0.99,
+   "audio_seconds": 2.43
+  },
+  {
+   "id": "t029",
+   "speaker": "Cassia",
+   "chars": 195,
+   "synth_seconds": 3.51,
+   "audio_seconds": 11.62
+  },
+  {
+   "id": "t030",
+   "speaker": "Heinrix",
+   "chars": 329,
+   "synth_seconds": 5.62,
+   "audio_seconds": 17.68
+  },
+  {
+   "id": "t031",
+   "speaker": "Heinrix",
+   "chars": 190,
+   "synth_seconds": 3.45,
+   "audio_seconds": 10.62
+  },
+  {
+   "id": "t032",
+   "speaker": "Heinrix",
+   "chars": 726,
+   "synth_seconds": 11.68,
+   "audio_seconds": 37.84
+  },
+  {
+   "id": "t033",
+   "speaker": "Heinrix",
+   "chars": 25,
+   "synth_seconds": 1.13,
+   "audio_seconds": 2.67
+  },
+  {
+   "id": "t034",
+   "speaker": "Heinrix",
+   "chars": 94,
+   "synth_seconds": 2.01,
+   "audio_seconds": 6.22
+  },
+  {
+   "id": "t035",
+   "speaker": "Heinrix",
+   "chars": 161,
+   "synth_seconds": 3.41,
+   "audio_seconds": 10.86
+  },
+  {
+   "id": "t036",
+   "speaker": "Heinrix",
+   "chars": 209,
+   "synth_seconds": 4.62,
+   "audio_seconds": 13.37
+  },
+  {
+   "id": "t037",
+   "speaker": "Heinrix",
+   "chars": 638,
+   "synth_seconds": 12.82,
+   "audio_seconds": 35.53
+  },
+  {
+   "id": "t038",
+   "speaker": "Heinrix",
+   "chars": 26,
+   "synth_seconds": 1.34,
+   "audio_seconds": 2.95
+  },
+  {
+   "id": "t039",
+   "speaker": "Heinrix",
+   "chars": 92,
+   "synth_seconds": 2.14,
+   "audio_seconds": 5.91
+  },
+  {
+   "id": "t040",
+   "speaker": "Idira",
+   "chars": 339,
+   "synth_seconds": 7.97,
+   "audio_seconds": 23.03
+  },
+  {
+   "id": "t041",
+   "speaker": "Idira",
+   "chars": 543,
+   "synth_seconds": 14.06,
+   "audio_seconds": 38.97
+  },
+  {
+   "id": "t042",
+   "speaker": "Idira",
+   "chars": 577,
+   "synth_seconds": 10.03,
+   "audio_seconds": 33.06
+  },
+  {
+   "id": "t043",
+   "speaker": "Idira",
+   "chars": 26,
+   "synth_seconds": 1.18,
+   "audio_seconds": 3.0
+  },
+  {
+   "id": "t044",
+   "speaker": "Idira",
+   "chars": 148,
+   "synth_seconds": 3.23,
+   "audio_seconds": 11.02
+  },
+  {
+   "id": "t045",
+   "speaker": "Idira",
+   "chars": 336,
+   "synth_seconds": 6.41,
+   "audio_seconds": 21.2
+  },
+  {
+   "id": "t046",
+   "speaker": "Idira",
+   "chars": 173,
+   "synth_seconds": 3.42,
+   "audio_seconds": 11.26
+  },
+  {
+   "id": "t047",
+   "speaker": "Idira",
+   "chars": 505,
+   "synth_seconds": 10.67,
+   "audio_seconds": 33.97
+  },
+  {
+   "id": "t048",
+   "speaker": "Idira",
+   "chars": 27,
+   "synth_seconds": 1.22,
+   "audio_seconds": 3.15
+  },
+  {
+   "id": "t049",
+   "speaker": "Idira",
+   "chars": 160,
+   "synth_seconds": 3.26,
+   "audio_seconds": 11.05
+  },
+  {
+   "id": "t050",
+   "speaker": "Jae",
+   "chars": 261,
+   "synth_seconds": 4.89,
+   "audio_seconds": 15.33
+  },
+  {
+   "id": "t051",
+   "speaker": "Jae",
+   "chars": 193,
+   "synth_seconds": 3.6,
+   "audio_seconds": 11.62
+  },
+  {
+   "id": "t052",
+   "speaker": "Jae",
+   "chars": 662,
+   "synth_seconds": 11.15,
+   "audio_seconds": 37.2
+  },
+  {
+   "id": "t053",
+   "speaker": "Jae",
+   "chars": 25,
+   "synth_seconds": 1.15,
+   "audio_seconds": 2.59
+  },
+  {
+   "id": "t054",
+   "speaker": "Jae",
+   "chars": 161,
+   "synth_seconds": 2.81,
+   "audio_seconds": 9.02
+  },
+  {
+   "id": "t055",
+   "speaker": "Jae",
+   "chars": 222,
+   "synth_seconds": 3.91,
+   "audio_seconds": 13.05
+  },
+  {
+   "id": "t056",
+   "speaker": "Jae",
+   "chars": 273,
+   "synth_seconds": 4.45,
+   "audio_seconds": 14.37
+  },
+  {
+   "id": "t057",
+   "speaker": "Jae",
+   "chars": 622,
+   "synth_seconds": 10.57,
+   "audio_seconds": 34.18
+  },
+  {
+   "id": "t058",
+   "speaker": "Jae",
+   "chars": 25,
+   "synth_seconds": 1.16,
+   "audio_seconds": 2.79
+  },
+  {
+   "id": "t059",
+   "speaker": "Jae",
+   "chars": 146,
+   "synth_seconds": 2.84,
+   "audio_seconds": 9.14
+  },
+  {
+   "id": "t060",
+   "speaker": "Pasqal",
+   "chars": 191,
+   "synth_seconds": 5.04,
+   "audio_seconds": 16.25
+  },
+  {
+   "id": "t061",
+   "speaker": "Pasqal",
+   "chars": 49,
+   "synth_seconds": 1.83,
+   "audio_seconds": 5.5
+  },
+  {
+   "id": "t062",
+   "speaker": "Pasqal",
+   "chars": 614,
+   "synth_seconds": 12.51,
+   "audio_seconds": 39.45
+  },
+  {
+   "id": "t063",
+   "speaker": "Pasqal",
+   "chars": 25,
+   "synth_seconds": 1.41,
+   "audio_seconds": 3.78
+  },
+  {
+   "id": "t064",
+   "speaker": "Pasqal",
+   "chars": 134,
+   "synth_seconds": 3.33,
+   "audio_seconds": 11.02
+  },
+  {
+   "id": "t065",
+   "speaker": "Pasqal",
+   "chars": 295,
+   "synth_seconds": 6.88,
+   "audio_seconds": 22.48
+  },
+  {
+   "id": "t066",
+   "speaker": "Pasqal",
+   "chars": 357,
+   "synth_seconds": 7.29,
+   "audio_seconds": 24.2
+  },
+  {
+   "id": "t067",
+   "speaker": "Pasqal",
+   "chars": 573,
+   "synth_seconds": 11.37,
+   "audio_seconds": 37.82
+  },
+  {
+   "id": "t068",
+   "speaker": "Pasqal",
+   "chars": 25,
+   "synth_seconds": 1.38,
+   "audio_seconds": 3.63
+  },
+  {
+   "id": "t069",
+   "speaker": "Pasqal",
+   "chars": 143,
+   "synth_seconds": 3.8,
+   "audio_seconds": 12.54
+  },
+  {
+   "id": "t070",
+   "speaker": "Yrliet",
+   "chars": 327,
+   "synth_seconds": 5.64,
+   "audio_seconds": 18.25
+  },
+  {
+   "id": "t071",
+   "speaker": "Yrliet",
+   "chars": 75,
+   "synth_seconds": 1.66,
+   "audio_seconds": 4.99
+  },
+  {
+   "id": "t072",
+   "speaker": "Yrliet",
+   "chars": 647,
+   "synth_seconds": 10.69,
+   "audio_seconds": 35.25
+  },
+  {
+   "id": "t073",
+   "speaker": "Yrliet",
+   "chars": 25,
+   "synth_seconds": 1.15,
+   "audio_seconds": 2.83
+  },
+  {
+   "id": "t074",
+   "speaker": "Yrliet",
+   "chars": 181,
+   "synth_seconds": 3.34,
+   "audio_seconds": 11.18
+  },
+  {
+   "id": "t075",
+   "speaker": "Yrliet",
+   "chars": 241,
+   "synth_seconds": 4.57,
+   "audio_seconds": 15.21
+  },
+  {
+   "id": "t076",
+   "speaker": "Yrliet",
+   "chars": 163,
+   "synth_seconds": 3.12,
+   "audio_seconds": 9.86
+  },
+  {
+   "id": "t077",
+   "speaker": "Yrliet",
+   "chars": 646,
+   "synth_seconds": 10.69,
+   "audio_seconds": 35.49
+  },
+  {
+   "id": "t078",
+   "speaker": "Yrliet",
+   "chars": 25,
+   "synth_seconds": 1.01,
+   "audio_seconds": 2.51
+  },
+  {
+   "id": "t079",
+   "speaker": "Yrliet",
+   "chars": 94,
+   "synth_seconds": 1.8,
+   "audio_seconds": 5.47
+  },
+  {
+   "id": "t080",
+   "speaker": "Marazhai",
+   "chars": 119,
+   "synth_seconds": 3.11,
+   "audio_seconds": 9.06
+  },
+  {
+   "id": "t081",
+   "speaker": "Marazhai",
+   "chars": 95,
+   "synth_seconds": 2.81,
+   "audio_seconds": 8.46
+  },
+  {
+   "id": "t082",
+   "speaker": "Marazhai",
+   "chars": 557,
+   "synth_seconds": 13.93,
+   "audio_seconds": 40.93
+  },
+  {
+   "id": "t083",
+   "speaker": "Marazhai",
+   "chars": 25,
+   "synth_seconds": 1.28,
+   "audio_seconds": 3.07
+  },
+  {
+   "id": "t084",
+   "speaker": "Marazhai",
+   "chars": 106,
+   "synth_seconds": 2.89,
+   "audio_seconds": 9.1
+  },
+  {
+   "id": "t085",
+   "speaker": "Marazhai",
+   "chars": 176,
+   "synth_seconds": 4.18,
+   "audio_seconds": 13.9
+  },
+  {
+   "id": "t086",
+   "speaker": "Marazhai",
+   "chars": 32,
+   "synth_seconds": 1.46,
+   "audio_seconds": 4.03
+  },
+  {
+   "id": "t087",
+   "speaker": "Marazhai",
+   "chars": 537,
+   "synth_seconds": 13.52,
+   "audio_seconds": 40.32
+  },
+  {
+   "id": "t088",
+   "speaker": "Marazhai",
+   "chars": 25,
+   "synth_seconds": 1.36,
+   "audio_seconds": 3.59
+  },
+  {
+   "id": "t089",
+   "speaker": "Marazhai",
+   "chars": 105,
+   "synth_seconds": 2.91,
+   "audio_seconds": 9.14
+  },
+  {
+   "id": "t090",
+   "speaker": "Ulfar",
+   "chars": 173,
+   "synth_seconds": 4.67,
+   "audio_seconds": 14.98
+  },
+  {
+   "id": "t091",
+   "speaker": "Ulfar",
+   "chars": 256,
+   "synth_seconds": 5.11,
+   "audio_seconds": 17.12
+  },
+  {
+   "id": "t092",
+   "speaker": "Ulfar",
+   "chars": 402,
+   "synth_seconds": 7.27,
+   "audio_seconds": 24.2
+  },
+  {
+   "id": "t093",
+   "speaker": "Ulfar",
+   "chars": 28,
+   "synth_seconds": 1.11,
+   "audio_seconds": 3.07
+  },
+  {
+   "id": "t094",
+   "speaker": "Ulfar",
+   "chars": 91,
+   "synth_seconds": 2.13,
+   "audio_seconds": 7.02
+  },
+  {
+   "id": "t095",
+   "speaker": "Ulfar",
+   "chars": 347,
+   "synth_seconds": 5.86,
+   "audio_seconds": 19.68
+  },
+  {
+   "id": "t096",
+   "speaker": "Ulfar",
+   "chars": 79,
+   "synth_seconds": 1.9,
+   "audio_seconds": 6.03
+  },
+  {
+   "id": "t097",
+   "speaker": "Ulfar",
+   "chars": 401,
+   "synth_seconds": 7.02,
+   "audio_seconds": 23.6
+  },
+  {
+   "id": "t098",
+   "speaker": "Ulfar",
+   "chars": 32,
+   "synth_seconds": 1.24,
+   "audio_seconds": 3.39
+  },
+  {
+   "id": "t099",
+   "speaker": "Ulfar",
+   "chars": 137,
+   "synth_seconds": 3.25,
+   "audio_seconds": 10.54
+  },
+  {
+   "id": "t100",
+   "speaker": "Kibellah",
+   "chars": 46,
+   "synth_seconds": 1.86,
+   "audio_seconds": 4.59
+  },
+  {
+   "id": "t101",
+   "speaker": "Kibellah",
+   "chars": 321,
+   "synth_seconds": 6.43,
+   "audio_seconds": 21.32
+  },
+  {
+   "id": "t102",
+   "speaker": "Kibellah",
+   "chars": 572,
+   "synth_seconds": 10.22,
+   "audio_seconds": 32.73
+  },
+  {
+   "id": "t103",
+   "speaker": "Kibellah",
+   "chars": 25,
+   "synth_seconds": 1.24,
+   "audio_seconds": 3.27
+  },
+  {
+   "id": "t104",
+   "speaker": "Kibellah",
+   "chars": 145,
+   "synth_seconds": 3.8,
+   "audio_seconds": 12.74
+  },
+  {
+   "id": "t105",
+   "speaker": "Kibellah",
+   "chars": 119,
+   "synth_seconds": 3.21,
+   "audio_seconds": 10.62
+  },
+  {
+   "id": "t106",
+   "speaker": "Kibellah",
+   "chars": 57,
+   "synth_seconds": 1.81,
+   "audio_seconds": 5.5
+  },
+  {
+   "id": "t107",
+   "speaker": "Kibellah",
+   "chars": 445,
+   "synth_seconds": 10.67,
+   "audio_seconds": 27.67
+  },
+  {
+   "id": "t108",
+   "speaker": "Kibellah",
+   "chars": 26,
+   "synth_seconds": 2.42,
+   "audio_seconds": 3.23
+  },
+  {
+   "id": "t109",
+   "speaker": "Kibellah",
+   "chars": 94,
+   "synth_seconds": 4.71,
+   "audio_seconds": 7.58
+  },
+  {
+   "id": "t110",
+   "speaker": "Solomorne",
+   "chars": 69,
+   "synth_seconds": 4.07,
+   "audio_seconds": 5.31
+  },
+  {
+   "id": "t111",
+   "speaker": "Solomorne",
+   "chars": 223,
+   "synth_seconds": 7.94,
+   "audio_seconds": 13.62
+  },
+  {
+   "id": "t112",
+   "speaker": "Solomorne",
+   "chars": 704,
+   "synth_seconds": 24.29,
+   "audio_seconds": 40.89
+  },
+  {
+   "id": "t113",
+   "speaker": "Solomorne",
+   "chars": 25,
+   "synth_seconds": 1.82,
+   "audio_seconds": 2.31
+  },
+  {
+   "id": "t114",
+   "speaker": "Solomorne",
+   "chars": 96,
+   "synth_seconds": 4.07,
+   "audio_seconds": 6.14
+  },
+  {
+   "id": "t115",
+   "speaker": "Solomorne",
+   "chars": 185,
+   "synth_seconds": 7.69,
+   "audio_seconds": 12.29
+  },
+  {
+   "id": "t116",
+   "speaker": "Solomorne",
+   "chars": 77,
+   "synth_seconds": 3.76,
+   "audio_seconds": 5.83
+  },
+  {
+   "id": "t117",
+   "speaker": "Solomorne",
+   "chars": 484,
+   "synth_seconds": 16.59,
+   "audio_seconds": 32.46
+  },
+  {
+   "id": "t118",
+   "speaker": "Solomorne",
+   "chars": 25,
+   "synth_seconds": 2.06,
+   "audio_seconds": 2.67
+  },
+  {
+   "id": "t119",
+   "speaker": "Solomorne",
+   "chars": 93,
+   "synth_seconds": 4.25,
+   "audio_seconds": 6.39
+  },
+  {
+   "id": "t120",
+   "speaker": "Eogunn",
+   "chars": 224,
+   "synth_seconds": 5.98,
+   "audio_seconds": 12.65
+  },
+  {
+   "id": "t121",
+   "speaker": "Eogunn",
+   "chars": 215,
+   "synth_seconds": 8.83,
+   "audio_seconds": 14.85
+  },
+  {
+   "id": "t122",
+   "speaker": "Eogunn",
+   "chars": 718,
+   "synth_seconds": 20.98,
+   "audio_seconds": 40.78
+  },
+  {
+   "id": "t123",
+   "speaker": "Eogunn",
+   "chars": 26,
+   "synth_seconds": 2.23,
+   "audio_seconds": 2.95
+  },
+  {
+   "id": "t124",
+   "speaker": "Eogunn",
+   "chars": 148,
+   "synth_seconds": 5.55,
+   "audio_seconds": 8.63
+  },
+  {
+   "id": "t125",
+   "speaker": "Eogunn",
+   "chars": 241,
+   "synth_seconds": 8.95,
+   "audio_seconds": 13.98
+  },
+  {
+   "id": "t126",
+   "speaker": "Eogunn",
+   "chars": 290,
+   "synth_seconds": 12.87,
+   "audio_seconds": 19.12
+  },
+  {
+   "id": "t127",
+   "speaker": "Eogunn",
+   "chars": 592,
+   "synth_seconds": 22.03,
+   "audio_seconds": 34.97
+  },
+  {
+   "id": "t128",
+   "speaker": "Eogunn",
+   "chars": 28,
+   "synth_seconds": 2.15,
+   "audio_seconds": 2.51
+  },
+  {
+   "id": "t129",
+   "speaker": "Eogunn",
+   "chars": 172,
+   "synth_seconds": 7.52,
+   "audio_seconds": 10.94
+  },
+  {
+   "id": "t130",
+   "speaker": "narrator",
+   "chars": 89,
+   "synth_seconds": 5.45,
+   "audio_seconds": 6.99
+  },
+  {
+   "id": "t131",
+   "speaker": "narrator",
+   "chars": 465,
+   "synth_seconds": 17.76,
+   "audio_seconds": 27.71
+  },
+  {
+   "id": "t132",
+   "speaker": "narrator",
+   "chars": 1054,
+   "synth_seconds": 39.5,
+   "audio_seconds": 63.45
+  },
+  {
+   "id": "t133",
+   "speaker": "narrator",
+   "chars": 60,
+   "synth_seconds": 2.5,
+   "audio_seconds": 4.83
+  },
+  {
+   "id": "t134",
+   "speaker": "narrator",
+   "chars": 198,
+   "synth_seconds": 7.27,
+   "audio_seconds": 12.82
+  },
+  {
+   "id": "t135",
+   "speaker": "narrator",
+   "chars": 129,
+   "synth_seconds": 5.67,
+   "audio_seconds": 9.69
+  },
+  {
+   "id": "t136",
+   "speaker": "narrator",
+   "chars": 150,
+   "synth_seconds": 5.92,
+   "audio_seconds": 9.98
+  },
+  {
+   "id": "t137",
+   "speaker": "narrator",
+   "chars": 833,
+   "synth_seconds": 26.28,
+   "audio_seconds": 48.56
+  },
+  {
+   "id": "t138",
+   "speaker": "narrator",
+   "chars": 60,
+   "synth_seconds": 2.86,
+   "audio_seconds": 4.67
+  },
+  {
+   "id": "t139",
+   "speaker": "narrator",
+   "chars": 185,
+   "synth_seconds": 6.2,
+   "audio_seconds": 11.58
+  },
+  {
+   "id": "t140",
+   "speaker": "narrator",
+   "chars": 523,
+   "synth_seconds": 12.18,
+   "audio_seconds": 32.38
+  },
+  {
+   "id": "t141",
+   "speaker": "narrator",
+   "chars": 195,
+   "synth_seconds": 5.48,
+   "audio_seconds": 13.73
+  }
+ ],
+ "rtf": 0.389
+}

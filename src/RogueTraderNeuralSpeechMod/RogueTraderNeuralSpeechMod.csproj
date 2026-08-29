@@ -25,6 +25,8 @@
   <ItemGroup>
     <None Include="Info.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Localization/enGB.json" CopyToOutputDirectory="PreserveNewest" Link="Localization/%(Filename)%(Extension)" />
+    <None Include="Voice/speaker_map.json" CopyToOutputDirectory="PreserveNewest" Link="Voice/%(Filename)%(Extension)" />
+    <None Include="Voice/annotations.enGB.json" CopyToOutputDirectory="PreserveNewest" Link="Voice/%(Filename)%(Extension)" Condition="Exists('Voice/annotations.enGB.json')" />
   </ItemGroup>
 
   <ItemGroup>

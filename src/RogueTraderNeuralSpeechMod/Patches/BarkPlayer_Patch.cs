@@ -100,40 +100,34 @@ public static class BarkExtensions
 
     public static void SpeakBark(string text, Entity entity)
     {
-        if (entity is not LightweightUnitEntity lightweightUnitEntity)
+        AbstractUnitEntity unitEntity = entity as LightweightUnitEntity ?? entity as AbstractUnitEntity;
+        if (unitEntity == null)
         {
-            if (entity is AbstractUnitEntity unitEntity)
-            {
-                SpeakBark(text, unitEntity.Gender);
-            }
-            else
-            {
-                SpeakBark(text);
-            }
+            SpeakBark(text);
+            return;
         }
-        else
+
+        var guid = unitEntity.Blueprint?.AssetGuid;
+        if (!string.IsNullOrEmpty(guid))
         {
-            SpeakBark(text, lightweightUnitEntity.Gender);
+            Main.Speech?.SpeakAsCharacter(text, guid, VoiceTypeFor(unitEntity.Gender));
+            return;
         }
+        SpeakBark(text, unitEntity.Gender);
     }
+
+    private static VoiceType VoiceTypeFor(Gender? gender) => gender switch
+    {
+        Gender.Male => VoiceType.Male,
+        Gender.Female => VoiceType.Female,
+        _ => VoiceType.Narrator,
+    };
 
     public static void SpeakBark(string text, Gender? gender = null)
     {
 #if DEBUG
         Debug.LogFormat("SpeakBark as {0}", gender.HasValue ? gender : "Narrator");
 #endif
-
-        switch (gender)
-        {
-            case Gender.Male:
-                Main.Speech?.SpeakAs(text, VoiceType.Male);
-                break;
-            case Gender.Female:
-                Main.Speech?.SpeakAs(text, VoiceType.Female);
-                break;
-            default:
-                Main.Speech?.SpeakAs(text, VoiceType.Narrator);
-                break;
-        }
+        Main.Speech?.SpeakAs(text, VoiceTypeFor(gender));
     }
 }

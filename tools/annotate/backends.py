@@ -53,7 +53,11 @@ def _cli(cmd: list[str], system: str, user: str) -> dict:
 
 
 def claude_cli(system: str, user: str, schema: dict, model: str = "haiku") -> dict:
-    return _cli(["claude", "-p", "--model", model, "--output-format", "text"], system, user)
+    # --restricted --strict-mcp-config: pure text completion, no tool/MCP/CLAUDE.md bootstrap.
+    # Without these, `claude -p` boots a full agentic session (MCP servers, Playwright, etc.)
+    # per call - fine interactively, disastrous for a bulk classification loop.
+    return _cli(["claude", "-p", "--model", model, "--output-format", "text",
+                "--restricted", "--strict-mcp-config"], system, user)
 
 
 def kimi_cli(system: str, user: str, schema: dict, model: str | None = None) -> dict:
