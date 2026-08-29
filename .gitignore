@@ -14,6 +14,8 @@ data/voices/
 data/annotations/cache*/
 data/annotations/annotations.enGB.json
 data/bakeoff/*/*.wav
+data/bakeoff/listening_votes.jsonl
+.claude/
 tools/tts_bakeoff/.venv-qwen/
 reference/index-tts/
 reference/fish-speech/

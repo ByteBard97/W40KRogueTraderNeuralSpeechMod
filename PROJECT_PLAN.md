@@ -122,9 +122,15 @@ an opt-in local tool builds voice references from the *user's own* game files.
       self-test confirms MCI returns success codes, which is strong evidence but not literally
       the same as a human ear on real speakers. Cheap: run `speech_test.request` again without
       the "quit" content and stay at the main menu to listen.
-- [ ] Build a blind A/B listening page for the user + friends - now the actual tiebreaker for
-      the default engine, since chatterbox/qwen3/indextts2 are statistically indistinguishable
-      on the objective bake-off metrics (WER and speed are known trade-offs, not "sounds right").
+- [x] **Blind A/B listening page built**: tools/listening_test/ (serve.py + index.html +
+      tally.py). Local-only HTTP server (never a published Artifact - it serves voice-cloned
+      audio from the user's own game files, which must not be distributed): presents each of the
+      142 bake-off lines with Chatterbox-Turbo and Qwen3-TTS clips in randomized, unlabeled A/B
+      order, records votes to data/bakeoff/listening_votes.jsonl (gitignored, resumable via
+      localStorage progress tracking), tally.py un-blinds and reports win/tie rates overall and
+      per speaker. Smoke-tested end-to-end (server, pairing, audio serving, voting, tallying) -
+      not yet actually run by a human. This is now the real tiebreaker: run it and tally before
+      locking the default engine.
 - [ ] Exercise Chatterbox's paralinguistic tags / Qwen3's instruct-text path against real
       annotation output (currently bake-off used plain text only; the two pipelines haven't been
       combined yet).

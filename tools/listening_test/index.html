@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RT Neural Speech - Blind Listening Test</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #222; }
+  h1 { font-size: 1.3em; }
+  #progress { color: #666; margin-bottom: 8px; }
+  #speaker { color: #888; font-size: 0.9em; }
+  #text { font-size: 1.15em; line-height: 1.5; margin: 12px 0 20px; padding: 12px; background: #f5f5f5; border-radius: 6px; }
+  .clip { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .clip label { font-weight: bold; width: 20px; }
+  audio { flex: 1; }
+  #choices button { font-size: 1em; padding: 10px 18px; margin-right: 8px; cursor: pointer; }
+  #done { display: none; }
+  #reset { margin-top: 24px; font-size: 0.85em; color: #888; cursor: pointer; text-decoration: underline; }
+</style>
+</head>
+<body>
+<h1>RT Neural Speech Mod — Blind Listening Test</h1>
+<p>For each line, listen to both clips (same text, two TTS engines, order randomized) and pick
+the one that sounds more like a real voice actor. There's no wrong answer - go with your gut.
+You can stop at any point; every vote is saved as you go.</p>
+
+<div id="test">
+  <div id="progress"></div>
+  <div id="speaker"></div>
+  <div id="text"></div>
+  <div class="clip"><label>A</label><audio id="audioA" controls></audio></div>
+  <div class="clip"><label>B</label><audio id="audioB" controls></audio></div>
+  <div id="choices">
+    <button onclick="vote('a')">A is better</button>
+    <button onclick="vote('b')">B is better</button>
+    <button onclick="vote('tie')">Tie / can't tell</button>
+  </div>
+</div>
+<div id="done"><h2>All done - thank you!</h2><p>Ask whoever's running this to run <code>tally.py</code> to see the results.</p></div>
+<div id="reset" onclick="resetProgress()">Start over from the beginning</div>
+
+<script>
+let pairs = [];
+let i = 0;
+const STORAGE_KEY = "rt_listening_test_progress";
+
+async function load() {
+  const res = await fetch("/pairs");
+  const data = await res.json();
+  pairs = data.pairs;
+  const saved = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+  i = Math.min(saved, pairs.length);
+  render();
+}
+
+function render() {
+  if (i >= pairs.length) {
+    document.getElementById("test").style.display = "none";
+    document.getElementById("done").style.display = "block";
+    return;
+  }
+  const p = pairs[i];
+  document.getElementById("progress").textContent = `Line ${i + 1} of ${pairs.length}`;
+  document.getElementById("speaker").textContent = `Speaker: ${p.speaker}`;
+  document.getElementById("text").textContent = p.text;
+  const a = document.getElementById("audioA");
+  const b = document.getElementById("audioB");
+  a.src = p.a_url;
+  b.src = p.b_url;
+  a.load();
+  b.load();
+}
+
+async function vote(choice) {
+  const p = pairs[i];
+  await fetch("/vote", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: p.id, speaker: p.speaker, a_engine: p.a_engine, b_engine: p.b_engine, choice,
+    }),
+  });
+  i += 1;
+  localStorage.setItem(STORAGE_KEY, String(i));
+  render();
+}
+
+function resetProgress() {
+  i = 0;
+  localStorage.setItem(STORAGE_KEY, "0");
+  document.getElementById("test").style.display = "block";
+  document.getElementById("done").style.display = "none";
+  render();
+}
+
+load();
+</script>
+</body>
+</html>
