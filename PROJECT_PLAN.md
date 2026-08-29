@@ -118,6 +118,16 @@ an opt-in local tool builds voice references from the *user's own* game files.
       re-run). Once complete: `--merge`, sample-check against compare_to_gold.py, and copy the
       merged file to src/RogueTraderNeuralSpeechMod/Voice/annotations.enGB.json so it ships (the
       csproj's copy-item is already conditioned on that file existing).
+      **Realistic ETA: ~28-30 hours combined**, measured directly from the observed rate
+      (~39 conversations/hour across both machines) against ~1,140 remaining. Investigated
+      whether this is a fixable inefficiency (format=schema grammar-constrained decoding vs
+      plain format=json): ruled out - both generate at ~22 tok/s on the 5080, confirmed via
+      ollama's own eval_count/eval_duration metrics, not wall-clock (which was distorted by
+      diagnostic calls queuing behind the live worker - ollama serves one request at a time per
+      GPU). This is a genuine hardware ceiling for an 8B model doing ~75-90 output tokens/line,
+      not a bug. Options if the timeline isn't acceptable: add a third worker (the user's
+      MacBook M4 was offered early on but never set up - no SSH access details available for
+      it), or accept the current pace.
 - [ ] Have an actual human (the user) confirm they can HEAR the test lines - the automated
       self-test confirms MCI returns success codes, which is strong evidence but not literally
       the same as a human ear on real speakers. Cheap: run `speech_test.request` again without
