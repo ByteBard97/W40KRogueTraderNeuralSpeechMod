@@ -1,21 +1,91 @@
 {
  "engine": "qwen3_tts",
- "load_seconds": 7.0,
+ "load_seconds": 13.3,
  "items": [
   {
-   "id": "t000",
-   "speaker": "Abelard",
-   "chars": 129,
-   "synth_seconds": 7.09,
-   "audio_seconds": 8.72
+   "id": "t130",
+   "speaker": "narrator",
+   "chars": 89,
+   "synth_seconds": 14.29,
+   "audio_seconds": 7.2
   },
   {
-   "id": "t001",
-   "speaker": "Abelard",
-   "chars": 324,
-   "synth_seconds": 14.49,
-   "audio_seconds": 20.72
+   "id": "t131",
+   "speaker": "narrator",
+   "chars": 465,
+   "synth_seconds": 41.63,
+   "audio_seconds": 29.6
+  },
+  {
+   "id": "t132",
+   "speaker": "narrator",
+   "chars": 1054,
+   "synth_seconds": 86.92,
+   "audio_seconds": 59.84
+  },
+  {
+   "id": "t133",
+   "speaker": "narrator",
+   "chars": 60,
+   "synth_seconds": 6.8,
+   "audio_seconds": 4.64
+  },
+  {
+   "id": "t134",
+   "speaker": "narrator",
+   "chars": 198,
+   "synth_seconds": 17.58,
+   "audio_seconds": 12.4
+  },
+  {
+   "id": "t135",
+   "speaker": "narrator",
+   "chars": 129,
+   "synth_seconds": 13.53,
+   "audio_seconds": 10.32
+  },
+  {
+   "id": "t136",
+   "speaker": "narrator",
+   "chars": 150,
+   "synth_seconds": 12.32,
+   "audio_seconds": 9.52
+  },
+  {
+   "id": "t137",
+   "speaker": "narrator",
+   "chars": 833,
+   "synth_seconds": 77.04,
+   "audio_seconds": 50.0
+  },
+  {
+   "id": "t138",
+   "speaker": "narrator",
+   "chars": 60,
+   "synth_seconds": 5.31,
+   "audio_seconds": 3.52
+  },
+  {
+   "id": "t139",
+   "speaker": "narrator",
+   "chars": 185,
+   "synth_seconds": 16.38,
+   "audio_seconds": 11.12
+  },
+  {
+   "id": "t140",
+   "speaker": "narrator",
+   "chars": 523,
+   "synth_seconds": 32.87,
+   "audio_seconds": 35.92
+  },
+  {
+   "id": "t141",
+   "speaker": "narrator",
+   "chars": 195,
+   "synth_seconds": 8.81,
+   "audio_seconds": 12.8
   }
  ],
- "rtf": 0.733
+ "rtf": 1.351
 }

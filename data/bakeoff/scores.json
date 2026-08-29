@@ -783,62 +783,928 @@
   {
    "id": "t130",
    "speaker": "narrator",
+   "similarity": 0.7653,
    "wer": 0.333
   },
   {
    "id": "t131",
    "speaker": "narrator",
+   "similarity": 0.8708,
    "wer": 0.012
   },
   {
    "id": "t132",
    "speaker": "narrator",
-   "wer": 0.939
+   "similarity": 0.8259,
+   "wer": 0.929
   },
   {
    "id": "t133",
    "speaker": "narrator",
+   "similarity": 0.6865,
    "wer": 0.0
   },
   {
    "id": "t134",
    "speaker": "narrator",
-   "wer": 0.158
+   "similarity": 0.864,
+   "wer": 0.053
   },
   {
    "id": "t135",
    "speaker": "narrator",
+   "similarity": 0.8588,
    "wer": 0.0
   },
   {
    "id": "t136",
    "speaker": "narrator",
+   "similarity": 0.8698,
    "wer": 0.08
   },
   {
    "id": "t137",
    "speaker": "narrator",
-   "wer": 0.764
+   "similarity": 0.8532,
+   "wer": 0.689
   },
   {
    "id": "t138",
    "speaker": "narrator",
+   "similarity": 0.7779,
    "wer": 0.0
   },
   {
    "id": "t139",
    "speaker": "narrator",
+   "similarity": 0.8578,
    "wer": 0.0
   },
   {
    "id": "t140",
    "speaker": "narrator",
-   "wer": 0.228
+   "similarity": 0.8905,
+   "wer": 0.0
   },
   {
    "id": "t141",
    "speaker": "narrator",
+   "similarity": 0.8628,
    "wer": 0.054
+  }
+ ],
+ "qwen3_tts": [
+  {
+   "id": "t000",
+   "speaker": "Abelard",
+   "similarity": 0.7919,
+   "wer": 0.0
+  },
+  {
+   "id": "t001",
+   "speaker": "Abelard",
+   "similarity": 0.7971,
+   "wer": 0.0
+  },
+  {
+   "id": "t002",
+   "speaker": "Abelard",
+   "similarity": 0.822,
+   "wer": 0.034
+  },
+  {
+   "id": "t003",
+   "speaker": "Abelard",
+   "similarity": 0.6603,
+   "wer": 0.0
+  },
+  {
+   "id": "t004",
+   "speaker": "Abelard",
+   "similarity": 0.8068,
+   "wer": 0.185
+  },
+  {
+   "id": "t005",
+   "speaker": "Abelard",
+   "similarity": 0.4209,
+   "wer": 0.0
+  },
+  {
+   "id": "t006",
+   "speaker": "Abelard",
+   "similarity": 0.7853,
+   "wer": 0.04
+  },
+  {
+   "id": "t007",
+   "speaker": "Abelard",
+   "similarity": 0.768,
+   "wer": 0.009
+  },
+  {
+   "id": "t008",
+   "speaker": "Abelard",
+   "similarity": 0.6833,
+   "wer": 0.0
+  },
+  {
+   "id": "t009",
+   "speaker": "Abelard",
+   "similarity": 0.842,
+   "wer": 0.034
+  },
+  {
+   "id": "t010",
+   "speaker": "Argenta",
+   "similarity": 0.6558,
+   "wer": 0.0
+  },
+  {
+   "id": "t011",
+   "speaker": "Argenta",
+   "similarity": 0.6354,
+   "wer": 0.0
+  },
+  {
+   "id": "t012",
+   "speaker": "Argenta",
+   "similarity": 0.5641,
+   "wer": 0.019
+  },
+  {
+   "id": "t013",
+   "speaker": "Argenta",
+   "similarity": 0.6129,
+   "wer": 0.0
+  },
+  {
+   "id": "t014",
+   "speaker": "Argenta",
+   "similarity": 0.6808,
+   "wer": 0.0
+  },
+  {
+   "id": "t015",
+   "speaker": "Argenta",
+   "similarity": 0.6758,
+   "wer": 0.0
+  },
+  {
+   "id": "t016",
+   "speaker": "Argenta",
+   "similarity": 0.3698,
+   "wer": 0.0
+  },
+  {
+   "id": "t017",
+   "speaker": "Argenta",
+   "similarity": 0.5855,
+   "wer": 0.0
+  },
+  {
+   "id": "t018",
+   "speaker": "Argenta",
+   "similarity": 0.1171,
+   "wer": 0.0
+  },
+  {
+   "id": "t019",
+   "speaker": "Argenta",
+   "similarity": 0.6547,
+   "wer": 0.08
+  },
+  {
+   "id": "t020",
+   "speaker": "Cassia",
+   "similarity": 0.7592,
+   "wer": 0.05
+  },
+  {
+   "id": "t021",
+   "speaker": "Cassia",
+   "similarity": 0.7962,
+   "wer": 0.0
+  },
+  {
+   "id": "t022",
+   "speaker": "Cassia",
+   "similarity": 0.7765,
+   "wer": 0.009
+  },
+  {
+   "id": "t023",
+   "speaker": "Cassia",
+   "similarity": 0.6992,
+   "wer": 0.0
+  },
+  {
+   "id": "t024",
+   "speaker": "Cassia",
+   "similarity": 0.8252,
+   "wer": 0.0
+  },
+  {
+   "id": "t025",
+   "speaker": "Cassia",
+   "similarity": 0.7082,
+   "wer": 0.071
+  },
+  {
+   "id": "t026",
+   "speaker": "Cassia",
+   "similarity": 0.7195,
+   "wer": 0.0
+  },
+  {
+   "id": "t027",
+   "speaker": "Cassia",
+   "similarity": 0.6961,
+   "wer": 0.029
+  },
+  {
+   "id": "t028",
+   "speaker": "Cassia",
+   "similarity": 0.6055,
+   "wer": 0.0
+  },
+  {
+   "id": "t029",
+   "speaker": "Cassia",
+   "similarity": 0.8526,
+   "wer": 0.0
+  },
+  {
+   "id": "t030",
+   "speaker": "Heinrix",
+   "similarity": 0.7319,
+   "wer": 0.018
+  },
+  {
+   "id": "t031",
+   "speaker": "Heinrix",
+   "similarity": 0.6907,
+   "wer": 0.033
+  },
+  {
+   "id": "t032",
+   "speaker": "Heinrix",
+   "similarity": 0.6626,
+   "wer": 0.034
+  },
+  {
+   "id": "t033",
+   "speaker": "Heinrix",
+   "similarity": 0.6174,
+   "wer": 0.0
+  },
+  {
+   "id": "t034",
+   "speaker": "Heinrix",
+   "similarity": 0.6491,
+   "wer": 0.0
+  },
+  {
+   "id": "t035",
+   "speaker": "Heinrix",
+   "similarity": 0.7495,
+   "wer": 0.036
+  },
+  {
+   "id": "t036",
+   "speaker": "Heinrix",
+   "similarity": 0.7186,
+   "wer": 0.0
+  },
+  {
+   "id": "t037",
+   "speaker": "Heinrix",
+   "similarity": 0.6607,
+   "wer": 0.048
+  },
+  {
+   "id": "t038",
+   "speaker": "Heinrix",
+   "similarity": 0.7203,
+   "wer": 0.0
+  },
+  {
+   "id": "t039",
+   "speaker": "Heinrix",
+   "similarity": 0.6605,
+   "wer": 0.0
+  },
+  {
+   "id": "t040",
+   "speaker": "Idira",
+   "similarity": 0.6072,
+   "wer": 0.0
+  },
+  {
+   "id": "t041",
+   "speaker": "Idira",
+   "similarity": 0.7099,
+   "wer": 0.01
+  },
+  {
+   "id": "t042",
+   "speaker": "Idira",
+   "similarity": 0.5781,
+   "wer": 0.029
+  },
+  {
+   "id": "t043",
+   "speaker": "Idira",
+   "similarity": 0.4907,
+   "wer": 0.0
+  },
+  {
+   "id": "t044",
+   "speaker": "Idira",
+   "similarity": 0.5818,
+   "wer": 0.071
+  },
+  {
+   "id": "t045",
+   "speaker": "Idira",
+   "similarity": 0.5177,
+   "wer": 0.0
+  },
+  {
+   "id": "t046",
+   "speaker": "Idira",
+   "similarity": 0.4691,
+   "wer": 0.033
+  },
+  {
+   "id": "t047",
+   "speaker": "Idira",
+   "similarity": 0.5528,
+   "wer": 0.022
+  },
+  {
+   "id": "t048",
+   "speaker": "Idira",
+   "similarity": 0.4717,
+   "wer": 0.0
+  },
+  {
+   "id": "t049",
+   "speaker": "Idira",
+   "similarity": 0.5889,
+   "wer": 0.0
+  },
+  {
+   "id": "t050",
+   "speaker": "Jae",
+   "similarity": 0.6635,
+   "wer": 0.06
+  },
+  {
+   "id": "t051",
+   "speaker": "Jae",
+   "similarity": 0.4888,
+   "wer": 0.081
+  },
+  {
+   "id": "t052",
+   "speaker": "Jae",
+   "similarity": 0.5527,
+   "wer": 0.031
+  },
+  {
+   "id": "t053",
+   "speaker": "Jae",
+   "similarity": 0.6016,
+   "wer": 0.0
+  },
+  {
+   "id": "t054",
+   "speaker": "Jae",
+   "similarity": 0.589,
+   "wer": 0.0
+  },
+  {
+   "id": "t055",
+   "speaker": "Jae",
+   "similarity": 0.6022,
+   "wer": 0.103
+  },
+  {
+   "id": "t056",
+   "speaker": "Jae",
+   "similarity": 0.5937,
+   "wer": 0.019
+  },
+  {
+   "id": "t057",
+   "speaker": "Jae",
+   "similarity": 0.487,
+   "wer": 0.009
+  },
+  {
+   "id": "t058",
+   "speaker": "Jae",
+   "similarity": 0.5619,
+   "wer": 0.25
+  },
+  {
+   "id": "t059",
+   "speaker": "Jae",
+   "similarity": 0.5935,
+   "wer": 0.034
+  },
+  {
+   "id": "t060",
+   "speaker": "Pasqal",
+   "similarity": 0.6557,
+   "wer": 0.031
+  },
+  {
+   "id": "t061",
+   "speaker": "Pasqal",
+   "similarity": 0.5038,
+   "wer": 0.0
+  },
+  {
+   "id": "t062",
+   "speaker": "Pasqal",
+   "similarity": 0.4868,
+   "wer": 0.031
+  },
+  {
+   "id": "t063",
+   "speaker": "Pasqal",
+   "similarity": 0.4089,
+   "wer": 0.0
+  },
+  {
+   "id": "t064",
+   "speaker": "Pasqal",
+   "similarity": 0.4589,
+   "wer": 0.12
+  },
+  {
+   "id": "t065",
+   "speaker": "Pasqal",
+   "similarity": 0.4765,
+   "wer": 0.0
+  },
+  {
+   "id": "t066",
+   "speaker": "Pasqal",
+   "similarity": 0.5478,
+   "wer": 0.089
+  },
+  {
+   "id": "t067",
+   "speaker": "Pasqal",
+   "similarity": 0.5099,
+   "wer": 0.02
+  },
+  {
+   "id": "t068",
+   "speaker": "Pasqal",
+   "similarity": 0.5648,
+   "wer": 0.0
+  },
+  {
+   "id": "t069",
+   "speaker": "Pasqal",
+   "similarity": 0.6234,
+   "wer": 0.0
+  },
+  {
+   "id": "t070",
+   "speaker": "Yrliet",
+   "similarity": 0.6111,
+   "wer": 0.016
+  },
+  {
+   "id": "t071",
+   "speaker": "Yrliet",
+   "similarity": 0.5763,
+   "wer": 0.067
+  },
+  {
+   "id": "t072",
+   "speaker": "Yrliet",
+   "similarity": 0.5434,
+   "wer": 0.076
+  },
+  {
+   "id": "t073",
+   "speaker": "Yrliet",
+   "similarity": 0.5352,
+   "wer": 0.25
+  },
+  {
+   "id": "t074",
+   "speaker": "Yrliet",
+   "similarity": 0.6326,
+   "wer": 0.091
+  },
+  {
+   "id": "t075",
+   "speaker": "Yrliet",
+   "similarity": 0.6855,
+   "wer": 0.048
+  },
+  {
+   "id": "t076",
+   "speaker": "Yrliet",
+   "similarity": 0.7222,
+   "wer": 0.214
+  },
+  {
+   "id": "t077",
+   "speaker": "Yrliet",
+   "similarity": 0.5149,
+   "wer": 0.061
+  },
+  {
+   "id": "t078",
+   "speaker": "Yrliet",
+   "similarity": 0.5091,
+   "wer": 0.5
+  },
+  {
+   "id": "t079",
+   "speaker": "Yrliet",
+   "similarity": 0.6342,
+   "wer": 0.0
+  },
+  {
+   "id": "t080",
+   "speaker": "Marazhai",
+   "similarity": 0.4881,
+   "wer": 0.048
+  },
+  {
+   "id": "t081",
+   "speaker": "Marazhai",
+   "similarity": 0.5545,
+   "wer": 0.0
+  },
+  {
+   "id": "t082",
+   "speaker": "Marazhai",
+   "similarity": 0.3804,
+   "wer": 0.052
+  },
+  {
+   "id": "t083",
+   "speaker": "Marazhai",
+   "similarity": 0.4951,
+   "wer": 0.0
+  },
+  {
+   "id": "t084",
+   "speaker": "Marazhai",
+   "similarity": 0.5651,
+   "wer": 0.0
+  },
+  {
+   "id": "t085",
+   "speaker": "Marazhai",
+   "similarity": 0.3425,
+   "wer": 0.0
+  },
+  {
+   "id": "t086",
+   "speaker": "Marazhai",
+   "similarity": 0.5032,
+   "wer": 0.0
+  },
+  {
+   "id": "t087",
+   "speaker": "Marazhai",
+   "similarity": 0.4018,
+   "wer": 0.053
+  },
+  {
+   "id": "t088",
+   "speaker": "Marazhai",
+   "similarity": 0.5464,
+   "wer": 0.0
+  },
+  {
+   "id": "t089",
+   "speaker": "Marazhai",
+   "similarity": 0.5074,
+   "wer": 0.176
+  },
+  {
+   "id": "t090",
+   "speaker": "Ulfar",
+   "similarity": 0.716,
+   "wer": 0.028
+  },
+  {
+   "id": "t091",
+   "speaker": "Ulfar",
+   "similarity": 0.6098,
+   "wer": 0.043
+  },
+  {
+   "id": "t092",
+   "speaker": "Ulfar",
+   "similarity": 0.6004,
+   "wer": 0.013
+  },
+  {
+   "id": "t093",
+   "speaker": "Ulfar",
+   "similarity": 0.568,
+   "wer": 0.4
+  },
+  {
+   "id": "t094",
+   "speaker": "Ulfar",
+   "similarity": 0.6241,
+   "wer": 0.118
+  },
+  {
+   "id": "t095",
+   "speaker": "Ulfar",
+   "similarity": 0.5949,
+   "wer": 0.015
+  },
+  {
+   "id": "t096",
+   "speaker": "Ulfar",
+   "similarity": 0.6337,
+   "wer": 0.125
+  },
+  {
+   "id": "t097",
+   "speaker": "Ulfar",
+   "similarity": 0.6622,
+   "wer": 0.0
+  },
+  {
+   "id": "t098",
+   "speaker": "Ulfar",
+   "similarity": 0.5704,
+   "wer": 0.0
+  },
+  {
+   "id": "t099",
+   "speaker": "Ulfar",
+   "similarity": 0.7157,
+   "wer": 0.038
+  },
+  {
+   "id": "t100",
+   "speaker": "Kibellah",
+   "similarity": 0.6472,
+   "wer": 0.0
+  },
+  {
+   "id": "t101",
+   "speaker": "Kibellah",
+   "similarity": 0.6919,
+   "wer": 0.065
+  },
+  {
+   "id": "t102",
+   "speaker": "Kibellah",
+   "similarity": 0.6144,
+   "wer": 0.0
+  },
+  {
+   "id": "t103",
+   "speaker": "Kibellah",
+   "similarity": 0.6079,
+   "wer": 0.0
+  },
+  {
+   "id": "t104",
+   "speaker": "Kibellah",
+   "similarity": 0.6747,
+   "wer": 0.037
+  },
+  {
+   "id": "t105",
+   "speaker": "Kibellah",
+   "similarity": 0.6917,
+   "wer": 0.042
+  },
+  {
+   "id": "t106",
+   "speaker": "Kibellah",
+   "similarity": 0.7349,
+   "wer": 0.091
+  },
+  {
+   "id": "t107",
+   "speaker": "Kibellah",
+   "similarity": 0.6226,
+   "wer": 0.044
+  },
+  {
+   "id": "t108",
+   "speaker": "Kibellah",
+   "similarity": 0.5403,
+   "wer": 0.2
+  },
+  {
+   "id": "t109",
+   "speaker": "Kibellah",
+   "similarity": 0.6248,
+   "wer": 0.0
+  },
+  {
+   "id": "t110",
+   "speaker": "Solomorne",
+   "similarity": 0.721,
+   "wer": 0.0
+  },
+  {
+   "id": "t111",
+   "speaker": "Solomorne",
+   "similarity": 0.8031,
+   "wer": 0.024
+  },
+  {
+   "id": "t112",
+   "speaker": "Solomorne",
+   "similarity": 0.6715,
+   "wer": 0.066
+  },
+  {
+   "id": "t113",
+   "speaker": "Solomorne",
+   "similarity": 0.6807,
+   "wer": 0.0
+  },
+  {
+   "id": "t114",
+   "speaker": "Solomorne",
+   "similarity": 0.7436,
+   "wer": 0.118
+  },
+  {
+   "id": "t115",
+   "speaker": "Solomorne",
+   "similarity": 0.815,
+   "wer": 0.0
+  },
+  {
+   "id": "t116",
+   "speaker": "Solomorne",
+   "similarity": 0.7147,
+   "wer": 0.0
+  },
+  {
+   "id": "t117",
+   "speaker": "Solomorne",
+   "similarity": 0.7987,
+   "wer": 0.022
+  },
+  {
+   "id": "t118",
+   "speaker": "Solomorne",
+   "similarity": 0.5934,
+   "wer": 0.0
+  },
+  {
+   "id": "t119",
+   "speaker": "Solomorne",
+   "similarity": 0.7959,
+   "wer": 0.0
+  },
+  {
+   "id": "t120",
+   "speaker": "Eogunn",
+   "similarity": 0.6181,
+   "wer": 0.027
+  },
+  {
+   "id": "t121",
+   "speaker": "Eogunn",
+   "similarity": 0.6386,
+   "wer": 0.0
+  },
+  {
+   "id": "t122",
+   "speaker": "Eogunn",
+   "similarity": 0.5955,
+   "wer": 0.054
+  },
+  {
+   "id": "t123",
+   "speaker": "Eogunn",
+   "similarity": 0.5592,
+   "wer": 0.0
+  },
+  {
+   "id": "t124",
+   "speaker": "Eogunn",
+   "similarity": 0.6906,
+   "wer": 0.037
+  },
+  {
+   "id": "t125",
+   "speaker": "Eogunn",
+   "similarity": 0.6889,
+   "wer": 0.048
+  },
+  {
+   "id": "t126",
+   "speaker": "Eogunn",
+   "similarity": 0.6478,
+   "wer": 0.044
+  },
+  {
+   "id": "t127",
+   "speaker": "Eogunn",
+   "similarity": 0.6655,
+   "wer": 0.0
+  },
+  {
+   "id": "t128",
+   "speaker": "Eogunn",
+   "similarity": 0.629,
+   "wer": 0.2
+  },
+  {
+   "id": "t129",
+   "speaker": "Eogunn",
+   "similarity": 0.6597,
+   "wer": 0.0
+  },
+  {
+   "id": "t130",
+   "speaker": "narrator",
+   "similarity": 0.8533,
+   "wer": 0.133
+  },
+  {
+   "id": "t131",
+   "speaker": "narrator",
+   "similarity": 0.8237,
+   "wer": 0.012
+  },
+  {
+   "id": "t132",
+   "speaker": "narrator",
+   "similarity": 0.8371,
+   "wer": 0.041
+  },
+  {
+   "id": "t133",
+   "speaker": "narrator",
+   "similarity": 0.7882,
+   "wer": 0.0
+  },
+  {
+   "id": "t134",
+   "speaker": "narrator",
+   "similarity": 0.8777,
+   "wer": 0.026
+  },
+  {
+   "id": "t135",
+   "speaker": "narrator",
+   "similarity": 0.8375,
+   "wer": 0.0
+  },
+  {
+   "id": "t136",
+   "speaker": "narrator",
+   "similarity": 0.8922,
+   "wer": 0.08
+  },
+  {
+   "id": "t137",
+   "speaker": "narrator",
+   "similarity": 0.8344,
+   "wer": 0.034
+  },
+  {
+   "id": "t138",
+   "speaker": "narrator",
+   "similarity": 0.83,
+   "wer": 0.182
+  },
+  {
+   "id": "t139",
+   "speaker": "narrator",
+   "similarity": 0.8567,
+   "wer": 0.0
+  },
+  {
+   "id": "t140",
+   "speaker": "narrator",
+   "similarity": 0.8665,
+   "wer": 0.0
+  },
+  {
+   "id": "t141",
+   "speaker": "narrator",
+   "similarity": 0.8697,
+   "wer": 0.027
   }
  ]
 }

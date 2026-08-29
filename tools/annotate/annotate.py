@@ -44,6 +44,14 @@ for expressive text-to-speech. For EVERY line you receive, output one record:
 Text in {{n}}...{{/n}} is narrator stage direction: use it as evidence for the speaker's state,
 but direct the spoken words. Lines whose speaker is "narrator" are read by a calm audiobook
 narrator - annotate them with restrained emotion (intensity <= 0.4) unless the prose demands more.
+
+Calibration: most lines in ordinary conversation are "neutral" at intensity 0.1-0.35 - a
+character stating a fact, asking a routine question, or making small talk is NOT angry, dramatic,
+or commanding just because the setting is grim. Reserve a non-neutral emotion, or intensity above
+0.6, for a line where the text or its stage direction makes a strong feeling unambiguous (an
+exclamation, an explicit description of the character's state, a clear insult or threat). When
+uncertain between neutral and something stronger, choose neutral. Do not let one intense line
+in a conversation pull the surrounding lines toward the same emotion.
 Return JSON only."""
 
 
