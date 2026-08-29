@@ -104,30 +104,41 @@ an opt-in local tool builds voice references from the *user's own* game files.
       cache. Engine adapters shared with the bake-off harness at tools/tts_engines/.
 
 ### Next (rough order)
-- [ ] **Bulk annotation pass in progress**: 1,329 conversations, sharded Linux (RTX 5080,
-      qwen3:8b via ollama) + Windows (RTX 4070, same model). Caught and fixed a real bug at
-      ~10% through the corpus: the recursive halving-retry (for when the model drops a guid)
-      was capped at depth 3, which for the long tail of large conversations (50 run >200 lines;
-      the biggest, a multi-companion epilogue montage, runs 1,363) never reaches a small enough
-      chunk to reliably succeed - those conversations failed permanently, every time, on both
-      machines. Fixed in tools/annotate/annotate.py: conversations are now pre-chunked to <=30
-      lines up front, and the retry-halving is bounded by chunk size (down to 2 lines) rather
-      than depth, so it can't give up early regardless of how long the conversation is. Verified
-      against the two known-bad conversations before rolling out; both workers restarted with
-      the fix (cache-file resumability means only previously-failed conversations need to
-      re-run). Once complete: `--merge`, sample-check against compare_to_gold.py, and copy the
-      merged file to src/RogueTraderNeuralSpeechMod/Voice/annotations.enGB.json so it ships (the
-      csproj's copy-item is already conditioned on that file existing).
-      **Realistic ETA: ~28-30 hours combined**, measured directly from the observed rate
-      (~39 conversations/hour across both machines) against ~1,140 remaining. Investigated
-      whether this is a fixable inefficiency (format=schema grammar-constrained decoding vs
-      plain format=json): ruled out - both generate at ~22 tok/s on the 5080, confirmed via
-      ollama's own eval_count/eval_duration metrics, not wall-clock (which was distorted by
-      diagnostic calls queuing behind the live worker - ollama serves one request at a time per
-      GPU). This is a genuine hardware ceiling for an 8B model doing ~75-90 output tokens/line,
-      not a bug. Options if the timeline isn't acceptable: add a third worker (the user's
-      MacBook M4 was offered early on but never set up - no SSH access details available for
-      it), or accept the current pace.
+- [x] **8B annotation quality investigated and found wanting - now switching to 14B+bios.**
+      Manually spot-checked real 8B output against source text and found genuine tone-inversion
+      errors, not just defensible disagreements: a devout "God-Emperor's blessing" declaration
+      tagged `amused`; Marazhai (a sadistic Drukhari) quietly relishing a torture victim's pain
+      tagged flat `neutral`. Root-caused part of this: the annotator only ever saw a bare speaker
+      name, with zero character context - fixed by generating
+      `data/character_bios.json` (21 companion bios, mined from data/strings.enGB.json codex/
+      backstory text, cross-checked via script.json units and websearch for ambiguous cases -
+      "Stranger"=Trazyn incognito, "Manipulus"=Eogunn's Mechanicus title, "Overseer"=generic
+      stock role) and wiring per-chunk bio injection into tools/annotate/annotate.py. Bios only
+      cover ~18% of lines though (8,528/47,799) - the other 82% are `default_speaker` lines the
+      offline export can't attribute to a specific companion, which is exactly where the "amused"
+      miss above occurred, so bios alone can't fix most of the corpus.
+      Tested 14B vs 8B (both +bios) directly on the two flagged examples: 14B fixed both cleanly
+      (Emperor line -> reverent neutral; Marazhai -> correctly menacing/amused) while 8B+bios
+      fixed them too but introduced a new miss nearby (tagged a sympathetic question "Who are
+      you and what happened to you?" as `commanding`) - 8B tends to over-apply a bio's dominant
+      trait indiscriminately, 14B balances it against actual line content better. Aggregate gold
+      score moved only modestly (emotion_match 0.517->0.537) - exact-match doesn't distinguish
+      "sounds broken" from "defensible disagreement," so the targeted before/after check on real
+      flagged lines was the check that actually mattered here.
+      **Corrected an earlier mistake**: a prior "~22 tok/s, genuine hardware ceiling, ~28-30h ETA"
+      claim was wrong. That number was measured while diagnostic test calls were running
+      concurrently with the live production worker (ollama can serve overlapping requests, so
+      both were genuinely competing for the same GPU compute, not just queueing) - own diagnostic
+      testing was quietly slowing down the real bulk run for parts of this session. Clean,
+      uncontended, repeated measurements on realistic ~18-30 line chunks: qwen3:8b ~135 tok/s,
+      qwen3:14b ~81 tok/s on the RTX 5080. At ~77 output tokens/line and 47,799 total lines, a
+      full-corpus 14B+bios run across both existing GPUs (5080 + 4070) is roughly **8-13 hours**
+      of generation time - both machines now restarted on 14B+bios into fresh cache dirs
+      (`cache_14b`, `cache_win_14b`; the old 8B caches are left alone as a fallback, not deleted)
+      for a full from-scratch redo, since the quality problem exists in already-annotated lines
+      too, not just the unfinished remainder. This makes the earlier Mac + 32B plan optional
+      rather than necessary - revisit only if 14B+bios quality still isn't good enough once more
+      of it can be reviewed.
 - [ ] Have an actual human (the user) confirm they can HEAR the test lines - the automated
       self-test confirms MCI returns success codes, which is strong evidence but not literally
       the same as a human ear on real speakers. Cheap: run `speech_test.request` again without

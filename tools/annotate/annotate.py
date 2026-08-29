@@ -103,6 +103,9 @@ MAX_CHUNK = 30  # lines per LLM call - matches the corpus's own median conversat
                  # and still dropped 3 guids, so bigger chunks mean rarer but far more expensive
                  # retries, not real time saved
 
+BIOS_PATH = ROOT / "data/character_bios.json"
+CHAR_BIOS = json.loads(BIOS_PATH.read_text(encoding="utf-8")) if BIOS_PATH.exists() else {}
+
 
 def annotate_conv(conv: dict, backend, model: str) -> list[dict] | None:
     user, lines = conv_payload(conv)
@@ -114,8 +117,13 @@ def annotate_conv(conv: dict, backend, model: str) -> list[dict] | None:
     # 1000+ lines, e.g. the multi-companion epilogue montage), so it must give up long before
     # getting anywhere near a reliable size.
     def go(lines_subset: list[dict]) -> list[dict]:
+        speakers = sorted({l["speaker"] for l in lines_subset if l["speaker"] in CHAR_BIOS})
+        bio_block = ""
+        if speakers:
+            bio_block = "Character context (for voice direction only, not plot):\n" + "\n".join(
+                f"- {name}: {CHAR_BIOS[name]}" for name in speakers) + "\n\n"
         script = "\n".join(f"[{l['guid']}] {l['speaker']}: {l['text']}" for l in lines_subset)
-        user = f"Annotate every line.\n\n{script}"
+        user = f"{bio_block}Annotate every line.\n\n{script}"
         try:
             result = backend(SYSTEM, user, JSON_SCHEMA, model=model)
             return validate(result, lines_subset)

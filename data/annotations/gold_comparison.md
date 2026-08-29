@@ -23,3 +23,4 @@ structural rather than fixable by prompting harder:
 Conclusion: keep qwen3:8b_calibrated (emotion_match=0.517) as the annotation model. Revisit
 claude-cli only if someone wants to invest in `--output-format json` + a real JSON-repair layer
 - not attempted here given the bulk run was already progressing cleanly.
+| qwen3:14b_bios | 255 | 0 | 0.537 | 0.69 | 0.154 | 0.925 |
