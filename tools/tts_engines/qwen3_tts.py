@@ -11,7 +11,9 @@ def load():
     return {"model": model, "clone_cache": {}}
 
 
-def synth(ctx, text, prompt_wav=None, prompt_text=None):
+def synth(ctx, text, prompt_wav=None, prompt_text=None, **_unused):
+    # _unused: e.g. `instruct` from annotation_bridge.for_instruct_engine - the Base model's
+    # generate_voice_clone doesn't take a style prompt; a future VoiceDesign-backed engine would.
     model = ctx["model"]
     if prompt_wav:
         prompt = ctx["clone_cache"].get(prompt_wav)

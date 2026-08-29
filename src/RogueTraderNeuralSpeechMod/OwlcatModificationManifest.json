@@ -1,0 +1,12 @@
+{
+  "UniqueName": "W40KRT_NeuralSpeechMod",
+  "Version": "0.1.0",
+  "DisplayName": "W40K - Neural Speech Mod",
+  "Description": "Live local neural TTS for unvoiced lines, with per-character voices and emotion annotation. Fork of Osmodium's SpeechMod; requires the local TTS sidecar to be running.",
+  "Author": "bytebard97",
+  "ImageName": "Thumbnail.jpg",
+  "WorkshopId": "",
+  "Repository": "",
+  "HomePage": "https://github.com/bytebard97/W40KRogueTraderNeuralSpeechMod",
+  "Dependencies": []
+}

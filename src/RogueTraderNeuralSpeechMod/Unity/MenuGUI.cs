@@ -1,0 +1,263 @@
+﻿using NeuralSpeechMod.Voice;
+using System.Linq;
+using UnityEngine;
+
+namespace NeuralSpeechMod.Unity;
+
+public static class MenuGUI
+{
+    private static string m_NarratorPreviewText = "Speech Mod for Warhammer 40K: Rogue Trader - Narrator voice speech test";
+    private static string m_FemalePreviewText = "Speech Mod for Warhammer 40K: Rogue Trader - Female voice speech test";
+    private static string m_MalePreviewText = "Speech Mod for Warhammer 40K: Rogue Trader - Male voice speech test";
+    private static string m_ProtagonistPreviewText = "Speech Mod for Pathfinder Wrath of the Righteous - Protagonist voice speech test";
+
+    public static void OnGui()
+    {
+
+#if DEBUG
+        GUILayout.BeginVertical("", GUI.skin.box);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Log speech", GUILayout.ExpandWidth(false));
+        Main.Settings.LogVoicedLines = GUILayout.Toggle(Main.Settings.LogVoicedLines, "Enabled");
+        GUILayout.EndHorizontal();
+
+        GUILayout.EndVertical();
+#endif
+        AddHeader("Playback voices");
+
+        AddVoiceSelector("Narrator Voice", ref m_NarratorPreviewText, VoiceType.Narrator);
+
+        GUILayout.BeginVertical("", GUI.skin.box);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Use specific voice for protagonist", GUILayout.ExpandWidth(false));
+        Main.Settings.UseProtagonistSpecificVoice = GUILayout.Toggle(Main.Settings.UseProtagonistSpecificVoice, "Enabled");
+        GUILayout.EndHorizontal();
+
+        GUILayout.EndVertical();
+
+        if (Main.Settings.UseProtagonistSpecificVoice)
+        {
+            AddVoiceSelector("Protagonist Voice", ref m_ProtagonistPreviewText, VoiceType.Protagonist);
+        }
+
+        GUILayout.BeginVertical("", GUI.skin.box);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Use gender specific voices", GUILayout.ExpandWidth(false));
+        Main.Settings.UseGenderSpecificVoices = GUILayout.Toggle(Main.Settings.UseGenderSpecificVoices, "Enabled");
+        GUILayout.EndHorizontal();
+
+        GUILayout.EndVertical();
+
+        if (Main.Settings.UseGenderSpecificVoices)
+        {
+            AddVoiceSelector("Female Voice", ref m_FemalePreviewText, VoiceType.Female);
+            AddVoiceSelector("Male Voice", ref m_MalePreviewText, VoiceType.Male);
+        }
+
+        AddHeader("Playback Settings");
+
+        GUILayout.BeginVertical("", GUI.skin.box);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Interrupt speech on play", GUILayout.ExpandWidth(false));
+        GUILayout.Space(10);
+        Main.Settings.InterruptPlaybackOnPlay = GUILayout.Toggle(Main.Settings.InterruptPlaybackOnPlay, Main.Settings.InterruptPlaybackOnPlay ? "Interrupt and play" : "Add to queue");
+        GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Auto stop playback on loading", GUILayout.ExpandWidth(false));
+        GUILayout.Space(10);
+        Main.Settings.AutoStopPlaybackOnLoading = GUILayout.Toggle(Main.Settings.AutoStopPlaybackOnLoading, "Enabled");
+        GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Auto play dialog", GUILayout.ExpandWidth(false));
+        GUILayout.Space(10);
+        Main.Settings.AutoPlay = GUILayout.Toggle(Main.Settings.AutoPlay, "Enabled");
+        GUILayout.EndHorizontal();
+
+        {
+            GUI.enabled = Main.Settings.AutoPlay;
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Auto play ignores voiced dialog lines (set the Voice Volume to 0% in the game settings)", GUILayout.ExpandWidth(false));
+            GUILayout.Space(10);
+            Main.Settings.AutoPlayIgnoreVoice = GUILayout.Toggle(Main.Settings.AutoPlayIgnoreVoice, "Enabled");
+            GUILayout.EndHorizontal();
+
+            GUI.enabled = true;
+        }
+
+        GUILayout.EndVertical();
+
+        GUILayout.BeginVertical("", GUI.skin.box);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Show playback button of dialog answers", GUILayout.ExpandWidth(false));
+        GUILayout.Space(10);
+        Main.Settings.ShowPlaybackOfDialogAnswers = GUILayout.Toggle(Main.Settings.ShowPlaybackOfDialogAnswers, "Enabled");
+        GUILayout.EndHorizontal();
+
+        if (Main.Settings.ShowPlaybackOfDialogAnswers)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Include dialog answer number in playback", GUILayout.ExpandWidth(false));
+            GUILayout.Space(10);
+            Main.Settings.SayDialogAnswerNumber = GUILayout.Toggle(Main.Settings.SayDialogAnswerNumber, "Enabled");
+            GUILayout.EndHorizontal();
+
+            GUILayout.EndVertical();
+
+            AddColorPicker("Color answer on hover", ref Main.Settings.DialogAnswerColorOnHover, "Hover color", ref Main.Settings.DialogAnswerHoverColorR, ref Main.Settings.DialogAnswerHoverColorG, ref Main.Settings.DialogAnswerHoverColorB);
+        }
+        else
+        {
+            GUILayout.EndVertical();
+        }
+
+        GUILayout.BeginVertical("", GUI.skin.box);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Playback barks", GUILayout.ExpandWidth(false));
+        GUILayout.Space(10);
+        Main.Settings.PlaybackBarks = GUILayout.Toggle(Main.Settings.PlaybackBarks, "Enabled");
+        GUILayout.EndHorizontal();
+
+        if (Main.Settings.PlaybackBarks)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Only playback barks if there's silence", GUILayout.ExpandWidth(false));
+            GUILayout.Space(10);
+            Main.Settings.PlaybackBarkOnlyIfSilence = GUILayout.Toggle(Main.Settings.PlaybackBarkOnlyIfSilence, "Enabled");
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Playback vicinity and cutscene triggered barks", GUILayout.ExpandWidth(false));
+            GUILayout.Space(10);
+            Main.Settings.PlaybackBarksInVicinity = GUILayout.Toggle(Main.Settings.PlaybackBarksInVicinity, "Enabled");
+            GUILayout.EndHorizontal();
+        }
+
+        GUILayout.EndVertical();
+
+        GUILayout.BeginVertical("", GUI.skin.box);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Show notification on playback stop (set the keybind in the game menu under sound).", GUILayout.ExpandWidth(false));
+        GUILayout.Space(10);
+        Main.Settings.ShowNotificationOnPlaybackStop = GUILayout.Toggle(Main.Settings.ShowNotificationOnPlaybackStop, "Enabled");
+        GUILayout.EndHorizontal();
+
+        GUILayout.EndVertical();
+
+        AddColorPicker("Color on text hover", ref Main.Settings.ColorOnHover, "Hover color", ref Main.Settings.HoverColorR, ref Main.Settings.HoverColorG, ref Main.Settings.HoverColorB, ref Main.Settings.HoverColorA);
+
+        GUILayout.BeginVertical("", GUI.skin.box);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Font style on text hover", GUILayout.ExpandWidth(false));
+        Main.Settings.FontStyleOnHover = GUILayout.Toggle(Main.Settings.FontStyleOnHover, "Enabled");
+        GUILayout.EndHorizontal();
+
+        if (Main.Settings.FontStyleOnHover)
+        {
+            GUILayout.BeginHorizontal();
+            for (var i = 0; i < Main.Settings.FontStyles.Length; ++i)
+            {
+                Main.Settings.FontStyles[i] = GUILayout.Toggle(Main.Settings.FontStyles[i], Main.FontStyleNames[i], GUILayout.ExpandWidth(true));
+            }
+            GUILayout.EndHorizontal();
+        }
+
+        GUILayout.EndVertical();
+    }
+
+    private static void AddVoiceSelector(string label, ref string previewString, VoiceType type)
+    {
+        GUILayout.BeginVertical("", GUI.skin.box);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label(label, GUILayout.ExpandWidth(false));
+        GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Preivew voice", GUILayout.ExpandWidth(false));
+        GUILayout.Space(10);
+        previewString = GUILayout.TextField(previewString, GUILayout.Width(700f));
+        if (GUILayout.Button("Play", GUILayout.ExpandWidth(true)))
+            Main.Speech.SpeakPreview(previewString, type);
+        GUILayout.EndHorizontal();
+
+        GUILayout.EndVertical();
+    }
+
+    private static void AddColorPicker(string enableLabel, ref bool enabledBool, string colorLabel, ref float r, ref float g, ref float b)
+    {
+        float a = 1;
+        AddColorPicker(enableLabel, ref enabledBool, colorLabel, ref r, ref g, ref b, ref a, false);
+    }
+
+    private static void AddColorPicker(string enableLabel, ref bool enabledBool, string colorLabel, ref float r, ref float g, ref float b, ref float a, bool useAlpha = true)
+    {
+        GUILayout.BeginVertical("", GUI.skin.box);
+        GUILayout.BeginHorizontal();
+        GUILayout.Label(enableLabel, GUILayout.ExpandWidth(false));
+        enabledBool = GUILayout.Toggle(enabledBool, "Enabled");
+        GUILayout.EndHorizontal();
+
+        if (enabledBool)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(colorLabel, GUILayout.ExpandWidth(false));
+            GUILayout.Space(10);
+            GUILayout.Label("R ", GUILayout.ExpandWidth(false));
+            r = GUILayout.HorizontalSlider(r, 0, 1);
+            GUILayout.Space(10);
+            GUILayout.Label("G", GUILayout.ExpandWidth(false));
+            g = GUILayout.HorizontalSlider(g, 0, 1);
+            GUILayout.Space(10);
+            GUILayout.Label("B", GUILayout.ExpandWidth(false));
+            b = GUILayout.HorizontalSlider(b, 0, 1);
+            GUILayout.Space(10);
+            if (useAlpha)
+            {
+                GUILayout.Label("A", GUILayout.ExpandWidth(false));
+                a = GUILayout.HorizontalSlider(a, 0, 1);
+                GUILayout.Space(10);
+            }
+            else
+            {
+                a = 1;
+            }
+            GUILayout.Box(GetColorPreview(ref r, ref g, ref b, ref a), GUILayout.Width(20));
+            GUILayout.EndHorizontal();
+        }
+        GUILayout.EndVertical();
+    }
+
+    private static void AddHeader(string text)
+    {
+        GUILayout.BeginVertical(text, GUI.skin.box);
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("", GUILayout.ExpandWidth(true));
+        GUILayout.EndHorizontal();
+        GUILayout.EndVertical();
+    }
+
+    private static Texture2D GetColorPreview(ref float r, ref float g, ref float b, ref float a)
+    {
+        var texture = new Texture2D(20, 20);
+        for (var y = 0; y < texture.height; y++)
+        {
+            for (var x = 0; x < texture.width; x++)
+            {
+                texture.SetPixel(x, y, new Color(r, g, b, a));
+            }
+        }
+        texture.Apply();
+        return texture;
+    }
+}

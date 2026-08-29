@@ -34,20 +34,40 @@ an opt-in local tool builds voice references from the *user's own* game files.
 - [x] Bake-off + scoring harness (ECAPA similarity + Whisper WER); annotation harness
       (ollama/claude/kimi backends, constrained schema, resumable cache, shardable)
 
-### In progress
-- [ ] **TTS bake-off**: Chatterbox-Turbo (installed, running first), Qwen3-TTS (downloaded),
-      IndexTTS-2.5, Fish S2. Output: per-companion similarity/WER/RTF table + listening page.
-- [ ] qwen3:8b pulled for annotation; gold-set prompt design next
+- [x] Default-speaker resolution: 2,866/15,544 resolved by within-dialog majority vote;
+      documented ceiling (~7,297 cues are dynamic-NPC templates, unresolvable offline - same
+      limitation AIVO hit; runtime CurrentSpeaker resolution is the real fix, see memory)
+- [x] 40K/RT pronunciation lexicon v1 (191 terms, IPA + respelling) at data/lexicon/lexicon.json
+- [x] TTS bake-off infra + first two engines fully run: chatterbox_turbo (142/142,
+      sim=0.622 wer=0.100) and qwen3_tts (142/142). IndexTTS-2.5 and fish-speech envs built,
+      not yet run through the bake-off.
+- [x] Gold annotation set: 255 hand-checked lines (14 conversations, all companions + narrator),
+      data/annotations/gold.json. compare_to_gold.py scorer written.
+- [x] **Runtime mod fork**: src/RogueTraderNeuralSpeechMod, forked from Osmodium SpeechMod (MIT,
+      attribution preserved in LICENSE-SpeechMod-upstream.txt). Builds clean (0 errors) against
+      game DLLs and deploys via `dotnet build -t:Deploy`. NeuralSpeech (ISpeech impl) + 
+      NeuralVoiceUnity (UnityWebRequest -> sidecar -> AudioClip) replace the SAPI/`say` backends;
+      same platform now works everywhere. v0.1 scope: routes through upstream's 4 VoiceType
+      categories (Narrator/Female/Male/Protagonist), NOT yet per-character (Heinrix-as-Heinrix)
+      voices - that needs a new ISpeech entry point taking a speaker GUID, next up.
+      NOT YET RUN IN-GAME (compiles + deploys only; no game launch since the export run).
+- [x] **TTS sidecar**: src/TtsSidecar/server.py (FastAPI), lexicon.py (applies data/lexicon),
+      annotation_bridge.py (neutral schema -> per-engine directives), GUID+content-hash disk
+      cache. Engine adapters shared with the bake-off harness at tools/tts_engines/. NOT YET
+      SMOKE-TESTED end-to-end (GPU was saturated by bake-off runs when written).
 
 ### Next (rough order)
-- [ ] Score bake-off, build blind A/B listening page for user + friends
-- [ ] Annotation gold set (~200 lines, frontier model) → bulk pass (local, sharded across
-      Linux 5080 + Mac M4 + Windows 4070) → review pass
-- [ ] 40K lexicon v1 from vocab worklist (top ~300 terms; IPA + respelling columns)
-- [ ] Spike: is Unity audio enabled in-game? (tone-playing test mod) → decides IAudioOutput
-- [ ] Runtime mod: fork SpeechMod hooks, sidecar client, prefetch + cache
-- [ ] Sidecar server: FastAPI/raw-socket, engine adapter, voice map, cache
-- [ ] Default-speaker resolution join (15,544 cues) for per-NPC voices
+- [ ] Smoke-test the sidecar end-to-end (start it, curl /synth, confirm cache hit/miss)
+- [ ] Score qwen3_tts bake-off; run IndexTTS-2.5 + fish-speech through the bake-off; build a
+      blind A/B listening page for the user + friends
+- [ ] Bulk annotation pass (local models, sharded across Linux 5080 + Mac M4 + Windows 4070),
+      validated against the gold set via compare_to_gold.py before trusting it
+- [ ] Spike: is Unity audio enabled in-game? (the mod assumes yes; untested) - decides whether
+      NeuralVoiceUnity's AudioSource approach works or needs a Wwise external-source swap
+- [ ] Per-character voice routing: new ISpeech method taking a speaker GUID (not just VoiceType),
+      wired through Dialog_Patch/BarkPlayer_Patch/DialogAnswerBaseView_Patch, sidecar voice map
+      keyed by data/voices/prompts/prompts.json
+- [ ] First actual in-game test (requires launching the game - check with user first)
 - [ ] Later: user-side voice-clone builder tool; Windows packaging; Nexus/GitHub release
 
 ## Environment

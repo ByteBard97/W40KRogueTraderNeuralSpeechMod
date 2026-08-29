@@ -7,49 +7,50 @@
 - cue text chars: 7,329,994 (~1,832,498 tokens)
 - nodes not reachable from any dialog: 7681
 - units referenced: 479
+- default_speaker cues resolved to an NPC by dialog majority: 2866 (left ambiguous: 12598)
 
-## Cues per speaker (top 40)
+## Cues per speaker (top 40, after default_speaker resolution)
 
-- default_speaker: 15544
-- narrator: 2329
-- Heinrix: 749
-- Jae: 692
-- Pasqal: 670
-- Yrliet: 580
-- High Factotum Janris Danrok: 551
-- Vox Master Vigdis: 551
-- Abelard: 524
-- Solomorne: 495
-- Kibellah: 471
-- Cassia: 462
-- Marazhai: 436
-- Eogunn: 393
-- Argenta: 381
-- Idira: 364
-- Ulfar: 254
-- Jocasta Sauerback: 233
-- Master Helmsman Ravor: 183
-- Incendia Chorda: 159
-- Seberian: 132
-- Calligos Winterscale: 128
-- Vedka Dunawski: 123
-- Clementia Werserian: 118
+- default_speaker: 12421
+- narrator: 2285
+- Pasqal: 992
+- Heinrix: 944
+- Jae: 920
+- Yrliet: 774
+- Cassia: 683
+- Abelard: 658
+- Eogunn: 588
+- High Factotum Janris Danrok: 587
+- Vox Master Vigdis: 549
+- Solomorne: 538
+- Kibellah: 533
+- Marazhai: 434
+- Argenta: 428
+- Idira: 413
+- Ulfar: 279
+- Glaito: 252
+- Jocasta Sauerback: 237
+- Nuncius: 216
+- Master Helmsman Ravor: 187
+- Seberian: 174
+- Incendia Chorda: 140
+- Vedka Dunawski: 125
+- Clementia Werserian: 123
+- Izdrig Batoshski: 116
+- Calligos Winterscale: 113
 - Xavier Calcazar: 113
+- Theobald Orsellio: 107
 - Einrich Monteg: 93
-- Regent Aaronto: 92
-- Nomos: 87
-- Vladaym Tocara the Liege: 86
+- Nomos: 92
+- Vladaym Tocara the Liege: 91
+- Asclepius: 91
+- Regent Aaronto: 91
 - Governor Ruoldo: 84
+- Prefect Inscribia Vultur: 80
+- Edelthrad: 76
 - Muaran: 75
-- Izdrig Batoshski: 75
-- Marshal Gregoras Strachs: 73
-- Prefect Inscribia Vultur: 72
-- Achilleas Scalander: 69
-- Theobald Orsellio: 63
-- Bluff the Court Fool: 59
-- Sergeant Janur: 58
-- Sergeant Malgar: 58
-- Octaviana: 55
+- Achilleas Scalander: 73
+- Marshal Gregoras Strachs: 72
 
 ## Cue animations
 

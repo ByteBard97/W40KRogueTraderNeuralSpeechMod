@@ -9,9 +9,11 @@ def load():
     return model
 
 
-def synth(model, text, prompt_wav=None, prompt_text=None):
+def synth(model, text, prompt_wav=None, prompt_text=None, exaggeration=None):
     kwargs = {}
     if prompt_wav:
         kwargs["audio_prompt_path"] = prompt_wav
+    if exaggeration is not None:
+        kwargs["exaggeration"] = exaggeration
     wav = model.generate(text, **kwargs)
     return np.asarray(wav.squeeze().cpu().numpy(), dtype=np.float32), model.sr

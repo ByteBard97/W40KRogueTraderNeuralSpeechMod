@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 def write_wav(path: Path, x: np.ndarray, sr: int) -> None:
@@ -50,7 +50,7 @@ def main() -> None:
     out_dir = ROOT / "data/bakeoff" / args.engine
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    eng = importlib.import_module(f"engines.{args.engine}")
+    eng = importlib.import_module(f"tts_engines.{args.engine}")
     t0 = time.time()
     ctx = eng.load()
     load_s = time.time() - t0

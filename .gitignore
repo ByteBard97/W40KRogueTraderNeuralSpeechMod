@@ -17,3 +17,9 @@ data/bakeoff/*/*.wav
 tools/tts_bakeoff/.venv-qwen/
 reference/index-tts/
 reference/fish-speech/
+data/tts_cache/
+src/RogueTraderNeuralSpeechMod/bin/
+src/RogueTraderNeuralSpeechMod/obj/
+src/DialogueExporter/bin/
+src/DialogueExporter/obj/
+tools/tts_engines/__pycache__/

@@ -1,0 +1,4 @@
+# Install into the SAME venv as the chosen engine (see PROJECT_PLAN.md for which venv per engine).
+fastapi
+uvicorn[standard]
+pydantic>=2

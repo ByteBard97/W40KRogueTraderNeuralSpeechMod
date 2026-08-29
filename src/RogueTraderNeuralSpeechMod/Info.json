@@ -1,0 +1,11 @@
+{
+    "Id": "W40KRT_NeuralSpeechMod",
+    "DisplayName": "W40K - Neural Speech Mod",
+    "Author": "bytebard97",
+    "ManagerVersion": "0.25.0",
+    "Requirements": [],
+    "AssemblyName": "W40KRT_NeuralSpeechMod.dll",
+    "EntryMethod": "NeuralSpeechMod.Main.Load",
+    "HomePage": "https://github.com/bytebard97/W40KRogueTraderNeuralSpeechMod",
+    "Version": "0.1.0"
+}
