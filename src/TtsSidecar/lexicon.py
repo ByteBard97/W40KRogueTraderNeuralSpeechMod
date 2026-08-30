@@ -26,21 +26,30 @@ def _load() -> tuple[dict, re.Pattern]:
     entries = {k: v for k, v in entries.items() if not k.startswith("_")}
     # longest terms first so multi-word entries win over their substrings
     terms = sorted(entries, key=len, reverse=True)
-    pattern = re.compile(r"\b(" + "|".join(re.escape(t) for t in terms) + r")\b", re.IGNORECASE)
+    # A term can appear as one half of a hyphenated compound (e.g. "vox-system",
+    # "Chaos-branded") - 54 distinct cases across the corpus. `-` is a non-word char, so a plain
+    # \bTERM\b already matches just the term there, but leaves the hyphen glued directly onto the
+    # respelling with no separating space (e.g. "vox-system" -> "vokss-system" instead of "vokss
+    # system"). Matching an optional trailing "-word" here lets the substitution turn that hyphen
+    # into a space instead, without changing behavior for non-hyphenated matches.
+    pattern = re.compile(r"\b(" + "|".join(re.escape(t) for t in terms) + r")(?:-(?=\w)|\b)",
+                         re.IGNORECASE)
     return entries, pattern
 
 
 def respell(text: str) -> str:
     entries, pattern = _load()
     def sub(m: re.Match) -> str:
-        return entries[m.group(0).lower()]["respell"]
+        replacement = entries[m.group(1).lower()]["respell"]
+        return replacement + " " if m.group(0).endswith("-") else replacement
     return pattern.sub(sub, text)
 
 
 def ipa_ssml(text: str) -> str:
     entries, pattern = _load()
     def sub(m: re.Match) -> str:
-        word = m.group(0)
+        word = m.group(1)
         ipa = entries[word.lower()]["ipa"]
-        return f'<phoneme alphabet="ipa" ph="{ipa}">{word}</phoneme>'
+        tag = f'<phoneme alphabet="ipa" ph="{ipa}">{word}</phoneme>'
+        return tag + " " if m.group(0).endswith("-") else tag
     return pattern.sub(sub, text)

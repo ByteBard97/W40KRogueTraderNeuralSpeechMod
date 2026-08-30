@@ -152,9 +152,27 @@ an opt-in local tool builds voice references from the *user's own* game files.
       per speaker. Smoke-tested end-to-end (server, pairing, audio serving, voting, tallying) -
       not yet actually run by a human. This is now the real tiebreaker: run it and tally before
       locking the default engine.
-- [ ] Exercise Chatterbox's paralinguistic tags / Qwen3's instruct-text path against real
-      annotation output (currently bake-off used plain text only; the two pipelines haven't been
-      combined yet).
+- [x] **Exercised the full annotation -> sidecar -> Chatterbox pipeline against real 14B+bios
+      output**, not just plain text. Confirmed end-to-end: real annotated lines (fear+gasp,
+      sarcastic+sniff) POSTed to a live `/synth` correctly produced tagged text
+      (`[fear] [gasp] ...`) with intensity-scaled `exaggeration`, and returned valid WAV audio
+      (HTTP 200, correct duration) - the wiring built earlier in the session works for real, not
+      just in isolated unit tests.
+      **Found and fixed a real bug in the process**: `data/lexicon` respelling glued onto a
+      following hyphen in compound terms ("vox-system" -> "vokss-system" instead of "vokss
+      system") - affects 54 distinct hyphenated compounds across the corpus (Vox-, Chaos-,
+      Omnissiah-, Administratum-branded terms, etc.), not just one line. Root cause: `\b` is a
+      word/non-word boundary, and `-` counts as non-word, so `\bTERM\b` already matched cleanly
+      inside a hyphenated compound but left the hyphen attached to the respelling with no space.
+      Fixed in src/TtsSidecar/lexicon.py: the regex now optionally consumes a trailing hyphen
+      before a word character and replaces it with a space instead, for both `respell()` and
+      `ipa_ssml()`. Verified against the original case and spot-checked real corpus lines.
+      Also confirmed (no bug found): narration-tag stripping (`{n}...{/n}`) is already handled
+      correctly and differently for the two real cases - `speech_only()` for companion dialogue
+      lines (drops narration, bake-off/bare test-set use) vs `narration_only()` for pure-narration
+      lines (keeps the descriptive text, strips only the markup) - and the live C# mod never sees
+      raw `{n}` markup at all, since the game's own renderer already converts it to `<i><color=...>`
+      tags before `DisplayText`, which `NeuralSpeech.cs`'s existing tag-stripping already handles.
 - [ ] Later: user-side voice-clone builder tool; Windows packaging; Nexus/GitHub release
 
 ## Environment
