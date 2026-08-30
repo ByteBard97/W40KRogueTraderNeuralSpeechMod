@@ -173,6 +173,25 @@ an opt-in local tool builds voice references from the *user's own* game files.
       lines (keeps the descriptive text, strips only the markup) - and the live C# mod never sees
       raw `{n}` markup at all, since the game's own renderer already converts it to `<i><color=...>`
       tags before `DisplayText`, which `NeuralSpeech.cs`'s existing tag-stripping already handles.
+- [x] **Exercised the cache-merge -> deploy -> runtime-lookup path end-to-end for the first time**,
+      against real partial-run data (this had never been run before - the annotation pipeline had
+      produced cache files but nothing had ever combined them into the file the mod actually
+      reads). Linux `cache_14b` (500 conversations) and Windows `cache_win_14b` (326, pulled via
+      scp from `C:/RTBuild/annotate/data/annotations/cache_win_14b`) have zero filename collisions
+      (disjoint by design, sharded by conversation guid hash) and combined cleanly into 826
+      conversations / 25,900 annotated lines via `annotate.py --merge`. Copied the merged file to
+      `src/RogueTraderNeuralSpeechMod/Voice/annotations.enGB.json`, built with
+      `dotnet build -t:Deploy`, and confirmed the csproj's conditional `CopyToOutputDirectory` +
+      Deploy target actually landed the 6.5MB file in the live UMM mods folder. Statically
+      verified the runtime path is sound without needing to launch the game (avoids GPU
+      contention with the still-running annotation workers): `AnnotationStore.cs` passes records
+      through as raw `JObject`s (no hand-written C# schema to drift out of sync), and
+      cross-checking all 25,900 annotation guids against `conversations.enGB.json`'s `text_key`
+      values showed a 100% match - every annotation the pipeline produced resolves to a real
+      dialogue cue, confirming the guid space used by `annotate.py` (`text_key`) is exactly the
+      one `AnnotationStore.Resolve(cueGuid)` looks up at runtime
+      (`DialogController.CurrentCue.Text.Key`). Both workers remained running throughout (Linux
+      500, Windows 326, unaffected by the local file copy/build side of this).
 - [ ] Later: user-side voice-clone builder tool; Windows packaging; Nexus/GitHub release
 
 ## Environment
