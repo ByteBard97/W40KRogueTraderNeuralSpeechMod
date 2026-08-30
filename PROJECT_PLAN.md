@@ -226,6 +226,19 @@ an opt-in local tool builds voice references from the *user's own* game files.
       of lines where a companion's pure-narration line still gets a spoken-voice instruct because
       the speaker field isn't literally "narrator" - low-severity, revisit if they show up in the
       listening test.
+      **Self-caught a false-positive problem in the fix itself**: the first version also matched
+      on bare "mocking"/"mockery", which sounded like the same signal but wasn't - auditing the
+      actual 278-line delta (not just resampling the already-correct "sarcastic" population,
+      which is what the first spot-check mistakenly did) turned up real misfires, e.g. a defiant
+      "Anger is power" challenge and a cackling, unhinged "reveling in their own madness" rant
+      both got flattened from `angry`/`dramatic` into `sarcastic`, because mocking language
+      coexists with genuine rage or mania just as often as calm sarcasm. Narrowed the keyword set
+      to just `sarcastic`/`sarcasm`/`condescending`/`condescension` - i.e. only when the model's
+      own instruct text explicitly names the read and then contradicts itself in the enum, which
+      is the actual bug. Re-merged with the narrower rule (833 conversations, 26,494 lines, 92
+      corrected this time) and manually reviewed all 92 by source emotion (57 neutral, 30 angry,
+      2 sad, 1 each dramatic/happy/fear) - every one now has explicit "sarcastic"/"condescending"
+      language in its own instruct text with no remaining false positives found. Redeployed.
 - [ ] Later: user-side voice-clone builder tool; Windows packaging; Nexus/GitHub release
 
 ## Environment

@@ -98,16 +98,23 @@ def validate(result: dict, lines: list[dict]) -> list[dict]:
     return out
 
 
-# qwen3:14b systematically disagrees with itself on this one pattern: strong sarcasm/mockery
-# language in `instruct` (its own free-text delivery note) paired with an unrelated `emotion`
-# enum value (fear, angry, ...) instead of "sarcastic" - found via a 78-line manual sanity sample
-# that then confirmed the pattern corpus-wide (~2% of all lines, 43% of sarcasm/mockery-worded
-# lines). Worst case: Marazhai's calm, purring threats get tagged `fear`, which a TTS backend
-# reading only the enum (not the free-text instruct) would render backwards. Reconciled here
-# rather than by re-running the model, and applied at merge time (not to the cache files) so it
-# keeps applying to the remainder of the run as more conversations finish.
-SARCASM_KEYWORDS = ("sarcastic", "sarcasm", "mocking", "mockery", "mock,", "mock.",
-                    "condescension", "condescending")
+# qwen3:14b systematically disagrees with itself on this one pattern: `instruct` (its own
+# free-text delivery note) explicitly names a sarcastic/condescending delivery while the discrete
+# `emotion` enum picks something else entirely (fear, angry, ...) - found via a 78-line manual
+# sanity sample, confirmed corpus-wide. Worst case: Marazhai's calm, purring threats get tagged
+# `fear`, which a TTS backend reading only the enum (not the free-text instruct) would render
+# backwards. Reconciled here rather than by re-running the model, applied at merge time (not to
+# the cache files) so it keeps applying to the remainder of the run as more conversations finish.
+#
+# Deliberately narrow: an earlier version also matched "mocking"/"mockery" alone, which sounded
+# like the same signal but wasn't - auditing the actual flips it produced (not just the already-
+# correct population) showed real false positives, e.g. a defiant "Anger is power" challenge and
+# an unhinged, cackling "reveling in their own madness" rant both got flattened from angry/dramatic
+# into sarcastic, because mocking language coexists with genuine rage or mania just as often as
+# with calm sarcasm - it's not a reliable single-emotion signal on its own. "sarcastic"/
+# "condescending" in the model's own instruct text is: that's the model explicitly naming the
+# read and then contradicting itself in the enum, which is the actual bug this fixes.
+SARCASM_KEYWORDS = ("sarcastic", "sarcasm", "condescension", "condescending")
 
 
 def reconcile_sarcasm_emotion(merged: dict) -> int:
