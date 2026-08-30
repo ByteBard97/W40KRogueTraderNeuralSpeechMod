@@ -239,6 +239,13 @@ an opt-in local tool builds voice references from the *user's own* game files.
       corrected this time) and manually reviewed all 92 by source emotion (57 neutral, 30 angry,
       2 sad, 1 each dramatic/happy/fear) - every one now has explicit "sarcastic"/"condescending"
       language in its own instruct text with no remaining false positives found. Redeployed.
+- [x] **Linux worker (shard 0/2) finished its half of the bulk annotation run**: 637 of 638
+      assigned conversations cached (the 638th, `OnePathForBoth_ktc`, is dev-cut content - its
+      only "line" is the literal placeholder text `[ktc]` with a Russian comment translating to
+      "this KTC was decided to be cut," never real dialogue, correctly left unannotated). Process
+      exited cleanly on its own (not a crash - verified no OOM in `journalctl`, healthy memory).
+      Windows worker (shard 1/2, 691 conversations) continues unaffected. Only Windows remains
+      to finish before the final combined merge + redeploy.
 - [ ] Later: user-side voice-clone builder tool; Windows packaging; Nexus/GitHub release
 
 ## Environment
