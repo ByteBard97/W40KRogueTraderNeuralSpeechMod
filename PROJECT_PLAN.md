@@ -192,6 +192,17 @@ an opt-in local tool builds voice references from the *user's own* game files.
       one `AnnotationStore.Resolve(cueGuid)` looks up at runtime
       (`DialogController.CurrentCue.Text.Key`). Both workers remained running throughout (Linux
       500, Windows 326, unaffected by the local file copy/build side of this).
+- [x] **Resolved a licensing open question ahead of the voice-clone builder tool**: researched
+      whether `tools/bin/wwiser.pyz` and `vgmstream-cli`, both currently used by the dev-only
+      extraction scripts, can legally be bundled in a future release zip. **vgmstream is ISC
+      (permissive) with official prebuilt CLI binaries for Windows/macOS/Linux** - bundling is
+      safe once expanded attribution (added to README.md) is included, though the LGPL
+      components it links (mpg123, FFmpeg) should be confirmed dynamically-linked before
+      shipping a build. **wwiser has no LICENSE file at all** - reverse-engineered by bnnm with
+      no explicit grant of redistribution rights, so it must NOT be vendored in a release zip;
+      the builder tool will need to link users to the upstream repo for a self-download, or
+      contact bnnm for explicit permission. Confirmed neither binary is currently tracked in git
+      (both correctly covered by the `bin/` gitignore pattern already) - no existing exposure.
 - [ ] Later: user-side voice-clone builder tool; Windows packaging; Nexus/GitHub release
 
 ## Environment
