@@ -203,6 +203,29 @@ an opt-in local tool builds voice references from the *user's own* game files.
       the builder tool will need to link users to the upstream repo for a self-download, or
       contact bnnm for explicit permission. Confirmed neither binary is currently tracked in git
       (both correctly covered by the `bin/` gitignore pattern already) - no existing exposure.
+- [x] **Sanity-checked the real bulk 14B+bios output against the user's own explicit concern**
+      ("sample a bunch of different parts... since 8B models are not that smart") - a subagent
+      pulled a stratified 78-line sample (69 conversations, 30 speakers, all 12 emotions
+      represented) from the actual 826-conversation merged output, not just the small curated
+      gold set. Verdict: acceptable quality (~88% clean), calibration is excellent (99.7% of
+      "neutral" records land inside the prompt's own 0.1-0.35 target band), and bio-matching is
+      often sharp (Marazhai and Trazyn both nailed their bios' cold, mocking register). **Found
+      one real, quantified, systematic defect**: the discrete `emotion` enum disagrees with
+      clearly sarcastic/mocking language in the model's own free-text `instruct` field on ~2% of
+      all lines (worst case: Marazhai's calm, purring threats tagged `fear` instead of
+      `sarcastic`) - a TTS backend keying off the enum alone would render these backwards.
+      **Fixed** with a keyword-based reconciliation pass (`reconcile_sarcasm_emotion` in
+      `tools/annotate/annotate.py`, run automatically as part of `--merge`) rather than
+      re-running the model: any line whose `instruct` text contains sarcasm/mockery/condescension
+      language gets its `emotion` corrected to `sarcastic` unless already `sarcastic`/`amused`.
+      Verified against the two exact examples the review flagged (Marazhai's Oghyr-traps line,
+      Enforcer Klein's "up your arse" line) - both now read `sarcastic` as expected. Re-merged
+      (830 conversations, 26,293 lines, 278 lines corrected - ~1.06%, consistent with the
+      sampled estimate) and redeployed to the live mod folder. Minor remaining issues noted but
+      not worth a full re-run: rare (0.12%) garbled self-referential instruct text, and a couple
+      of lines where a companion's pure-narration line still gets a spoken-voice instruct because
+      the speaker field isn't literally "narrator" - low-severity, revisit if they show up in the
+      listening test.
 - [ ] Later: user-side voice-clone builder tool; Windows packaging; Nexus/GitHub release
 
 ## Environment

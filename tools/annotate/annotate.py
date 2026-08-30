@@ -98,6 +98,30 @@ def validate(result: dict, lines: list[dict]) -> list[dict]:
     return out
 
 
+# qwen3:14b systematically disagrees with itself on this one pattern: strong sarcasm/mockery
+# language in `instruct` (its own free-text delivery note) paired with an unrelated `emotion`
+# enum value (fear, angry, ...) instead of "sarcastic" - found via a 78-line manual sanity sample
+# that then confirmed the pattern corpus-wide (~2% of all lines, 43% of sarcasm/mockery-worded
+# lines). Worst case: Marazhai's calm, purring threats get tagged `fear`, which a TTS backend
+# reading only the enum (not the free-text instruct) would render backwards. Reconciled here
+# rather than by re-running the model, and applied at merge time (not to the cache files) so it
+# keeps applying to the remainder of the run as more conversations finish.
+SARCASM_KEYWORDS = ("sarcastic", "sarcasm", "mocking", "mockery", "mock,", "mock.",
+                    "condescension", "condescending")
+
+
+def reconcile_sarcasm_emotion(merged: dict) -> int:
+    changed = 0
+    for rec in merged.values():
+        if rec.get("emotion") in ("sarcastic", "amused"):
+            continue
+        instruct = (rec.get("instruct") or "").lower()
+        if any(kw in instruct for kw in SARCASM_KEYWORDS):
+            rec["emotion"] = "sarcastic"
+            changed += 1
+    return changed
+
+
 MAX_CHUNK = 30  # lines per LLM call - matches the corpus's own median conversation size (most
                  # conversations already run fine at this scale); a 42-line test call took 195s
                  # and still dropped 3 guids, so bigger chunks mean rarer but far more expensive
@@ -164,9 +188,11 @@ def main() -> None:
         for f in cache_dir.glob("*.json"):
             for r in json.load(open(f, encoding="utf-8"))["lines"]:
                 merged[r["guid"]] = {k: v for k, v in r.items() if k != "guid"}
+        fixed = reconcile_sarcasm_emotion(merged)
         out = ROOT / "data/annotations/annotations.enGB.json"
         out.write_text(json.dumps(merged, ensure_ascii=False, indent=0), encoding="utf-8")
         print(f"merged {len(merged)} annotations from {len(list(cache_dir.glob('*.json')))} conversations -> {out}")
+        print(f"reconciled emotion->sarcastic on {fixed} lines whose instruct text implied sarcasm/mockery")
         return
 
     shard_i, shard_n = (int(x) for x in args.shard.split("/"))
