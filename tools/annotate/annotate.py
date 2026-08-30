@@ -158,9 +158,16 @@ def annotate_conv(conv: dict, backend, model: str) -> list[dict] | None:
         try:
             result = backend(SYSTEM, user, JSON_SCHEMA, model=model)
             return validate(result, lines_subset)
-        except BackendError:
-            if len(lines_subset) <= 2:
-                raise
+        except BackendError as e:
+            if len(lines_subset) <= 1:
+                # Isolated to a single line the model can't/won't annotate (seen on lines with
+                # embedded {g|..}/{n}..{/n} markup or degenerate dev-test text) - drop just this
+                # one line rather than failing the whole conversation. Previously the base case
+                # was <=2, which meant a single bad line inside a 2-line chunk sank its neighbor
+                # too, and propagated up to abort annotate_conv entirely - losing every other
+                # line in what could be an otherwise-fine 100+ line conversation.
+                print(f"  SKIP line {lines_subset[0]['guid']}: {e}", file=sys.stderr)
+                return []
             mid = len(lines_subset) // 2
             return go(lines_subset[:mid]) + go(lines_subset[mid:])
 

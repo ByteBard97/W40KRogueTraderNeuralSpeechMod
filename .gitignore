@@ -13,6 +13,7 @@ data/voices/
 .venv-tts/
 data/annotations/cache*/
 data/annotations/annotations.enGB.json
+src/RogueTraderNeuralSpeechMod/Voice/annotations.enGB.json
 data/bakeoff/*/*.wav
 data/bakeoff/listening_votes.jsonl
 .claude/

@@ -244,8 +244,51 @@ an opt-in local tool builds voice references from the *user's own* game files.
       only "line" is the literal placeholder text `[ktc]` with a Russian comment translating to
       "this KTC was decided to be cut," never real dialogue, correctly left unannotated). Process
       exited cleanly on its own (not a crash - verified no OOM in `journalctl`, healthy memory).
-      Windows worker (shard 1/2, 691 conversations) continues unaffected. Only Windows remains
-      to finish before the final combined merge + redeploy.
+- [x] **Windows shard (1/2, 691 conversations) stalled for ~16h, root-caused and split, then
+      finished.** Progress had frozen around 426/691 for many hours despite the GPU staying busy;
+      turned out to be genuine (no hang), just slow on a run of unusually large conversations.
+      Split the remaining work into `shard 1/4` (Windows) and `shard 3/4` (Linux, previously idle
+      once its own shard finished), both seeded from the same 426-file cache so nothing was
+      redone - throughput went from ~6/hour effective to ~60-140/hour combined. Restarting the
+      Windows worker over SSH repeatedly died within a minute of launch: `Start-Process` ties the
+      child to the SSH command's job object, which Windows tears down the moment that SSH
+      invocation exits - the original long-lived process had been started from an interactive
+      session, not SSH. Fixed by launching via `Invoke-WmiMethod -Class Win32_Process -Name
+      Create`, which fully detaches the child from the calling session. Both new shards ran to
+      completion: Linux shard 3/4 finished with 142 done / 2 failed; Windows shard 1/4 finished
+      with 119 done / 2 failed.
+- [x] **Final merge + redeploy of the complete bulk annotation run.** Consolidated all cache
+      directories (`cache_14b` + `cache_win_14b` + `cache_win_14b_seed`, guid-named files so a
+      plain non-clobbering copy is safe) into one directory: 1324 of 1329 total corpus
+      conversations resolved - exactly matching the 5 known permanent failures (1 dev-cut stub +
+      4 real "missing guid at minimum chunk size" cases: `Test_dialog_for_commit`,
+      `MB_FinalVivisectorMedbay_dialogue`, `UralonVisit_dialogue`, `Chorda_Footfall_c4_dialog`;
+      candidates for a future retry pass at a smaller `MAX_CHUNK`, not silently dropped from
+      tracking). Ran `annotate.py --merge`: 44,875 annotated lines, 198 sarcasm/emotion
+      corrections applied by `reconcile_sarcasm_emotion`. Copied to
+      `src/RogueTraderNeuralSpeechMod/Voice/annotations.enGB.json`, rebuilt and deployed via
+      `dotnet build -t:Deploy` (md5-verified identical to the live UMM mods folder copy).
+- [x] **Retried the 4 real permanently-failed conversations - found and fixed the actual bug.**
+      The chunk-splitting recursion's base case (`annotate.py`'s `go()`) gave up at chunk size
+      <=2 and re-raised, which aborted `annotate_conv` entirely - so ONE unrecoverable line
+      anywhere in a conversation was silently costing every OTHER line in that conversation too
+      (e.g. `Chorda_Footfall_c4_dialog` has 187 real dialogue lines; all 187 were being thrown
+      away over a single bad one). Changed the base case to split all the way down to a single
+      line, and to skip just that one line (logged) instead of raising, once isolated. Retried
+      all 4: `Test_dialog_for_commit` correctly skipped its only line (`"1234567"`, degenerate
+      dev-test text, same category as the `OnePathForBoth_ktc` dev-cut stub - nothing to
+      annotate). `MB_FinalVivisectorMedbay_dialogue` (31 lines) and `Chorda_Footfall_c4_dialog`
+      (187 lines) both fully recovered, zero lines skipped. `UralonVisit_dialogue` recovered 54
+      of 55 lines, permanently skipping one line containing inline `{g|Encyclopedia:...}` glossary
+      markup the model can't annotate. Re-merged: **1328 of 1329 conversations, 45,114 lines**
+      (only the genuine `OnePathForBoth_ktc` dev-cut stub remains excluded). Verified the line
+      count too, not just the conversation count: comparing every cached conversation's expected
+      renderable-line set (via `conv_payload`) against `annotations.enGB.json`'s keys turns up
+      a gap of exactly 2 lines corpus-wide - `9c8620d2-6ee0-4816-ad66-9eae23a261ff` (the
+      `Test_dialog_for_commit` `"1234567"` line) and `ecccbbcb-bfd3-4528-8e04-17a72d1fdfa7` (the
+      `UralonVisit_dialogue` glossary-markup line) - confirming no other conversation, including
+      the 1324 that ran under the old buggy base-case code, silently lost lines. Redeployed,
+      md5-verified identical to the live UMM install.
 - [ ] Later: user-side voice-clone builder tool; Windows packaging; Nexus/GitHub release
 
 ## Environment
