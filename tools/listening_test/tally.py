@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Tally votes from the blind listening test (see serve.py). Un-blinds each vote (the vote log
-already records which engine was A/B) and reports win/tie counts overall and per speaker.
+"""Tally votes from the blind listening test (see serve.py). Each vote records the `order` it was
+presented in and a best-to-worst `ranking` (or `tie: true`), so no un-blinding step is needed.
+Reports the Borda-count standings (same scoring as the live page), per-speaker breakdown, and
+error-tag frequency per engine.
 
-Usage: python3 tally.py [votes.jsonl]
+Usage: python3 tally.py [votes.json]
 """
 from __future__ import annotations
 
@@ -12,7 +14,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-DEFAULT_VOTES = ROOT / "data/bakeoff/listening_votes.jsonl"
+DEFAULT_VOTES = ROOT / "data/bakeoff/listening_votes.json"
 
 
 def main() -> None:
@@ -20,33 +22,50 @@ def main() -> None:
     if not path.exists():
         raise SystemExit(f"no votes file at {path} yet - run the listening test first")
 
-    overall = Counter()
-    per_speaker = defaultdict(Counter)
+    votes = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(votes, dict):
+        votes = list(votes.values())
+
+    points = Counter()
+    firsts = Counter()
+    per_speaker_points = defaultdict(Counter)
+    errors_by_engine = defaultdict(Counter)
+    ties = 0
     n = 0
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        v = json.loads(line)
+    for v in votes:
         n += 1
-        if v["choice"] == "tie":
-            overall["tie"] += 1
-            per_speaker[v["speaker"]]["tie"] += 1
-            continue
-        winner = v["a_engine"] if v["choice"] == "a" else v["b_engine"]
-        overall[winner] += 1
-        per_speaker[v["speaker"]][winner] += 1
+        if v.get("tie"):
+            ties += 1
+        else:
+            ranking = v.get("ranking") or []
+            k = len(ranking)
+            for idx, engine in enumerate(ranking):
+                pts = k - idx
+                points[engine] += pts
+                per_speaker_points[v["speaker"]][engine] += pts
+                if idx == 0:
+                    firsts[engine] += 1
+        for entry in v.get("clip_errors", []):
+            for tag in entry.get("tags", []):
+                errors_by_engine[entry["engine"]][tag] += 1
 
-    print(f"{n} votes total\n")
-    print("Overall:")
-    for engine, count in overall.most_common():
-        print(f"  {engine}: {count} ({count / n:.0%})")
+    print(f"{n} votes total ({ties} ties)\n")
+    print("Overall standings (Borda points, rank 1 of k scores k):")
+    for engine, pts in points.most_common():
+        print(f"  {engine}: {pts} pts ({firsts[engine]} firsts)")
 
-    print("\nPer speaker:")
-    for speaker in sorted(per_speaker):
-        counts = per_speaker[speaker]
-        total = sum(counts.values())
+    print("\nPer speaker (points):")
+    for speaker in sorted(per_speaker_points):
+        counts = per_speaker_points[speaker]
         parts = ", ".join(f"{e}={c}" for e, c in counts.most_common())
-        print(f"  {speaker} (n={total}): {parts}")
+        print(f"  {speaker}: {parts}")
+
+    if errors_by_engine:
+        print("\nError tags flagged per engine:")
+        for engine in sorted(errors_by_engine):
+            counts = errors_by_engine[engine]
+            parts = ", ".join(f"{tag}={c}" for tag, c in counts.most_common())
+            print(f"  {engine}: {parts}")
 
 
 if __name__ == "__main__":

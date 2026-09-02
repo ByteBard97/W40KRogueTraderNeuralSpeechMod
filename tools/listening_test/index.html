@@ -2,93 +2,435 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>RT Neural Speech - Blind Listening Test</title>
+<title>RT Neural Speech - Listening Test</title>
 <style>
-  body { font-family: -apple-system, Segoe UI, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #222; }
+  :root {
+    color-scheme: dark;
+    --bg: #14151c;
+    --panel: #1c1e27;
+    --panel-border: #2d303e;
+    --text: #e7e7ee;
+    --muted: #9a9ba8;
+    --accent: #c9a227;
+    --accent-text: #17140a;
+    --neutral-btn: #2d303e;
+    --rank1: #3c7a54;
+    --rank2: #3a6f8f;
+    --rank3: #7a5b3c;
+    --tie-selected: #5b5f73;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Segoe UI, sans-serif;
+    max-width: 780px; margin: 40px auto; padding: 0 16px 60px;
+    background: var(--bg); color: var(--text);
+  }
   h1 { font-size: 1.3em; }
-  #progress { color: #666; margin-bottom: 8px; }
-  #speaker { color: #888; font-size: 0.9em; }
-  #text { font-size: 1.15em; line-height: 1.5; margin: 12px 0 20px; padding: 12px; background: #f5f5f5; border-radius: 6px; }
-  .clip { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-  .clip label { font-weight: bold; width: 20px; }
-  audio { flex: 1; }
-  #choices button { font-size: 1em; padding: 10px 18px; margin-right: 8px; cursor: pointer; }
+  p { color: var(--muted); line-height: 1.5; }
+  #tally {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 18px; font-size: 0.9em;
+  }
+  #tally h2 { font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 8px; }
+  #tally-rows { display: flex; flex-direction: column; gap: 4px; }
+  .tally-row { display: flex; align-items: center; gap: 10px; }
+  .tally-row .engine { width: 150px; flex-shrink: 0; }
+  .tally-row .bar-track { flex: 1; background: var(--bg); border-radius: 4px; overflow: hidden; height: 10px; }
+  .tally-row .bar-fill { height: 100%; background: var(--accent); }
+  .tally-row .stats { width: 150px; flex-shrink: 0; text-align: right; color: var(--muted); font-size: 0.85em; }
+  #tally-meta { margin-top: 8px; color: var(--muted); font-size: 0.85em; }
+  #nav-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  #nav-row button {
+    background: var(--neutral-btn); color: var(--text); border: 1px solid var(--panel-border);
+    border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 0.9em;
+  }
+  #nav-row button:hover:not(:disabled) { border-color: var(--accent); }
+  #nav-row button:disabled { opacity: 0.4; cursor: default; }
+  #progress { color: var(--muted); }
+  #speaker { color: var(--muted); font-size: 0.9em; margin-bottom: 6px; }
+  #text {
+    font-size: 1.15em; line-height: 1.5; margin: 6px 0 6px; padding: 14px;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
+  }
+  #direction {
+    font-size: 0.9em; line-height: 1.4; margin: 0 0 20px; padding: 8px 14px;
+    background: transparent; border-left: 3px solid var(--accent); color: var(--muted);
+    font-style: italic;
+  }
+  #direction .tags { font-style: normal; color: var(--accent); margin-right: 8px; }
+  #reference {
+    margin: 4px 0 16px; padding: 10px 14px;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
+  }
+  #reference summary { cursor: pointer; font-size: 0.85em; color: var(--muted); }
+  #reference summary::marker { color: var(--accent); }
+  .ref-clip { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .ref-clip audio { flex-shrink: 0; width: 220px; height: 32px; }
+  .ref-clip .ref-text { font-size: 0.85em; color: var(--muted); font-style: italic; }
+  #rank-hint { font-size: 0.85em; color: var(--muted); margin-bottom: 10px; }
+  .clip-card {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 14px;
+  }
+  .clip-card.ranked-1 { border-color: var(--rank1); }
+  .clip-card.ranked-2 { border-color: var(--rank2); }
+  .clip-card.ranked-3 { border-color: var(--rank3); }
+  .rank-badge {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-weight: bold;
+    background: var(--neutral-btn); border: 2px solid var(--panel-border); color: var(--text);
+    font-size: 1.1em;
+  }
+  .rank-badge.ranked-1 { background: var(--rank1); border-color: var(--rank1); }
+  .rank-badge.ranked-2 { background: var(--rank2); border-color: var(--rank2); }
+  .rank-badge.ranked-3 { background: var(--rank3); border-color: var(--rank3); }
+  .clip-body { flex: 1; min-width: 0; }
+  .clip-label { font-size: 0.9em; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .clip-body audio { width: 100%; }
+  .errors { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: 0.85em; color: var(--muted); }
+  .errors label { display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; }
+  .other-note { margin-top: 6px; }
+  .other-note input {
+    width: 90%; font-size: 0.85em; padding: 5px 7px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--panel-border); border-radius: 4px;
+  }
+  #tie {
+    font-size: 1em; padding: 10px 18px; margin-top: 4px; cursor: pointer;
+    background: var(--neutral-btn); color: var(--text); border: 1px solid var(--panel-border); border-radius: 6px;
+  }
+  #tie.selected { background: var(--tie-selected); border-color: var(--tie-selected); }
   #done { display: none; }
-  #reset { margin-top: 24px; font-size: 0.85em; color: #888; cursor: pointer; text-decoration: underline; }
+  #reset { margin-top: 24px; font-size: 0.85em; color: var(--muted); cursor: pointer; text-decoration: underline; }
+  #export { margin-top: 16px; font-size: 0.9em; }
+  #export a { color: var(--accent); }
 </style>
 </head>
 <body>
-<h1>RT Neural Speech Mod — Blind Listening Test</h1>
-<p>For each line, listen to both clips (same text, two TTS engines, order randomized) and pick
-the one that sounds more like a real voice actor. There's no wrong answer - go with your gut.
-You can stop at any point; every vote is saved as you go.</p>
+<h1>RT Neural Speech Mod — Listening Test</h1>
+<p>For each line, listen to all the clips (same text, each one labeled with which TTS engine
+produced it). Click the number circle on each clip in order from best to worst - first click is
+your #1 pick, next is #2, and so on (click a ranked circle again to undo it). While you listen,
+check off any errors you hear in <em>each</em> clip - mispronunciations, wrong/missing words,
+etc. Every vote saves automatically once all clips are ranked, and you can move freely between
+lines with Prev/Next.</p>
+
+<div id="tally">
+  <h2>Standings so far</h2>
+  <div id="tally-rows"></div>
+  <div id="tally-meta"></div>
+</div>
 
 <div id="test">
-  <div id="progress"></div>
-  <div id="speaker"></div>
-  <div id="text"></div>
-  <div class="clip"><label>A</label><audio id="audioA" controls></audio></div>
-  <div class="clip"><label>B</label><audio id="audioB" controls></audio></div>
-  <div id="choices">
-    <button onclick="vote('a')">A is better</button>
-    <button onclick="vote('b')">B is better</button>
-    <button onclick="vote('tie')">Tie / can't tell</button>
+  <div id="nav-row">
+    <button id="prev-btn" onclick="goPrev()">◀ Prev</button>
+    <button id="next-btn" onclick="goNext()">Next ▶</button>
+    <div id="progress"></div>
   </div>
+  <div id="speaker"></div>
+  <details id="reference" open>
+    <summary>Reference audio - the real voice actor</summary>
+    <div id="reference-clips"></div>
+  </details>
+  <div id="text"></div>
+  <div id="direction"></div>
+  <div id="rank-hint"></div>
+  <div id="clips"></div>
+  <button id="tie" onclick="voteTie()">Tie / can't rank</button>
 </div>
-<div id="done"><h2>All done - thank you!</h2><p>Ask whoever's running this to run <code>tally.py</code> to see the results.</p></div>
-<div id="reset" onclick="resetProgress()">Start over from the beginning</div>
+<div id="done"><h2>All done - thank you!</h2><p>Download the results below, or ask whoever's
+running this to run <code>tally.py</code> to see a text summary.</p></div>
+<div id="export"><a href="/export" download="listening_votes.json">Download results (JSON)</a></div>
+<div id="reset" onclick="jumpToStart()">Jump back to line 1</div>
 
 <script>
-let pairs = [];
+let items = [];
 let i = 0;
-const STORAGE_KEY = "rt_listening_test_progress";
+let rankOrder = [];  // clip indices, best to worst, in click order
+const STORAGE_KEY = "rt_listening_test_progress_v4";
+const ERROR_TAGS = [
+  ["mispronunciation", "Mispronunciation"],
+  ["wrong_words", "Wrong/missing words"],
+  ["garbled", "Garbled/unintelligible"],
+  ["wrong_emotion", "Wrong emotion/tone"],
+  ["wrong_accent", "Accent slipped/wrong"],
+  ["voice_mismatch", "Doesn't match reference voice"],
+  ["artifact", "Audio glitch (click/pop/static)"],
+];
 
 async function load() {
-  const res = await fetch("/pairs");
+  const res = await fetch("/items");
   const data = await res.json();
-  pairs = data.pairs;
+  items = data.items;
   const saved = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
-  i = Math.min(saved, pairs.length);
+  i = Math.min(Math.max(saved, 0), Math.max(items.length - 1, 0));
   render();
+  loadTally();
+}
+
+async function loadTally() {
+  const res = await fetch("/tally");
+  const data = await res.json();
+  const maxPts = Math.max(1, ...data.standings.map(s => s.points));
+  const rows = document.getElementById("tally-rows");
+  rows.innerHTML = "";
+  data.standings.forEach(s => {
+    const row = document.createElement("div");
+    row.className = "tally-row";
+    row.innerHTML = `
+      <div class="engine">${s.engine}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(s.points / maxPts) * 100}%"></div></div>
+      <div class="stats">${s.points} pts · ${s.first_place} firsts</div>
+    `;
+    rows.appendChild(row);
+  });
+  document.getElementById("tally-meta").textContent =
+    `${data.n_votes} lines voted (${data.ties} ties)`;
+}
+
+function pointsFor(rankIdx, k) {
+  return k - rankIdx;
 }
 
 function render() {
-  if (i >= pairs.length) {
+  if (items.length === 0 || i >= items.length) {
     document.getElementById("test").style.display = "none";
     document.getElementById("done").style.display = "block";
     return;
   }
-  const p = pairs[i];
-  document.getElementById("progress").textContent = `Line ${i + 1} of ${pairs.length}`;
-  document.getElementById("speaker").textContent = `Speaker: ${p.speaker}`;
-  document.getElementById("text").textContent = p.text;
-  const a = document.getElementById("audioA");
-  const b = document.getElementById("audioB");
-  a.src = p.a_url;
-  b.src = p.b_url;
-  a.load();
-  b.load();
+  document.getElementById("test").style.display = "block";
+  document.getElementById("done").style.display = "none";
+
+  const item = items[i];
+  const saved = item.saved || null;
+
+  // Restore ranking by engine identity, mapped onto this session's (possibly re-shuffled) clip order.
+  if (saved && saved.ranking) {
+    rankOrder = saved.ranking.map(engine => item.clips.findIndex(c => c.engine === engine));
+  } else {
+    rankOrder = [];
+  }
+
+  document.getElementById("progress").textContent =
+    `Line ${i + 1} of ${items.length}${saved ? "  (voted)" : ""}`;
+  document.getElementById("speaker").textContent = `Speaker: ${item.speaker}`;
+
+  const refEl = document.getElementById("reference");
+  const refClips = document.getElementById("reference-clips");
+  refClips.innerHTML = "";
+  if (item.reference && item.reference.length) {
+    refEl.style.display = "block";
+    item.reference.forEach(clip => {
+      const row = document.createElement("div");
+      row.className = "ref-clip";
+      const audioEl = document.createElement("audio");
+      audioEl.controls = true;
+      audioEl.src = clip.url;
+      const textEl = document.createElement("span");
+      textEl.className = "ref-text";
+      textEl.textContent = clip.text;
+      row.appendChild(audioEl);
+      row.appendChild(textEl);
+      refClips.appendChild(row);
+    });
+  } else {
+    refEl.style.display = "none";
+  }
+
+  document.getElementById("text").textContent = item.text;
+
+  const directionEl = document.getElementById("direction");
+  const d = item.direction;
+  directionEl.innerHTML = "";
+  if (d && d.instruct) {
+    const tags = [d.emotion, d.intensity != null ? `intensity ${d.intensity}` : null, ...(d.nonverbal || [])]
+      .filter(Boolean).join(" · ");
+    if (tags) {
+      const tagsEl = document.createElement("span");
+      tagsEl.className = "tags";
+      tagsEl.textContent = `[${tags}]`;
+      directionEl.appendChild(tagsEl);
+    }
+    directionEl.appendChild(document.createTextNode(d.instruct));
+    directionEl.style.display = "block";
+  } else {
+    directionEl.style.display = "none";
+  }
+
+  document.getElementById("rank-hint").textContent =
+    `Click clips in order, best first (1 = ${item.clips.length} pts, ... ${item.clips.length} = 1 pt).`;
+  document.getElementById("prev-btn").disabled = i === 0;
+  document.getElementById("next-btn").disabled = i === items.length - 1;
+
+  const tieBtn = document.getElementById("tie");
+  tieBtn.classList.toggle("selected", !!(saved && saved.tie));
+
+  const savedErrorsByEngine = {};
+  if (saved) {
+    for (const entry of saved.clip_errors || []) savedErrorsByEngine[entry.engine] = entry;
+  }
+
+  const container = document.getElementById("clips");
+  container.innerHTML = "";
+  item.clips.forEach((clip, idx) => {
+    const savedEntry = savedErrorsByEngine[clip.engine];
+    const card = document.createElement("div");
+    card.className = "clip-card";
+    card.id = `clip-card-${idx}`;
+
+    const badge = document.createElement("div");
+    badge.className = "rank-badge";
+    badge.id = `rank-badge-${idx}`;
+    badge.onclick = () => toggleRank(idx);
+
+    const body = document.createElement("div");
+    body.className = "clip-body";
+    const labelEl = document.createElement("div");
+    labelEl.className = "clip-label";
+    labelEl.textContent = clip.label || clip.engine;
+    body.appendChild(labelEl);
+    const audioEl = document.createElement("audio");
+    audioEl.controls = true;
+    audioEl.src = clip.url;
+    body.appendChild(audioEl);
+
+    const errorsRow = document.createElement("div");
+    errorsRow.className = "errors";
+    ERROR_TAGS.forEach(([key, tagLabel]) => {
+      const cbLabel = document.createElement("label");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.dataset.clipIdx = idx;
+      cb.dataset.errorKey = key;
+      cb.checked = !!(savedEntry && savedEntry.tags.includes(key));
+      cbLabel.appendChild(cb);
+      cbLabel.appendChild(document.createTextNode(tagLabel));
+      errorsRow.appendChild(cbLabel);
+    });
+    const otherLabel = document.createElement("label");
+    const otherCb = document.createElement("input");
+    otherCb.type = "checkbox";
+    otherCb.dataset.clipIdx = idx;
+    otherCb.dataset.errorKey = "other";
+    otherCb.checked = !!(savedEntry && savedEntry.tags.includes("other"));
+    otherLabel.appendChild(otherCb);
+    otherLabel.appendChild(document.createTextNode("Other"));
+    errorsRow.appendChild(otherLabel);
+    body.appendChild(errorsRow);
+
+    const noteRow = document.createElement("div");
+    noteRow.className = "other-note";
+    noteRow.style.display = otherCb.checked ? "block" : "none";
+    const noteInput = document.createElement("input");
+    noteInput.type = "text";
+    noteInput.id = `other-note-${idx}`;
+    noteInput.placeholder = "describe the error";
+    noteInput.value = (savedEntry && savedEntry.note) || "";
+    noteRow.appendChild(noteInput);
+    body.appendChild(noteRow);
+    otherCb.onchange = () => { noteRow.style.display = otherCb.checked ? "block" : "none"; };
+
+    card.appendChild(badge);
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+
+  renderRankBadges();
 }
 
-async function vote(choice) {
-  const p = pairs[i];
+function renderRankBadges() {
+  const item = items[i];
+  const k = item.clips.length;
+  item.clips.forEach((clip, idx) => {
+    const badge = document.getElementById(`rank-badge-${idx}`);
+    const card = document.getElementById(`clip-card-${idx}`);
+    badge.className = "rank-badge";
+    card.className = "clip-card";
+    const pos = rankOrder.indexOf(idx);
+    if (pos === -1) {
+      badge.textContent = "?";
+    } else {
+      const rankClass = `ranked-${Math.min(pos + 1, 3)}`;
+      badge.textContent = `#${pos + 1}`;
+      badge.title = `${pointsFor(pos, k)} pts`;
+      badge.classList.add(rankClass);
+      card.classList.add(rankClass);
+    }
+  });
+}
+
+function toggleRank(idx) {
+  const pos = rankOrder.indexOf(idx);
+  if (pos === -1) {
+    rankOrder.push(idx);
+  } else {
+    rankOrder.splice(pos, 1);
+  }
+  renderRankBadges();
+  document.getElementById("tie").classList.remove("selected");
+  if (rankOrder.length === items[i].clips.length) {
+    submitRanking();
+  }
+}
+
+function collectClipErrors(item) {
+  return item.clips.map((clip, idx) => {
+    const checked = Array.from(
+      document.querySelectorAll(`input[type=checkbox][data-clip-idx="${idx}"]:checked`)
+    ).map(cb => cb.dataset.errorKey);
+    const noteInput = document.getElementById(`other-note-${idx}`);
+    const note = checked.includes("other") && noteInput ? noteInput.value.trim() : "";
+    return { engine: clip.engine, tags: checked, note };
+  });
+}
+
+async function submitVote(vote) {
+  const item = items[i];
+  item.saved = vote;
   await fetch("/vote", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      id: p.id, speaker: p.speaker, a_engine: p.a_engine, b_engine: p.b_engine, choice,
-    }),
+    body: JSON.stringify(vote),
   });
-  i += 1;
+  loadTally();
+  // Unlike goNext() (manual Prev/Next, clamped to the last item), finishing a vote on the last
+  // item advances past the end to show the completion screen.
+  i = i + 1;
+  localStorage.setItem(STORAGE_KEY, String(Math.min(i, items.length - 1)));
+  render();
+}
+
+function submitRanking() {
+  const item = items[i];
+  const ranking = rankOrder.map(idx => item.clips[idx].engine);
+  submitVote({
+    id: item.id, speaker: item.speaker, order: item.clips.map(c => c.engine),
+    ranking, tie: false, clip_errors: collectClipErrors(item),
+  });
+}
+
+function voteTie() {
+  const item = items[i];
+  submitVote({
+    id: item.id, speaker: item.speaker, order: item.clips.map(c => c.engine),
+    ranking: null, tie: true, clip_errors: collectClipErrors(item),
+  });
+}
+
+function goNext() {
+  i = Math.min(i + 1, items.length - 1);
   localStorage.setItem(STORAGE_KEY, String(i));
   render();
 }
 
-function resetProgress() {
+function goPrev() {
+  i = Math.max(i - 1, 0);
+  localStorage.setItem(STORAGE_KEY, String(i));
+  render();
+}
+
+function jumpToStart() {
   i = 0;
   localStorage.setItem(STORAGE_KEY, "0");
-  document.getElementById("test").style.display = "block";
-  document.getElementById("done").style.display = "none";
   render();
 }
 
