@@ -15,6 +15,7 @@ data/annotations/cache*/
 data/annotations/annotations.enGB.json
 src/RogueTraderNeuralSpeechMod/Voice/annotations.enGB.json
 data/bakeoff/*/*.wav
+data/bakeoff/listening_votes.json
 data/bakeoff/listening_votes.jsonl
 .claude/
 tools/tts_bakeoff/.venv-qwen/
@@ -26,3 +27,13 @@ src/RogueTraderNeuralSpeechMod/obj/
 src/DialogueExporter/bin/
 src/DialogueExporter/obj/
 tools/tts_engines/__pycache__/
+
+# Verbatim extracted game dialogue text (copyrighted, dev/eval-only, never for distribution) -
+# regenerate locally via tools/build_test_set.py / tools/annotate's conversation cache if needed.
+data/tts_test_set.json
+data/annotations/gold_conversations.json
+data/annotations/gold_input.json
+
+# Session handoff notes are personal continuity scratch, not project docs - PROJECT_PLAN.md is
+# the living doc.
+HANDOFF-*.md
