@@ -3,13 +3,18 @@
 Live, local, neural text-to-speech for the ~90% of Warhammer 40,000: Rogue Trader that ships
 unvoiced. Per-character voices, emotion-annotated delivery, Linux/Proton first.
 
-Status: **research / pipeline bring-up**. Nothing here is a releasable mod yet.
+Status: full corpus annotated (**45,114** previously-silent lines, emotion/pace/delivery labeled
+per line) and generating audio end-to-end. Currently in listening-test quality verification
+before locking the default engine and cutting a first release. See `PROJECT_PLAN.md` for the
+full living plan and detailed progress log.
 
 ## Layout
 
 | Path | What |
 |---|---|
 | `src/DialogueExporter/` | UMM mod: dumps the game's dialogue blueprint graph to `script.json` (run once at the main menu) |
+| `src/RogueTraderNeuralSpeechMod/` | The runtime mod (UMM): hooks dialogue, resolves annotations, calls the TTS sidecar, plays back audio |
+| `src/TtsSidecar/` | Local Python/GPU server: text + speaker + annotation → synthesized PCM, per-engine directive translation |
 | `tools/extract_localization.py` | Localization strings + voiced map + 40K vocabulary worklist |
 | `tools/build_conversations.py` | Walks the cue graph into ordered, speaker-attributed conversation scripts |
 | `tools/unpack_pck.py`, `tools/extract_voice_lines.py` | Wwise `.pck` → speaker-attributed WAV clips of the official VO (stays on your machine) |
@@ -17,6 +22,8 @@ Status: **research / pipeline bring-up**. Nothing here is a releasable mod yet.
 | `tools/build_test_set.py` | Fixed 142-line bake-off set (unvoiced lines per companion + narration) |
 | `tools/tts_bakeoff/` | Runs candidate TTS engines over the test set; scores speaker-similarity + WER |
 | `tools/annotate/` | LLM annotation harness: emotion/pace/non-verbal/instruct labels per line, engine-neutral schema |
+| `tools/audio_match/` | Fits an EQ/compression profile from real VO vs. generated clips to closer-match a TTS engine's output |
+| `tools/listening_test/` | Local labeled listening-test server: ranks engines head-to-head per line, tallies a Borda count |
 | `docs/research/` | Ecosystem research reports |
 | `reference/` (gitignored) | Clones of prior art: Osmodium SpeechMod (MIT), pas2k AIVO (MIT), Ripcy RSpeech (no license — study only) |
 

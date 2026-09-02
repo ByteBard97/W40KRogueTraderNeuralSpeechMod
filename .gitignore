@@ -37,3 +37,7 @@ data/annotations/gold_input.json
 # Session handoff notes are personal continuity scratch, not project docs - PROJECT_PLAN.md is
 # the living doc.
 HANDOFF-*.md
+
+# Unexplained provenance - not referenced by any script/doc, disagrees with data/annotations/
+# gold.json on ~half of overlapping labels. Kept locally for investigation, not for the repo.
+data/annotations/annotations_gold_v2_merged.json
