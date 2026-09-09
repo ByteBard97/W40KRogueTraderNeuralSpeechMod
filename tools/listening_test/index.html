@@ -47,6 +47,8 @@
   #nav-row button:hover:not(:disabled) { border-color: var(--accent); }
   #nav-row button:disabled { opacity: 0.4; cursor: default; }
   #progress { color: var(--muted); }
+  #filter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 0.9em; color: var(--muted); }
+  #filter-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
   #speaker { color: var(--muted); font-size: 0.9em; margin-bottom: 6px; }
   #text {
     font-size: 1.15em; line-height: 1.5; margin: 6px 0 6px; padding: 14px;
@@ -106,7 +108,7 @@
 </style>
 </head>
 <body>
-<h1>RT Neural Speech Mod — Listening Test</h1>
+<h1>RT Neural Speech Mod - Listening Test</h1>
 <p>For each line, listen to all the clips (same text, each one labeled with which TTS engine
 produced it). Click the number circle on each clip in order from best to worst - first click is
 your #1 pick, next is #2, and so on (click a ranked circle again to undo it). While you listen,
@@ -120,6 +122,10 @@ lines with Prev/Next.</p>
   <div id="tally-meta"></div>
 </div>
 
+<div id="filter-row">
+  <label><input type="checkbox" id="full-set-filter" onchange="onFilterChange()">
+    Only show lines with every engine (full side-by-side, incl. Fish Speech + Higgs)</label>
+</div>
 <div id="test">
   <div id="nav-row">
     <button id="prev-btn" onclick="goPrev()">◀ Prev</button>
@@ -143,10 +149,12 @@ running this to run <code>tally.py</code> to see a text summary.</p></div>
 <div id="reset" onclick="jumpToStart()">Jump back to line 1</div>
 
 <script>
+let allItems = [];
 let items = [];
 let i = 0;
 let rankOrder = [];  // clip indices, best to worst, in click order
 const STORAGE_KEY = "rt_listening_test_progress_v4";
+const FILTER_STORAGE_KEY = "rt_listening_test_full_set_filter_v1";
 const ERROR_TAGS = [
   ["mispronunciation", "Mispronunciation"],
   ["wrong_words", "Wrong/missing words"],
@@ -160,11 +168,32 @@ const ERROR_TAGS = [
 async function load() {
   const res = await fetch("/items");
   const data = await res.json();
-  items = data.items;
-  const saved = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
-  i = Math.min(Math.max(saved, 0), Math.max(items.length - 1, 0));
-  render();
+  allItems = data.items;
+  document.getElementById("full-set-filter").checked = localStorage.getItem(FILTER_STORAGE_KEY) === "1";
+  applyFilter(/*resetIndex=*/false);
   loadTally();
+}
+
+// "Full set" = has a clip from every engine that appears anywhere in the data (currently the
+// hand-picked high-emotion lines rendered through Fish Speech s2.cpp and Higgs alongside the rest -
+// see tools/listening_test/serve.py's ENGINES comment). Identified generically by clip count
+// rather than hardcoded engine names, so it stays correct as engines are added/dropped.
+function applyFilter(resetIndex) {
+  const filterOn = document.getElementById("full-set-filter").checked;
+  const maxClips = Math.max(0, ...allItems.map(it => it.clips.length));
+  items = filterOn ? allItems.filter(it => it.clips.length === maxClips) : allItems;
+  if (resetIndex) {
+    i = 0;
+  } else {
+    const saved = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+    i = Math.min(Math.max(saved, 0), Math.max(items.length - 1, 0));
+  }
+  render();
+}
+
+function onFilterChange() {
+  localStorage.setItem(FILTER_STORAGE_KEY, document.getElementById("full-set-filter").checked ? "1" : "0");
+  applyFilter(/*resetIndex=*/true);
 }
 
 async function loadTally() {

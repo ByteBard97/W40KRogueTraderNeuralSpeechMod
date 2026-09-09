@@ -1,0 +1,49 @@
+{
+ "engine": "chatterbox",
+ "load_seconds": 9.0,
+ "items": [
+  {
+   "id": "t003",
+   "speaker": "Abelard",
+   "chars": 26,
+   "synth_seconds": 1.42,
+   "audio_seconds": 1.86
+  },
+  {
+   "id": "t026",
+   "speaker": "Cassia",
+   "chars": 82,
+   "synth_seconds": 1.61,
+   "audio_seconds": 6.0
+  },
+  {
+   "id": "t043",
+   "speaker": "Idira",
+   "chars": 26,
+   "synth_seconds": 0.89,
+   "audio_seconds": 2.82
+  },
+  {
+   "id": "t078",
+   "speaker": "Yrliet",
+   "chars": 25,
+   "synth_seconds": 0.83,
+   "audio_seconds": 2.6
+  },
+  {
+   "id": "t081",
+   "speaker": "Marazhai",
+   "chars": 95,
+   "synth_seconds": 2.01,
+   "audio_seconds": 7.78
+  },
+  {
+   "id": "t103",
+   "speaker": "Kibellah",
+   "chars": 25,
+   "synth_seconds": 0.82,
+   "audio_seconds": 2.52
+  }
+ ],
+ "rtf": 0.321
+}

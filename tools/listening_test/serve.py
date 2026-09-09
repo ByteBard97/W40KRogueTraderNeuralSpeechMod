@@ -33,14 +33,33 @@ from urllib.parse import quote, unquote, urlparse
 ROOT = Path(__file__).resolve().parent.parent.parent
 BAKEOFF = ROOT / "data/bakeoff"
 ENGINES = [
-    "chatterbox_turbo", "qwen3_tts", "indextts2",
+    # indextts2 dropped 2026-09-05: poor quality in every reviewed sample (esp. accent mismatch
+    # against the cloned reference, no fixable setting found - see memory), and separately
+    # licensing-disqualified anyway (bilibili Model Use License Agreement, non-commercial without
+    # prior authorization - several sites falsely market it as Apache-2.0). data/bakeoff/indextts2/
+    # audio and tools/tts_engines/indextts2.py are left in place, just no longer compared here.
+    "chatterbox_turbo", "qwen3_tts",
     "chatterbox_turbo_eq",  # chatterbox_turbo + fitted EQ/compression match to real VO, see tools/audio_match
-]  # fish_s2 has no generated audio (dropped mid-bakeoff)
+    "chatterbox",  # original Chatterbox 500M - real exaggeration/cfg_weight, unlike Turbo
+    "higgs",  # Higgs TTS 2, int8 (bf16 OOMs at 12.7GB on a 16GB card) - comparison/reference only,
+              # restrictive Boson license + VRAM footprint rule it out as a shipped engine
+    "fish_s2cpp",  # Fish Speech S2-Pro via reference/s2.cpp (GGML port, F16 GGUF) - the bare PyTorch
+                   # path OOMs at 16GB (undocumented-min-VRAM 24GB); comparison/reference only,
+                   # non-commercial license + ~7x RTF rule it out as a shipped engine. Only a hand
+                   # -picked set of high-emotional-intensity lines are rendered, not the full 142.
+    "voxcpm2",  # VoxCPM2 (OpenBMB, Apache-2.0) - the one candidate that combines cloning + a
+                # free-text style/emotion instruction in one call AND is public-mod-license-clean
+                # (unlike Higgs/Fish/IndexTTS2). RTF 0.35, comparable to Chatterbox. Real bake-off
+                # candidate, not reference-only - same hand-picked high-emotion lines for now.
+]
 ENGINE_LABELS = {
     "chatterbox_turbo": "Chatterbox Turbo",
     "qwen3_tts": "Qwen3 TTS",
-    "indextts2": "IndexTTS2",
     "chatterbox_turbo_eq": "Chatterbox Turbo + EQ/compression match",
+    "chatterbox": "Chatterbox (original 500M)",
+    "higgs": "Higgs TTS 2 (reference only, non-shippable)",
+    "fish_s2cpp": "Fish Speech S2-Pro (reference only, non-shippable)",
+    "voxcpm2": "VoxCPM2 (Apache-2.0, clone+style)",
 }
 TEST_SET = json.loads((ROOT / "data/tts_test_set.json").read_text(encoding="utf-8"))
 VOTES_PATH = BAKEOFF / "listening_votes.json"
