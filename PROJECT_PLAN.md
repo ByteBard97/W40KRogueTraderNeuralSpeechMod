@@ -1,13 +1,15 @@
 # Project Plan - Rogue Trader Neural Speech Mod
 
-Living document. Any session (or agent) picking this project up starts here.
+Living document: the technical plan and progress log for this project.
 
 ## Goal
 
 Voice the ~90% of Warhammer 40,000: Rogue Trader that ships unvoiced, with **live, local,
 neural TTS**: per-character cloned/designed voices, emotion-annotated delivery, working on
-Linux/Proton and Windows. Publish free on Nexus + GitHub. Never distribute cloned voice data -
-an opt-in local tool builds voice references from the *user's own* game files.
+Linux/Proton and Windows. Publish free on Nexus + GitHub. The mod is an adapter, not an engine
+distributor: no TTS engine or model weights ship with it, ever - players install/point at
+whichever engine they choose (see Architecture 2/2b). Never distribute cloned voice data either -
+an opt-in local tool builds voice references from your own game files.
 
 ## Architecture (decided)
 
@@ -26,23 +28,29 @@ an opt-in local tool builds voice references from the *user's own* game files.
    backend varies by platform (Python/PyTorch/GPU on Linux, ONNX Runtime on Windows - see 2b),
    but both speak the same `/synth` protocol so either can be swapped, networked, or upgraded
    independently.
-   The Linux backend: engine chosen by bake-off (see below); voice map `speaker_guid → voice
-   prompt/embedding`; translates neutral annotations per engine. This is the dev's own working
-   setup (`.venv-tts`, smoke-tested end-to-end) and the basis for the **Linux/Proton release
-   build**, but not itself the shipped artifact: the release needs this frozen into a single
-   self-contained binary (PyInstaller-style, no `pip install`, no Docker, nothing the end user
-   manages) plus a Steam launch-options wrapper script that auto-starts it, runs the game under
-   Proton, and kills it on exit. Neither the freeze-to-binary nor the launcher wrapper is built
-   yet. See memory `rt-distribution-architecture`.
+   The Linux backend: this is the dev's own working setup (`.venv-tts`, smoke-tested end-to-end),
+   engine chosen by bake-off (see below), voice map `speaker_guid → voice prompt/embedding`,
+   translates neutral annotations per engine. **Decided: no frozen-binary release build.** A
+   PyInstaller-style self-contained binary was considered and dropped - bundling code for every
+   possible engine's dependencies (torch, CUDA, whisper, etc.) without weights would still be a
+   multi-GB download tied to whichever engine(s) it was built against, defeating the point of
+   letting players pick their own. Linux release instead means: this repo's server code plus
+   install docs/a setup script (create the venv, `pip install` your chosen engine, point the
+   server at it) - real install friction, but Linux players are assumed capable of it, and it's
+   honest about what's actually happening instead of hiding it behind a binary. A Steam
+   launch-options wrapper script (auto-starts the server, runs the game under Proton, kills it on
+   exit) is still planned regardless of the binary-vs-venv question.
 2b. **Windows voice-server backend: ONNX Runtime (decided, not yet implemented)** - no Python/
    Docker/CUDA toolkit on the player's machine, whether or not that machine is also running the
    game. Runs inside a normal local voice-server process by default, same `/synth` protocol as
-   the Linux backend - not a fundamentally different, non-networked architecture. (An in-process
-   variant - loading these same ONNX graphs directly inside the C# game mod, skipping the local
-   HTTP hop entirely - is possible later as an optional zero-server convenience mode, but it
-   takes that install out of the modular client/server model since it can no longer be pointed
-   at a different machine. Not the default, not planned before the standalone server version.)
-   Chatterbox-Turbo via its official
+   the Linux backend - not a fundamentally different, non-networked architecture. Ships no engine
+   weights either, same as the Linux backend: the server loads whatever ONNX-format weights the
+   player drops in its folder. (An in-process variant - loading these same ONNX graphs directly
+   inside the C# game mod, skipping the local HTTP hop entirely - is possible later as an
+   optional zero-server convenience mode, but it takes that install out of the modular
+   client/server model since it can no longer be pointed at a different machine. Not the default,
+   not planned before the standalone server version.)
+   The reference/tested target for this backend's ONNX graph shape is Chatterbox-Turbo's official
    `ResembleAI/chatterbox-turbo-ONNX` export, four ONNX sessions, not uniformly CPU/GPU split:
    - `language_model` (GPU, DirectML) - the per-token hot loop, the one session that must be
      accelerated.
@@ -89,9 +97,7 @@ an opt-in local tool builds voice references from the *user's own* game files.
    spike target for that one session, not a blocker. **New tracked risk**: DirectML session
    memory accumulation over long-running inference (ORT-GenAI #1620: ~1GB/iteration; #590:
    crash after ~50 inferences) - needs an explicit session disposal/recreation policy in the
-   runtime mod, and a 100+-consecutive-line soak test before any Windows release. See
-   `HANDOFF-2026-09-03-1956.md` and `HANDOFF-2026-09-04-*.md` (if written) for the full research
-   trail and citations.
+   runtime mod, and a 100+-consecutive-line soak test before any Windows release.
 2c. **LAN / separate-machine mode (decided, not yet implemented)** - the mod already only talks
    to the voice server over plain HTTP (`NeuralVoiceUnity.cs`'s `SIDECAR_URL` const), so this is
    a config change to an existing interface, not a new one, and it's the natural consequence of
@@ -234,19 +240,21 @@ an opt-in local tool builds voice references from the *user's own* game files.
       too, not just the unfinished remainder. This makes the earlier Mac + 32B plan optional
       rather than necessary - revisit only if 14B+bios quality still isn't good enough once more
       of it can be reviewed.
-- [ ] Have an actual human (the user) confirm they can HEAR the test lines - the automated
-      self-test confirms MCI returns success codes, which is strong evidence but not literally
-      the same as a human ear on real speakers. Cheap: run `speech_test.request` again without
-      the "quit" content and stay at the main menu to listen.
-- [x] **Blind A/B listening page built**: tools/listening_test/ (serve.py + index.html +
-      tally.py). Local-only HTTP server (never a published Artifact - it serves voice-cloned
-      audio from the user's own game files, which must not be distributed): presents each of the
-      142 bake-off lines with Chatterbox-Turbo and Qwen3-TTS clips in randomized, unlabeled A/B
-      order, records votes to data/bakeoff/listening_votes.jsonl (gitignored, resumable via
-      localStorage progress tracking), tally.py un-blinds and reports win/tie rates overall and
-      per speaker. Smoke-tested end-to-end (server, pairing, audio serving, voting, tallying) -
-      not yet actually run by a human. This is now the real tiebreaker: run it and tally before
-      locking the default engine.
+- [ ] Have an actual human confirm they can HEAR the test lines - the automated self-test
+      confirms MCI returns success codes, which is strong evidence but not literally the same as
+      a human ear on real speakers. Cheap: run `speech_test.request` again without the "quit"
+      content and stay at the main menu to listen.
+- [x] **Blind A/B listening page built** (superseded - see the later labeled 7-engine/Borda
+      version below): tools/listening_test/ (serve.py + index.html + tally.py). Local-only HTTP
+      server (never a published Artifact - it serves voice-cloned audio from your own game
+      files, which must not be distributed): presents each of the 142 bake-off lines with
+      Chatterbox-Turbo and Qwen3-TTS clips in randomized, unlabeled A/B order, records votes to
+      data/bakeoff/listening_votes.jsonl (gitignored, resumable via localStorage progress
+      tracking), tally.py un-blinds and reports win/tie rates overall and per speaker.
+      Smoke-tested end-to-end (server, pairing, audio serving, voting, tallying) - not yet
+      actually run by a human at this point. This is superseded by the labeled, 7-engine, Borda-
+      ranked version described further down; kept here as the historical record of how it
+      started.
 - [x] **Exercised the full annotation -> sidecar -> Chatterbox pipeline against real 14B+bios
       output**, not just plain text. Confirmed end-to-end: real annotated lines (fear+gasp,
       sarcastic+sniff) POSTed to a live `/synth` correctly produced tagged text
@@ -298,9 +306,9 @@ an opt-in local tool builds voice references from the *user's own* game files.
       the builder tool will need to link users to the upstream repo for a self-download, or
       contact bnnm for explicit permission. Confirmed neither binary is currently tracked in git
       (both correctly covered by the `bin/` gitignore pattern already) - no existing exposure.
-- [x] **Sanity-checked the real bulk 14B+bios output against the user's own explicit concern**
-      ("sample a bunch of different parts... since 8B models are not that smart") - a subagent
-      pulled a stratified 78-line sample (69 conversations, 30 speakers, all 12 emotions
+- [x] **Sanity-checked the real bulk 14B+bios output against an explicit concern going in**
+      ("sample a bunch of different parts... since 8B models are not that smart") - pulled a
+      stratified 78-line sample (69 conversations, 30 speakers, all 12 emotions
       represented) from the actual 826-conversation merged output, not just the small curated
       gold set. Verdict: acceptable quality (~88% clean), calibration is excellent (99.7% of
       "neutral" records land inside the prompt's own 0.1-0.35 target band), and bio-matching is
@@ -386,16 +394,14 @@ an opt-in local tool builds voice references from the *user's own* game files.
       md5-verified identical to the live UMM install.
 - [x] **Windows execution-provider architecture decided** (see Architecture 2b): DirectML for
       `language_model`, CPU for the other three ONNX sessions, WebGPU EP deferred as a post-MVP
-      spike for the LM session only. Two rounds of external research (Gemini/Claude/Kimi) plus
-      direct verification of the highest-stakes GitHub issues and NuGet data, plus a direct
-      inspection of the real `language_model.onnx` graph to rule out the DirectML Int64
-      Gather/Reshape crash pattern. Not yet implemented in code - this closes the decision, not
-      the build.
+      spike for the LM session only. Two independent research passes plus direct verification of
+      the highest-stakes GitHub issues and NuGet data, plus a direct inspection of the real
+      `language_model.onnx` graph to rule out the DirectML Int64 Gather/Reshape crash pattern.
+      Not yet implemented in code - this closes the decision, not the build.
 - [ ] Later: implement the Windows ONNX voice-server backend (Architecture 2b) - the in-process
       variant mentioned there is optional and comes later, if at all; user-side voice-clone
-      builder tool (architecture already decided, see memory `rt-mod-architecture-findings` and
-      `HANDOFF-2026-09-03-1956.md` - MenuGUI button, C# port of unpack_pck.py/build_prompt_banks.py,
-      vgmstream-cli subprocess); Nexus/GitHub release
+      builder tool (architecture already decided - MenuGUI button, C# port of
+      unpack_pck.py/build_prompt_banks.py, vgmstream-cli subprocess); Nexus/GitHub release
 - [ ] Later: LAN/separate-machine mode (Architecture 2c) - mod-menu server address field, voice
       server's `--host` flag, timeout-skip-with-toast behavior. Not started.
 - [ ] Later: player-voice-at-character-creation - synthesize the player character's own dialogue
@@ -418,6 +424,5 @@ an opt-in local tool builds voice references from the *user's own* game files.
 - Mac M4 24 GB available as annotation worker (ollama).
 
 ## Rules
-- git identity: bytebard97 <bytebard97@users.noreply.github.com>; no AI attribution in commits
-- never push without explicit ask; never distribute game-derived audio or cloned voices
-- data/voices/, data/raw/, reference/ stay out of git
+- Never distribute game-derived audio or cloned voices.
+- data/voices/, data/raw/, reference/ stay out of git.
