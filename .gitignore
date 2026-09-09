@@ -48,6 +48,9 @@ reddit_post_draft.md
 # Research prompts handed to external web-research agents - tool input, not project documentation.
 research_prompt_onnx_windows.md
 research_prompt_webgpu_ep.md
+docs/research/accent-and-clip-curation-research-prompts.md
+docs/research/emotional-expressiveness-followup-prompt.md
+docs/research/emotional-expressiveness-prompts.md
 /tools/tts_bakeoff/.venv-fish
 /tools/tts_bakeoff/.venv-higgs
 /tools/tts_bakeoff/.venv-voxcpm
