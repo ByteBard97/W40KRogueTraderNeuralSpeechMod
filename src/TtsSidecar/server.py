@@ -36,10 +36,9 @@ sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(Path(__file__).parent))
 
 from lexicon import respell  # noqa: E402
-from annotation_bridge import for_chatterbox, for_instruct_engine, for_pace_only_engine  # noqa: E402
+from annotation_bridge import route  # noqa: E402
 
 ENGINE_NAME = os.environ.get("TTS_ENGINE", "chatterbox_turbo")
-ENGINE_KIND = {"chatterbox_turbo": "tags", "qwen3_tts": "instruct"}.get(ENGINE_NAME, "pace")
 CACHE_DIR = ROOT / "data/tts_cache" / ENGINE_NAME
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 PROMPTS_PATH = ROOT / "data/voices/prompts/prompts.json"
@@ -131,17 +130,7 @@ def synth(req: SynthRequest):
                         headers={"X-Cache": "hit", "X-Cache-Key": key})
 
     prompt_wav, prompt_text = _prompt_for(req.speaker, req.prompt_rank)
-    kwargs = {}
-    if ENGINE_KIND == "tags":
-        text, exaggeration = for_chatterbox(text, ann)
-        kwargs["exaggeration"] = exaggeration
-    elif ENGINE_KIND == "instruct":
-        text, instruct = for_instruct_engine(text, ann)
-        if instruct:
-            kwargs["instruct"] = instruct
-    else:
-        text, speed = for_pace_only_engine(text, ann)
-        kwargs["speed"] = speed
+    text, kwargs = route(ENGINE_NAME, text, ann)
 
     try:
         audio, sr = synth_fn(ctx, text, prompt_wav, prompt_text, **kwargs)

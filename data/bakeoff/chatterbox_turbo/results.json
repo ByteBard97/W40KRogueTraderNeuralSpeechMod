@@ -1,91 +1,49 @@
 {
  "engine": "chatterbox_turbo",
- "load_seconds": 18.7,
+ "load_seconds": 8.2,
  "items": [
   {
-   "id": "t130",
-   "speaker": "narrator",
-   "chars": 89,
-   "synth_seconds": 4.12,
-   "audio_seconds": 6.68
+   "id": "t003",
+   "speaker": "Abelard",
+   "chars": 26,
+   "synth_seconds": 0.91,
+   "audio_seconds": 2.34
   },
   {
-   "id": "t131",
-   "speaker": "narrator",
-   "chars": 465,
-   "synth_seconds": 6.38,
-   "audio_seconds": 32.0
+   "id": "t026",
+   "speaker": "Cassia",
+   "chars": 82,
+   "synth_seconds": 0.87,
+   "audio_seconds": 6.44
   },
   {
-   "id": "t132",
-   "speaker": "narrator",
-   "chars": 1054,
-   "synth_seconds": 8.58,
-   "audio_seconds": 40.16
+   "id": "t043",
+   "speaker": "Idira",
+   "chars": 26,
+   "synth_seconds": 0.37,
+   "audio_seconds": 2.1
   },
   {
-   "id": "t133",
-   "speaker": "narrator",
-   "chars": 60,
-   "synth_seconds": 1.04,
-   "audio_seconds": 3.64
+   "id": "t078",
+   "speaker": "Yrliet",
+   "chars": 25,
+   "synth_seconds": 0.37,
+   "audio_seconds": 2.16
   },
   {
-   "id": "t134",
-   "speaker": "narrator",
-   "chars": 198,
-   "synth_seconds": 2.64,
-   "audio_seconds": 12.4
+   "id": "t081",
+   "speaker": "Marazhai",
+   "chars": 95,
+   "synth_seconds": 0.73,
+   "audio_seconds": 5.22
   },
   {
-   "id": "t135",
-   "speaker": "narrator",
-   "chars": 129,
-   "synth_seconds": 1.9,
-   "audio_seconds": 9.08
-  },
-  {
-   "id": "t136",
-   "speaker": "narrator",
-   "chars": 150,
-   "synth_seconds": 1.93,
-   "audio_seconds": 8.64
-  },
-  {
-   "id": "t137",
-   "speaker": "narrator",
-   "chars": 833,
-   "synth_seconds": 8.25,
-   "audio_seconds": 40.16
-  },
-  {
-   "id": "t138",
-   "speaker": "narrator",
-   "chars": 60,
-   "synth_seconds": 0.85,
-   "audio_seconds": 3.12
-  },
-  {
-   "id": "t139",
-   "speaker": "narrator",
-   "chars": 185,
-   "synth_seconds": 2.3,
-   "audio_seconds": 10.96
-  },
-  {
-   "id": "t140",
-   "speaker": "narrator",
-   "chars": 523,
-   "synth_seconds": 6.87,
-   "audio_seconds": 33.88
-  },
-  {
-   "id": "t141",
-   "speaker": "narrator",
-   "chars": 195,
-   "synth_seconds": 2.92,
-   "audio_seconds": 14.04
+   "id": "t103",
+   "speaker": "Kibellah",
+   "chars": 25,
+   "synth_seconds": 0.38,
+   "audio_seconds": 2.24
   }
  ],
- "rtf": 0.222
+ "rtf": 0.177
 }

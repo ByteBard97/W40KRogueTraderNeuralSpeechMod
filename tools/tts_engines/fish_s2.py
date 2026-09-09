@@ -23,15 +23,26 @@ def load():
 
     llama_queue = launch_thread_safe_queue(
         checkpoint_path=CHECKPOINT_DIR, device=device, precision=precision, compile=False)
+    # The semantic LLM alone loads at ~11.9GB - not enough headroom left on a 16GB card for the
+    # DAC decoder too. It's much smaller/cheaper than the 36-layer LLM, so run it on CPU instead
+    # of OOMing trying to fit both on GPU.
+    decoder_device = "cpu" if device == "cuda" else device
     decoder_model = load_decoder_model(
-        config_name="modded_dac_vq", checkpoint_path=CHECKPOINT_DIR / "codec.pth", device=device)
+        config_name="modded_dac_vq", checkpoint_path=CHECKPOINT_DIR / "codec.pth", device=decoder_device)
     engine = TTSInferenceEngine(llama_queue=llama_queue, decoder_model=decoder_model,
                                 compile=False, precision=precision)
     return engine
 
 
-def synth(engine, text, prompt_wav=None, prompt_text=None):
+def synth(engine, text, prompt_wav=None, prompt_text=None, instruct=None):
     from fish_speech.utils.schema import ServeReferenceAudio, ServeTTSRequest
+
+    # S2 officially supports free-form natural-language delivery tags embedded inline in the
+    # text, e.g. "[professional broadcast tone]" (reference/fish-speech/docs/en/index.md) - not a
+    # fixed vocabulary like Chatterbox's, so the annotation's full instruct sentence can go
+    # straight in the brackets.
+    if instruct:
+        text = f"[{instruct}] {text}"
 
     references = []
     if prompt_wav:
