@@ -414,7 +414,7 @@ an opt-in local tool builds voice references from the *user's own* game files.
 ## Environment
 - Linux (this box): game + Proton prefix paths in `Directory.Build.props`; RTX 5080 16 GB;
   `.venv-tts` = cu128 torch + engines. Game launches for exports: unattended main-menu runs OK.
-- Windows build/test box: `SSH access` (PowerShell; dotnet, git, python, RTX 4070).
+- Windows build/test box: SSH access (PowerShell; dotnet, git, python, RTX 4070).
 - Mac M4 24 GB available as annotation worker (ollama).
 
 ## Rules

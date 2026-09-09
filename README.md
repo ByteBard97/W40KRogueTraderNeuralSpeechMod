@@ -20,8 +20,8 @@ the full (very long) progress log.
 |---|---|---|---|
 | Speech source | Live neural TTS, synthesized on your machine as lines come up | Windows SAPI / macOS `say` | Chatterbox TTS, pre-rendered once by the author and shipped as `.bnk` soundbanks |
 | Delivery | Directed per line: 45,114 unvoiced lines are tagged with emotion, pace, and delivery instructions before synthesis (see below) | Flat - adjustable rate/pitch/volume, but no per-line emotional direction | Fixed at render time - the mod's own docs describe "a limited roster of emotions/archetypes" |
-| Voice variety | One voice per major companion, with emotion-matched reference clips in progress (see below) | Protagonist / male / female / narrator voices | One voice pack, built for a male player character only |
-| Player character's voice | Planned: your own dialogue rendered in whatever voice you picked at character creation, toggleable and re-pickable from the mod menu | One fixed "protagonist" voice, not tied to what you actually picked at creation | Fixed male-Rogue-Trader voice pack only - no player choice, no female protagonist support |
+| Voice variety | One voice per major companion, with emotion-matched reference clips in progress (see below) | Protagonist / male / female / narrator voices | Two voice packs (a from-scratch "recommended" pack and an older voice-cloned one), both male player character only |
+| Player character's voice | Planned: your own dialogue rendered in whatever voice you picked at character creation, toggleable and re-pickable from the mod menu | One fixed "protagonist" voice, not tied to what you actually picked at creation | Fixed male-Rogue-Trader packs only - no player choice, no female protagonist support |
 | Platform | Linux/Proton first, Windows to follow | Windows and macOS only - no Linux/Proton support | Works wherever the game's Wwise banks load (platform-agnostic, since it's pre-baked audio) |
 | Cost / licensing | Free, MIT | Free, MIT | Free, MIT |
 
