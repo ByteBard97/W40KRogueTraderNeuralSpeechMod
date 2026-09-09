@@ -1,4 +1,4 @@
-# Project Plan — Rogue Trader Neural Speech Mod
+# Project Plan - Rogue Trader Neural Speech Mod
 
 Living document. Any session (or agent) picking this project up starts here.
 
@@ -6,19 +6,96 @@ Living document. Any session (or agent) picking this project up starts here.
 
 Voice the ~90% of Warhammer 40,000: Rogue Trader that ships unvoiced, with **live, local,
 neural TTS**: per-character cloned/designed voices, emotion-annotated delivery, working on
-Linux/Proton and Windows. Publish free on Nexus + GitHub. Never distribute cloned voice data —
+Linux/Proton and Windows. Publish free on Nexus + GitHub. Never distribute cloned voice data -
 an opt-in local tool builds voice references from the *user's own* game files.
 
 ## Architecture (decided)
 
-1. **Runtime mod (C#/UMM)** — fork of Osmodium SpeechMod's hook layer (MIT).
+1. **Runtime mod (C#/UMM)** - fork of Osmodium SpeechMod's hook layer (MIT).
    New seam: `ITtsBackend` (text+speaker+annotation → PCM) and `IAudioOutput` (PCM → speakers).
-   Voiced lines (Sound.json / `LocalizedString.GetVoiceOverSound`) always win — no double narration.
+   Voiced lines (Sound.json / `LocalizedString.GetVoiceOverSound`) always win - no double narration.
    Latency plan: graph-lookahead prefetch (synthesize all reachable next cues while the player
    reads), GUID-keyed disk cache, sentence-split streaming for cold lines.
-2. **TTS sidecar (Python, GPU, localhost)** — engine chosen by bake-off (see below); voice map
-   `speaker_guid → voice prompt/embedding`; translates neutral annotations per engine.
-3. **Offline pipelines (this repo, already working)** — dialogue-graph export → ordered
+2. **TTS sidecar (Python, GPU, localhost)** - engine chosen by bake-off (see below); voice map
+   `speaker_guid → voice prompt/embedding`; translates neutral annotations per engine. This is
+   the dev's own working setup (`.venv-tts`, smoke-tested end-to-end) and the basis for the
+   **Linux/Proton release build**, but not itself the shipped artifact: the release needs this
+   frozen into a single self-contained binary (PyInstaller-style, no `pip install`, no Docker,
+   nothing the end user manages) plus a Steam launch-options wrapper script that auto-starts it,
+   runs the game under Proton, and kills it on exit. Deliberately a native Linux process, not
+   in-process ONNX Runtime like the Windows build below - routing GPU compute through ONNX
+   Runtime's CUDA EP *inside* the Wine/Proton-translated game process is an unverified risk,
+   whereas this native Linux CUDA process already works end-to-end. Neither the freeze-to-binary
+   nor the launcher wrapper is built yet. See memory `rt-distribution-architecture`.
+2c. **LAN / separate-machine mode (decided, not yet implemented)** - the mod already only talks
+   to the sidecar over plain HTTP (`NeuralVoiceUnity.cs`'s `SIDECAR_URL` const), so this is a
+   config change to an existing interface, not a new one. Needed: (1) sidecar's `uvicorn --host
+   127.0.0.1` becomes a configurable bind address (`0.0.0.0` for LAN mode), (2) `SIDECAR_URL`
+   becomes a mod-menu setting (`ModSettingEntry`, matching the existing `Configuration/Settings/`
+   pattern) instead of a hardcoded const, (3) no auth layer - user decided this is docs-only
+   ("trusted LAN, never port-forward it to the internet"), not worth the engineering cost for a
+   mod that runs on someone's own home network, (4) on request timeout/unreachable server: skip
+   that line's audio, advance dialogue normally, surface a brief in-game toast rather than
+   stalling or failing silently. Existing graph-lookahead prefetch already exists to hide GPU
+   inference latency; LAN round-trip time is negligible next to that, so no new latency-hiding
+   work is implied. **Available on both platforms, not Linux-only**: the `ITtsBackend` seam
+   (Architecture item 1) already exists to let a Windows install pick "remote sidecar" instead of
+   its default in-process ONNX backend (2b). This doesn't reopen the dependency-hell problem 2b
+   exists to avoid - the Python/PyTorch/CUDA stack lives on whichever machine runs the sidecar,
+   never on the game machine, whichever OS the game itself is running. Not started - README
+   documents the plan for users, this is the build-side tracking entry.
+2b. **Windows in-process ONNX backend (decided, not yet implemented)** - separate build target;
+   no Python/Docker/CUDA toolkit on the player's machine. Chatterbox-Turbo via its official
+   `ResembleAI/chatterbox-turbo-ONNX` export, four ONNX sessions, not uniformly CPU/GPU split:
+   - `language_model` (GPU, DirectML) - the per-token hot loop, the one session that must be
+     accelerated.
+   - `conditional_decoder` (CPU, hard requirement) - both DirectML and ONNX Runtime's WebGPU EP
+     have real, confirmed ConvTranspose defects at this output length (DirectML: documented
+     `80070057` failures on the Kokoro/AMD ConvTranspose war story; WebGPU: confirmed unfixed
+     fp16 mantissa bug, ORT #28976). No GPU path for the vocoder stage is worth chasing right now.
+     **CPU throughput for this specific graph is completely unmeasured anywhere in public** -
+     it's the largest of the four graphs (6,065 nodes, 757 MatMul, 122 attention blocks - not a
+     cheap CNN vocoder), and it competes with the game process for CPU time (needs an explicitly
+     capped ORT thread pool to avoid preempting Unity's render thread and causing stutter). Its
+     one-step distilled decoder (vs. the old 10-step design) and once-per-line (not per-token)
+     call pattern are the reasons to expect it's viable at all, and the existing prefetch/
+     lookahead design (item 1 above) exists partly to absorb whatever this latency turns out to
+     be - but "viable" here is a hypothesis, not a measurement. The spike (see Stage 2 in the
+     round-1 research) must benchmark this session's standalone wall-clock time on real hardware
+     before the architecture above is treated as final; if it's too slow even with prefetch,
+     fallbacks are: try it on DirectML anyway on hardware where ConvTranspose happens to work
+     (expose as a config toggle rather than hard-coding CPU), or a smaller/quantized decoder
+     variant at a quality cost.
+   - `embed_tokens` (CPU, by convenience not necessity) - trivial 7-node graph, runs once per
+     token but is too small to matter on CPU vs GPU either way. The GatherBlockQuantized crash
+     that motivated CPU-pinning in round-1 research only applies to the quantized (q8/q4)
+     variant; using fp16 (already the plan) sidesteps it, so this is not a hard constraint.
+   - `speech_encoder` (CPU for now, worth testing on DirectML) - Conv-heavy (243 plain `Conv`
+     nodes, not `ConvTranspose` - DirectML handles standard `Conv` fine) and runs once per
+     synthesis call, not per token. No research report cited a confirmed DirectML failure for
+     this specific graph; it was defaulted to CPU by analogy to ElBruno's hybrid pattern, not a
+     documented bug. Test this one on DirectML during the spike rather than assuming CPU.
+
+   DirectML's well-known Int64 Gather/ScatterND crash
+   (ORT #27118, real and never fixed, just auto-closed stale) was checked directly against the
+   real `language_model.onnx` graph: zero `Reshape`/`Expand`/`ScatterND`/`TopK`/`NonZero` nodes
+   exist in it, so the type-conflict pattern that broke the cited crash reports can't occur here
+   - only a tiny shape-vector Gather (likely constant-folds away once shapes are pinned) and a
+   position-embedding Gather with no competing consumer. Requires fixed/pre-allocated KV-cache
+   shapes via `AddFreeDimensionOverrideByName` + IOBinding (standard DirectML perf requirement,
+   independent of the above). WebGPU EP (`Microsoft.ML.OnnxRuntime.EP.WebGpu`) is a real,
+   documented, installable alternative for the `language_model` session specifically (better
+   native transformer/attention op coverage, no Int64 crash class at all) but is unproven for
+   any KV-cache LLM/TTS loop from C#/.NET anywhere in public, has one confirmed open bug that
+   directly threatens a growing KV cache (ORT #32017) and one real negative benchmark on an
+   analogous model (Qwen3-ASR, 4x slower than CPU) - treat as a config-flag-swappable, post-MVP
+   spike target for that one session, not a blocker. **New tracked risk**: DirectML session
+   memory accumulation over long-running inference (ORT-GenAI #1620: ~1GB/iteration; #590:
+   crash after ~50 inferences) - needs an explicit session disposal/recreation policy in the
+   runtime mod, and a 100+-consecutive-line soak test before any Windows release. See
+   `HANDOFF-2026-09-03-1956.md` and `HANDOFF-2026-09-04-*.md` (if written) for the full research
+   trail and citations.
+3. **Offline pipelines (this repo, already working)** - dialogue-graph export → ordered
    conversations → LLM emotion annotation → `annotations.<locale>.json`; 40K phonetic lexicon;
    voice-line extraction → prompt banks.
 
@@ -289,7 +366,31 @@ an opt-in local tool builds voice references from the *user's own* game files.
       `UralonVisit_dialogue` glossary-markup line) - confirming no other conversation, including
       the 1324 that ran under the old buggy base-case code, silently lost lines. Redeployed,
       md5-verified identical to the live UMM install.
-- [ ] Later: user-side voice-clone builder tool; Windows packaging; Nexus/GitHub release
+- [x] **Windows execution-provider architecture decided** (see Architecture 2b): DirectML for
+      `language_model`, CPU for the other three ONNX sessions, WebGPU EP deferred as a post-MVP
+      spike for the LM session only. Two rounds of external research (Gemini/Claude/Kimi) plus
+      direct verification of the highest-stakes GitHub issues and NuGet data, plus a direct
+      inspection of the real `language_model.onnx` graph to rule out the DirectML Int64
+      Gather/Reshape crash pattern. Not yet implemented in code - this closes the decision, not
+      the build.
+- [ ] Later: implement the Windows in-process ONNX C# pipeline (Architecture 2b); user-side
+      voice-clone builder tool (architecture already decided, see memory `rt-mod-architecture-
+      findings` and `HANDOFF-2026-09-03-1956.md` - MenuGUI button, C# port of unpack_pck.py/
+      build_prompt_banks.py, vgmstream-cli subprocess); Nexus/GitHub release
+- [ ] Later: LAN/separate-machine sidecar mode (Architecture 2c) - mod-menu server address
+      field, sidecar `--host` flag, timeout-skip-with-toast behavior. Not started.
+- [ ] Later: player-voice-at-character-creation - synthesize the player character's own dialogue
+      in whatever voice they picked at creation, mod-menu toggle to disable it and to re-pick the
+      voice later. Not researched yet at the blueprint level (how the game stores/exposes the
+      player's chosen voice preset is unconfirmed) - needs its own investigation pass before
+      architecture can be decided, unlike the two items above.
+- [ ] Emotion-matched reference-clip curation (Architecture item 3 / see
+      `docs/research/emotional-expressiveness-synthesis.md` Stage 2): `tools/score_catalog_emotions.py`
+      (audio-based SER via emotion2vec+) and `tools/emotion_review/` (coverage dashboard + human
+      accept/reject curation) both exist and are in active use. Snapshot at time of writing: 93
+      character/emotion combinations done, 36 need review, 70 still unrepresented in the corpus's
+      voiced lines (target 8s of usable audio per bank). Not finished - revisit before claiming
+      this is complete anywhere in public-facing docs.
 
 ## Environment
 - Linux (this box): game + Proton prefix paths in `Directory.Build.props`; RTX 5080 16 GB;

@@ -41,3 +41,14 @@ HANDOFF-*.md
 # Unexplained provenance - not referenced by any script/doc, disagrees with data/annotations/
 # gold.json on ~half of overlapping labels. Kept locally for investigation, not for the repo.
 data/annotations/annotations_gold_v2_merged.json
+
+# Draft social post text - personal scratch for sharing elsewhere, not project documentation.
+reddit_post_draft.md
+
+# Research prompts handed to external web-research agents - tool input, not project documentation.
+research_prompt_onnx_windows.md
+research_prompt_webgpu_ep.md
+/tools/tts_bakeoff/.venv-fish
+/tools/tts_bakeoff/.venv-higgs
+/tools/tts_bakeoff/.venv-voxcpm
+/.playwright-mcp
