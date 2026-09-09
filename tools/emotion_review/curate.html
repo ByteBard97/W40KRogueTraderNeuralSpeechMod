@@ -1,0 +1,185 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Emotion Clip Curation</title>
+<style>
+  :root { --bg: #12121a; --panel: #1c1c28; --border: #33334a; --text: #e8e8f0; --muted: #8a8aa0;
+          --accept: #3fae5c; --reject: #b23f4e; --accent: #c9a227; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; margin: 0;
+         padding: 24px; max-width: 1900px; margin-inline: auto; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 20px; font-size: 13px; }
+  select { background: var(--panel); color: var(--text); border: 1px solid var(--border);
+           padding: 6px 10px; border-radius: 6px; font-size: 14px; }
+  #filters { display: flex; gap: 10px; }
+  .emotion-group { margin-top: 28px; }
+  .emotion-group h2 { font-size: 16px; text-transform: capitalize; border-bottom: 1px solid var(--border);
+                       padding-bottom: 6px; display: flex; justify-content: space-between; }
+  .emotion-group h2 .count { color: var(--muted); font-weight: normal; font-size: 13px; }
+  .clip { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 6px; }
+  .clip:hover { background: var(--panel); }
+  .clip.accept { box-shadow: inset 3px 0 0 var(--accept); }
+  .clip.reject { opacity: 0.45; box-shadow: inset 3px 0 0 var(--reject); }
+  .clip .text { flex: 1; font-size: 14px; min-width: 400px; }
+  .clip audio { flex-shrink: 0; }
+  .clip .meta { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .clip button { border: 1px solid var(--border); background: var(--panel); color: var(--text);
+                 border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px; }
+  .clip button.active.accept-btn { background: var(--accept); border-color: var(--accept); color: #06140a; }
+  .clip button.active.reject-btn { background: var(--reject); border-color: var(--reject); color: #1a0808; }
+  .clip .relabel-select { font-size: 12px; padding: 3px 6px; }
+  .clip .relabel-badge { color: var(--accent); font-size: 11px; white-space: nowrap; }
+  audio { height: 32px; }
+  #empty { color: var(--muted); margin-top: 40px; }
+</style>
+</head>
+<body>
+<h1>Emotion Clip Curation</h1>
+<div class="sub">
+  Each clip's emotion label comes from the LLM annotation of the dialogue <em>text</em> - it never
+  heard the take. Listen and confirm it actually sounds that way before it goes in the reference
+  bank. Clips are sorted best-scored (audio quality) first within each emotion.
+</div>
+<div id="filters">
+  <select id="speaker"></select>
+  <select id="emotion"></select>
+</div>
+<div id="groups"></div>
+<div id="empty" hidden>No matching clips for this speaker/emotion.</div>
+
+<script>
+let CURRENT_GROUPS = [];
+let EMOTION_TIERS = [];
+const ADD_NEW_VALUE = '__add_new__';
+
+async function loadSpeakers() {
+  const r = await fetch('/speakers');
+  const { speakers } = await r.json();
+  const sel = document.getElementById('speaker');
+  sel.innerHTML = speakers.map(s => `<option value="${s}">${s}</option>`).join('');
+  const params = new URLSearchParams(location.search);
+  if (params.get('speaker') && speakers.includes(params.get('speaker'))) sel.value = params.get('speaker');
+  sel.addEventListener('change', () => loadItems(sel.value, null));
+  loadItems(sel.value, params.get('emotion'));
+}
+
+async function loadItems(speaker, wantEmotion) {
+  if (!speaker) return;
+  const r = await fetch(`/items?speaker=${encodeURIComponent(speaker)}`);
+  const { groups, emotion_tiers } = await r.json();
+  CURRENT_GROUPS = groups;
+  EMOTION_TIERS = emotion_tiers;
+
+  const emotionSel = document.getElementById('emotion');
+  emotionSel.innerHTML = groups.map(g => {
+    const accepted = g.clips.filter(c => c.decision === 'accept').length;
+    return `<option value="${g.emotion}">${g.emotion} (${accepted}/${g.clips.length})</option>`;
+  }).join('');
+  if (wantEmotion && groups.some(g => g.emotion === wantEmotion)) emotionSel.value = wantEmotion;
+  emotionSel.onchange = () => renderCurrent(speaker);
+
+  setUrl(speaker, emotionSel.value);
+  renderCurrent(speaker);
+}
+
+function setUrl(speaker, emotion) {
+  const p = new URLSearchParams({ speaker, emotion: emotion || '' });
+  history.replaceState(null, '', `?${p}`);
+}
+
+function renderCurrent(speaker) {
+  const emotion = document.getElementById('emotion').value;
+  const g = CURRENT_GROUPS.find(g => g.emotion === emotion);
+  const root = document.getElementById('groups');
+  document.getElementById('empty').hidden = !!g;
+  setUrl(speaker, emotion);
+  root.innerHTML = g ? renderGroup(speaker, g) : '';
+}
+
+function renderGroup(speaker, g) {
+  const accepted = g.clips.filter(c => c.decision === 'accept').length;
+  return `
+    <div class="emotion-group">
+      <h2>${g.emotion} <span class="count">${accepted} accepted / ${g.clips.length} candidates</span></h2>
+      ${g.clips.map(c => renderClip(speaker, c, g.emotion)).join('')}
+    </div>`;
+}
+
+function renderClip(speaker, c, currentEmotion) {
+  const cls = c.decision === 'accept' ? 'accept' : c.decision === 'reject' ? 'reject' : '';
+  const groups = EMOTION_TIERS.map(g => `<optgroup label="${g.tier}">${
+    g.words.map(e => `<option value="${e}" ${e === currentEmotion ? 'selected' : ''}>${e}</option>`).join('')
+  }</optgroup>`).join('');
+  const options = groups + `<option value="${ADD_NEW_VALUE}">+ Add new label...</option>`;
+  return `
+    <div class="clip ${cls}" data-event="${c.event}">
+      <audio controls preload="none" src="${c.url}"></audio>
+      <div class="text">${escapeHtml(c.text)}</div>
+      <div class="meta">${c.duration}s · score ${c.score} · intensity ${c.intensity ?? '?'}
+        ${c.ser_label ? ` · SER heard: <strong>${c.ser_label}</strong> (${Math.round((c.ser_confidence ?? 0) * 100)}%)` : ''}</div>
+      <select class="relabel-select" data-original="${c.original_emotion}"
+              onchange="relabel('${speaker}','${c.event}',this)">${options}</select>
+      ${c.relabeled ? `<span class="relabel-badge">relabeled from ${c.original_emotion}</span>` : ''}
+      <button class="accept-btn ${c.decision === 'accept' ? 'active' : ''}"
+              onclick="decide('${speaker}','${c.event}','accept',this)">Accept</button>
+      <button class="reject-btn ${c.decision === 'reject' ? 'active' : ''}"
+              onclick="decide('${speaker}','${c.event}','reject',this)">Reject</button>
+    </div>`;
+}
+
+function currentRelabel(clipEl) {
+  const sel = clipEl.querySelector('.relabel-select');
+  return sel.value === sel.dataset.original ? null : sel.value;
+}
+
+async function decide(speaker, event, decision, btn) {
+  const clipEl = btn.closest('.clip');
+  const already = clipEl.classList.contains(decision);
+  const finalDecision = already ? null : decision;
+  await postDecide(speaker, event, finalDecision, currentRelabel(clipEl));
+  loadItems(speaker, document.getElementById('emotion').value);
+}
+
+async function relabel(speaker, event, selectEl) {
+  let newEmotion = selectEl.value;
+  if (newEmotion === ADD_NEW_VALUE) {
+    const word = (prompt('New label (e.g. "wistful", "quiet-threatening"):') || '').trim().toLowerCase();
+    if (!word) {
+      selectEl.value = selectEl.dataset.original;  // cancelled - revert the dropdown
+      return;
+    }
+    await fetch('/add_emotion', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ word }),
+    });
+    newEmotion = word;  // the new <option> doesn't exist in this select's DOM yet - use the
+                        // word directly rather than round-tripping through selectEl.value
+  }
+  const clipEl = selectEl.closest('.clip');
+  const currentDecision = clipEl.classList.contains('accept') ? 'accept'
+                         : clipEl.classList.contains('reject') ? 'reject' : null;
+  const emotionToSend = newEmotion === selectEl.dataset.original ? null : newEmotion;
+  await postDecide(speaker, event, currentDecision, emotionToSend);
+  // Reassigning moves the clip to a different emotion group - stay on the current filter (the
+  // clip will simply disappear from view, which is the correct signal that it moved).
+  loadItems(speaker, document.getElementById('emotion').value);
+}
+
+async function postDecide(speaker, event, decision, emotion) {
+  await fetch('/decide', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ speaker, event, decision, emotion }),
+  });
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+loadSpeakers();
+</script>
+</body>
+</html>

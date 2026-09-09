@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Emotion Coverage Dashboard</title>
+<style>
+  :root { --bg: #12121a; --panel: #1c1c28; --border: #33334a; --text: #e8e8f0; --muted: #8a8aa0;
+          --done: #3fae5c; --review: #c9a227; --gap: #b23f4e; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; margin: 0;
+         padding: 24px; max-width: 1000px; margin-inline: auto; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 16px; font-size: 13px; }
+  #summary { display: flex; gap: 16px; margin-bottom: 20px; }
+  .stat { background: var(--panel); border-radius: 8px; padding: 10px 16px; }
+  .stat .n { font-size: 22px; font-weight: 600; }
+  .stat .label { font-size: 12px; color: var(--muted); }
+  .stat.done .n { color: var(--done); }
+  .stat.needs_review .n { color: var(--review); }
+  .stat.unrepresented .n { color: var(--gap); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; color: var(--muted); font-weight: normal; font-size: 12px;
+       border-bottom: 1px solid var(--border); padding: 6px 8px; position: sticky; top: 0; background: var(--bg); }
+  td { padding: 6px 8px; border-bottom: 1px solid #22222e; }
+  tr:hover td { background: var(--panel); }
+  .status-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+  .status-dot.done { background: var(--done); }
+  .status-dot.needs_review { background: var(--review); }
+  .status-dot.unrepresented { background: var(--gap); }
+  .emotion { text-transform: capitalize; }
+  .disagree-flag { color: var(--gap); font-size: 12px; }
+  a { color: #8ab4f8; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  #filters { margin-bottom: 12px; display: flex; gap: 10px; align-items: center; }
+  select, input[type=text] { background: var(--panel); color: var(--text); border: 1px solid var(--border);
+           padding: 5px 8px; border-radius: 6px; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>Emotion Coverage Dashboard</h1>
+<div class="sub">
+  Every (character, emotion) combination the unvoiced dialogue actually needs, ranked by how many
+  lines depend on it. "Done" = enough LLM+emotion2vec-agreed (or human-accepted) clip duration to
+  build a reference from. Click a row to review its candidates in the clip curation tool.
+</div>
+<div id="summary"></div>
+<div id="filters">
+  <select id="statusFilter">
+    <option value="">All statuses</option>
+    <option value="unrepresented">Unrepresented only</option>
+    <option value="needs_review">Needs review only</option>
+    <option value="done">Done only</option>
+  </select>
+  <input type="text" id="speakerFilter" placeholder="Filter by character...">
+</div>
+<table>
+  <thead><tr><th>Status</th><th>Character</th><th>Emotion</th><th>Lines needing it</th>
+    <th>Candidates</th><th>Usable duration</th><th></th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+
+<script>
+let ALL_ROWS = [];
+
+async function load() {
+  const r = await fetch('/combos');
+  const data = await r.json();
+  ALL_ROWS = data.rows;
+  document.getElementById('summary').innerHTML = `
+    <div class="stat done"><div class="n">${data.summary.done}</div><div class="label">done</div></div>
+    <div class="stat needs_review"><div class="n">${data.summary.needs_review}</div><div class="label">needs review</div></div>
+    <div class="stat unrepresented"><div class="n">${data.summary.unrepresented}</div><div class="label">unrepresented</div></div>
+    <div class="stat"><div class="n">${data.target_duration}s</div><div class="label">target duration</div></div>
+  `;
+  render();
+}
+
+function render() {
+  const statusFilter = document.getElementById('statusFilter').value;
+  const speakerFilter = document.getElementById('speakerFilter').value.trim().toLowerCase();
+  const rows = ALL_ROWS.filter(r =>
+    (!statusFilter || r.status === statusFilter) &&
+    (!speakerFilter || r.speaker.toLowerCase().includes(speakerFilter)));
+  document.getElementById('rows').innerHTML = rows.map(r => `
+    <tr>
+      <td><span class="status-dot ${r.status}"></span>${r.status.replace('_', ' ')}</td>
+      <td>${escapeHtml(r.speaker)}</td>
+      <td class="emotion">${r.emotion}</td>
+      <td>${r.lines_needing_this}</td>
+      <td>${r.n_candidates}${r.n_disagree ? ` <span class="disagree-flag">(${r.n_disagree} disagree)</span>` : ''}</td>
+      <td>${r.usable_duration}s</td>
+      <td><a href="/curate?speaker=${encodeURIComponent(r.speaker)}&emotion=${encodeURIComponent(r.emotion)}" target="_blank">review clips →</a></td>
+    </tr>`).join('');
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+document.getElementById('statusFilter').addEventListener('change', render);
+document.getElementById('speakerFilter').addEventListener('input', render);
+load();
+</script>
+</body>
+</html>
