@@ -57,7 +57,7 @@ async function loadSpeakers() {
   const r = await fetch('/speakers');
   const { speakers } = await r.json();
   const sel = document.getElementById('speaker');
-  sel.innerHTML = speakers.map(s => `<option value="${s}">${s}</option>`).join('');
+  sel.innerHTML = speakers.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
   const params = new URLSearchParams(location.search);
   if (params.get('speaker') && speakers.includes(params.get('speaker'))) sel.value = params.get('speaker');
   sel.addEventListener('change', () => loadItems(sel.value, null));
@@ -74,7 +74,7 @@ async function loadItems(speaker, wantEmotion) {
   const emotionSel = document.getElementById('emotion');
   emotionSel.innerHTML = groups.map(g => {
     const accepted = g.clips.filter(c => c.decision === 'accept').length;
-    return `<option value="${g.emotion}">${g.emotion} (${accepted}/${g.clips.length})</option>`;
+    return `<option value="${escapeHtml(g.emotion)}">${escapeHtml(g.emotion)} (${accepted}/${g.clips.length})</option>`;
   }).join('');
   if (wantEmotion && groups.some(g => g.emotion === wantEmotion)) emotionSel.value = wantEmotion;
   emotionSel.onchange = () => renderCurrent(speaker);
@@ -101,32 +101,42 @@ function renderGroup(speaker, g) {
   const accepted = g.clips.filter(c => c.decision === 'accept').length;
   return `
     <div class="emotion-group">
-      <h2>${g.emotion} <span class="count">${accepted} accepted / ${g.clips.length} candidates</span></h2>
+      <h2>${escapeHtml(g.emotion)} <span class="count">${accepted} accepted / ${g.clips.length} candidates</span></h2>
       ${g.clips.map(c => renderClip(speaker, c, g.emotion)).join('')}
     </div>`;
 }
 
 function renderClip(speaker, c, currentEmotion) {
   const cls = c.decision === 'accept' ? 'accept' : c.decision === 'reject' ? 'reject' : '';
-  const groups = EMOTION_TIERS.map(g => `<optgroup label="${g.tier}">${
-    g.words.map(e => `<option value="${e}" ${e === currentEmotion ? 'selected' : ''}>${e}</option>`).join('')
+  const groups = EMOTION_TIERS.map(g => `<optgroup label="${escapeHtml(g.tier)}">${
+    g.words.map(e => `<option value="${escapeHtml(e)}" ${e === currentEmotion ? 'selected' : ''}>${escapeHtml(e)}</option>`).join('')
   }</optgroup>`).join('');
   const options = groups + `<option value="${ADD_NEW_VALUE}">+ Add new label...</option>`;
   return `
-    <div class="clip ${cls}" data-event="${c.event}">
-      <audio controls preload="none" src="${c.url}"></audio>
+    <div class="clip ${cls}" data-speaker="${escapeHtml(speaker)}" data-event="${escapeHtml(c.event)}">
+      <audio controls preload="none" src="${escapeHtml(c.url)}"></audio>
       <div class="text">${escapeHtml(c.text)}</div>
       <div class="meta">${c.duration}s · score ${c.score} · intensity ${c.intensity ?? '?'}
-        ${c.ser_label ? ` · SER heard: <strong>${c.ser_label}</strong> (${Math.round((c.ser_confidence ?? 0) * 100)}%)` : ''}</div>
-      <select class="relabel-select" data-original="${c.original_emotion}"
-              onchange="relabel('${speaker}','${c.event}',this)">${options}</select>
-      ${c.relabeled ? `<span class="relabel-badge">relabeled from ${c.original_emotion}</span>` : ''}
-      <button class="accept-btn ${c.decision === 'accept' ? 'active' : ''}"
-              onclick="decide('${speaker}','${c.event}','accept',this)">Accept</button>
-      <button class="reject-btn ${c.decision === 'reject' ? 'active' : ''}"
-              onclick="decide('${speaker}','${c.event}','reject',this)">Reject</button>
+        ${c.ser_label ? ` · SER heard: <strong>${escapeHtml(c.ser_label)}</strong> (${Math.round((c.ser_confidence ?? 0) * 100)}%)` : ''}</div>
+      <select class="relabel-select" data-original="${escapeHtml(c.original_emotion)}">${options}</select>
+      ${c.relabeled ? `<span class="relabel-badge">relabeled from ${escapeHtml(c.original_emotion)}</span>` : ''}
+      <button class="accept-btn ${c.decision === 'accept' ? 'active' : ''}">Accept</button>
+      <button class="reject-btn ${c.decision === 'reject' ? 'active' : ''}">Reject</button>
     </div>`;
 }
+
+document.getElementById('groups').addEventListener('click', e => {
+  const btn = e.target.closest('.accept-btn, .reject-btn');
+  if (!btn) return;
+  const clipEl = btn.closest('.clip');
+  decide(clipEl.dataset.speaker, clipEl.dataset.event, btn.classList.contains('accept-btn') ? 'accept' : 'reject', btn);
+});
+document.getElementById('groups').addEventListener('change', e => {
+  const sel = e.target.closest('.relabel-select');
+  if (!sel) return;
+  const clipEl = sel.closest('.clip');
+  relabel(clipEl.dataset.speaker, clipEl.dataset.event, sel);
+});
 
 function currentRelabel(clipEl) {
   const sel = clipEl.querySelector('.relabel-select');
@@ -173,10 +183,11 @@ async function postDecide(speaker, event, decision, emotion) {
   });
 }
 
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 function escapeHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+  // Also escapes quotes (unlike the textContent->innerHTML trick) since this is used inside
+  // HTML attribute values (data-event, src, ...) as well as text content.
+  return String(s ?? '').replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
 }
 
 loadSpeakers();

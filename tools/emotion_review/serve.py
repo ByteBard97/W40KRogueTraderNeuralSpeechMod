@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import threading
 from collections import defaultdict
@@ -305,6 +306,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        # Requiring an application/json content type means a plain cross-origin HTML <form> post
+        # (no fetch, no CORS preflight) can't hit these endpoints - defeats the simplest CSRF
+        # against this localhost server from a page open in another tab.
+        if "application/json" not in self.headers.get("Content-Type", ""):
+            return self.send_error(415)
         length = int(self.headers.get("Content-Length", 0))
         try:
             body = json.loads(self.rfile.read(length))
@@ -336,7 +342,10 @@ class Handler(BaseHTTPRequestHandler):
     def _add_emotion(self, body):
         word = (body.get("word") or "").strip().lower()
         tier = body.get("tier") or "Custom"
-        if not word:
+        # Both get echoed back unescaped into curate.html's <option>/badge markup - restrict to
+        # plain words so a pasted label can't inject HTML/JS (stored XSS via the custom-label path).
+        label = re.compile(r"[a-z][a-z0-9 _-]{0,40}").fullmatch
+        if not word or not label(word) or not label(tier.lower()):
             return self.send_error(400)
         with _lock:
             tiers = load_custom_emotions()

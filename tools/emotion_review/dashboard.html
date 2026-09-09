@@ -84,7 +84,7 @@ function render() {
     <tr>
       <td><span class="status-dot ${r.status}"></span>${r.status.replace('_', ' ')}</td>
       <td>${escapeHtml(r.speaker)}</td>
-      <td class="emotion">${r.emotion}</td>
+      <td class="emotion">${escapeHtml(r.emotion)}</td>
       <td>${r.lines_needing_this}</td>
       <td>${r.n_candidates}${r.n_disagree ? ` <span class="disagree-flag">(${r.n_disagree} disagree)</span>` : ''}</td>
       <td>${r.usable_duration}s</td>
@@ -92,10 +92,9 @@ function render() {
     </tr>`).join('');
 }
 
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 function escapeHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+  return String(s ?? '').replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
 }
 
 document.getElementById('statusFilter').addEventListener('change', render);
