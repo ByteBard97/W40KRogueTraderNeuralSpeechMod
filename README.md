@@ -4,10 +4,10 @@ Live, local, neural text-to-speech for the ~90% of Warhammer 40,000: Rogue Trade
 unvoiced. Per-character voices, emotion-annotated delivery, and Linux/Proton is priority #1
 here, not a Windows port bolted on afterward (thats part of why this is taking a while).
 
-Nothing here calls out to a cloud API, and nothing ships as pre-rendered audio. The TTS engine
-runs as a small local server (the "sidecar") that the game talks to over HTTP - same PC as the
-game by default, but it can run on a second machine on your LAN instead if you want synthesis
-off your gaming rig. Details: [Where the TTS engine runs](#where-the-tts-engine-runs).
+Nothing here calls out to a cloud API, and nothing ships as pre-rendered audio. The game and the
+voice server that actually runs the TTS model are separate processes talking plain HTTP, on
+purpose - same PC or a different machine on your LAN, your call, and either OS can be either
+role. Details: [Where the TTS engine runs](#where-the-tts-engine-runs).
 
 Status: full corpus is annotated now (45,114 previously-silent lines, emotion/pace/delivery
 tagged per line) and audio generates end to end. Right now I'm running listening tests to lock
@@ -21,6 +21,7 @@ the full (very long) progress log.
 | Speech source | Live neural TTS, synthesized on your machine as lines come up | Windows SAPI / macOS `say` | Chatterbox TTS, pre-rendered once by the author and shipped as `.bnk` soundbanks |
 | Delivery | Directed per line: 45,114 unvoiced lines are tagged with emotion, pace, and delivery instructions before synthesis (see below) | Flat - adjustable rate/pitch/volume, but no per-line emotional direction | Fixed at render time - the mod's own docs describe "a limited roster of emotions/archetypes" |
 | Voice variety | One voice per major companion, with emotion-matched reference clips in progress (see below) | Protagonist / male / female / narrator voices | One voice pack, built for a male player character only |
+| Player character's voice | Planned: your own dialogue rendered in whatever voice you picked at character creation, toggleable and re-pickable from the mod menu | One fixed "protagonist" voice, not tied to what you actually picked at creation | Fixed male-Rogue-Trader voice pack only - no player choice, no female protagonist support |
 | Platform | Linux/Proton first, Windows to follow | Windows and macOS only - no Linux/Proton support | Works wherever the game's Wwise banks load (platform-agnostic, since it's pre-baked audio) |
 | Cost / licensing | Free, MIT | Free, MIT | Free, MIT |
 
@@ -35,8 +36,8 @@ material, not something this mod builds on.
 | Path | What |
 |---|---|
 | `src/DialogueExporter/` | UMM mod: dumps the game's dialogue blueprint graph to `script.json` (run once at the main menu) |
-| `src/RogueTraderNeuralSpeechMod/` | The runtime mod (UMM): hooks dialogue, resolves annotations, calls the TTS sidecar, plays back audio |
-| `src/TtsSidecar/` | Local Python/GPU server: text + speaker + annotation → synthesized PCM, per-engine directive translation |
+| `src/RogueTraderNeuralSpeechMod/` | The runtime mod (UMM): hooks dialogue, resolves annotations, calls the voice server, plays back audio |
+| `src/TtsSidecar/` | The voice server (Linux/Python/GPU today): text + speaker + annotation → synthesized PCM, per-engine directive translation |
 | `tools/extract_localization.py` | Localization strings + voiced map + 40K vocabulary worklist |
 | `tools/build_conversations.py` | Walks the cue graph into ordered, speaker-attributed conversation scripts |
 | `tools/unpack_pck.py`, `tools/extract_voice_lines.py` | Wwise `.pck` → speaker-attributed WAV clips of the official VO (stays on your machine) |
@@ -59,7 +60,7 @@ annotation passes exist to fight that, aimed at the two different places deliver
 **1. What to say it like.** Every one of the 45,114 previously-unvoiced lines has been run
 through an LLM annotation pass (14B model, with a per-companion character bio for context) that
 tags emotion, pace, and a short delivery instruction alongside the text itself. The runtime mod
-resolves this per line and passes it to the TTS sidecar, which translates the neutral tags into
+resolves this per line and passes it to the voice server, which translates the neutral tags into
 whatever directive format the active engine actually responds to.
 
 **2. What to clone from.** Zero-shot voice cloning inherits the prosody of whatever reference
@@ -96,16 +97,25 @@ is what decides the default engine before the first release, not a spec sheet.
 
 ## Where the TTS engine runs
 
-The runtime mod never synthesizes audio itself - it sends `{text, speaker, annotation}` to the
-sidecar over HTTP and gets back a WAV. On Linux/Proton that sidecar is a local Python/GPU
-process; on Windows the plan is to run the model in-process instead (no separate server, no
-Python/PyTorch/CUDA install for the player - see `PROJECT_PLAN.md`). Either way, today, it has
-to be the same PC as the game: the sidecar's bind address and the mod's sidecar URL are both
-hardcoded to `127.0.0.1`.
+The runtime mod never synthesizes audio itself - it sends `{text, speaker, annotation}` to a
+voice server over HTTP and gets back a WAV. That's the whole design point: the game and the
+voice server are always separate processes speaking the same protocol, so where each one runs
+is a deployment choice, not an architecture choice. Same machine is the simplest setup and the
+only one that works today (see below); a second machine on your LAN, or even a different OS on
+each side, is meant to work exactly the same way once that's built.
 
-Running the sidecar on a second machine on your own LAN instead - handing synthesis off to a
-spare-GPU machine while the game runs on something lighter, on Linux or Windows either one - is
-planned but not yet built. When it lands: a mod-menu field for the sidecar's address, no
+The voice server's engine backend does vary by platform - Python/PyTorch/GPU on Linux (working
+today), ONNX Runtime on Windows (planned, avoids needing Python/CUDA installed at all - see
+`PROJECT_PLAN.md`) - but both talk the same `/synth` protocol, so a Windows game client can point
+at a Linux voice server, a Linux client can point at a Windows one, and so on. macOS support for
+*running* the voice server itself is unresearched (Apple's Core ML/MLX stack, unproven for any
+of the bake-off's candidate engines); a macOS game client pointing at a Linux or Windows voice
+server on the LAN needs nothing new once that mode ships.
+
+Today, none of that is built yet: the voice server's bind address and the mod's server URL are
+both hardcoded to `127.0.0.1`, so it has to be the same PC as the game. Handing synthesis off to
+a second machine - a spare-GPU box while the game runs on something lighter, in either direction
+- is planned but not started. When it lands: a mod-menu field for the server's address, no
 built-in authentication (this is for your own trusted home network - don't port-forward it to
 the internet), and a line that fails to get audio back in time gets skipped rather than stalling
 dialogue, with a brief in-game notice instead of a silent gap.
@@ -113,8 +123,9 @@ dialogue, with a brief in-game notice instead of a silent gap.
 ## Design (agreed on so far)
 
 - Fork of Osmodium's SpeechMod hook layer (MIT), new `ITtsBackend`/`IAudioOutput` seam.
-* TTS runs in a sidecar server (GPU, Python) with a GUID-keyed disk cache; graph-lookahead
-  prefetch hides latency. Same-machine only for now (see above); in-process ONNX backend later.
+* Game and voice server are always separate processes over HTTP (GUID-keyed disk cache,
+  graph-lookahead prefetch to hide latency) - same machine today, LAN-splittable once that
+  ships. See [Where the TTS engine runs](#where-the-tts-engine-runs).
 - Offline pipelines: dialogue export → LLM emotion annotation (`annotations.<locale>.json`) →
   runtime dictionary lookup. 40K phonetic lexicon applied per engine (IPA where supported,
   respelling otherwise).
@@ -123,10 +134,9 @@ dialogue, with a brief in-game notice instead of a silent gap.
 - Voice cloning from the player's own game files happens locally and is opt-in - no cloned
   voice data is ever distributed. Shipped default voices are synthesized from scratch.
 - Planned: synthesize the player character's own dialogue in whatever voice they picked at
-  character creation. Mod menu will let you turn it off, or re-pick the voice later, if you'd
+  character creation - not a generic "protagonist" preset, the specific voice for the specific
+  character you made. Mod menu will let you turn it off, or re-pick the voice later, if you'd
   rather not hear your own lines read back.
-- Planned: TTS sidecar on a second machine on your LAN, on either platform - see
-  [Where the TTS engine runs](#where-the-tts-engine-runs).
 
 ## Building the exporter (Linux)
 

@@ -16,36 +16,33 @@ an opt-in local tool builds voice references from the *user's own* game files.
    Voiced lines (Sound.json / `LocalizedString.GetVoiceOverSound`) always win - no double narration.
    Latency plan: graph-lookahead prefetch (synthesize all reachable next cues while the player
    reads), GUID-keyed disk cache, sentence-split streaming for cold lines.
-2. **TTS sidecar (Python, GPU, localhost)** - engine chosen by bake-off (see below); voice map
-   `speaker_guid → voice prompt/embedding`; translates neutral annotations per engine. This is
-   the dev's own working setup (`.venv-tts`, smoke-tested end-to-end) and the basis for the
-   **Linux/Proton release build**, but not itself the shipped artifact: the release needs this
-   frozen into a single self-contained binary (PyInstaller-style, no `pip install`, no Docker,
-   nothing the end user manages) plus a Steam launch-options wrapper script that auto-starts it,
-   runs the game under Proton, and kills it on exit. Deliberately a native Linux process, not
-   in-process ONNX Runtime like the Windows build below - routing GPU compute through ONNX
-   Runtime's CUDA EP *inside* the Wine/Proton-translated game process is an unverified risk,
-   whereas this native Linux CUDA process already works end-to-end. Neither the freeze-to-binary
-   nor the launcher wrapper is built yet. See memory `rt-distribution-architecture`.
-2c. **LAN / separate-machine mode (decided, not yet implemented)** - the mod already only talks
-   to the sidecar over plain HTTP (`NeuralVoiceUnity.cs`'s `SIDECAR_URL` const), so this is a
-   config change to an existing interface, not a new one. Needed: (1) sidecar's `uvicorn --host
-   127.0.0.1` becomes a configurable bind address (`0.0.0.0` for LAN mode), (2) `SIDECAR_URL`
-   becomes a mod-menu setting (`ModSettingEntry`, matching the existing `Configuration/Settings/`
-   pattern) instead of a hardcoded const, (3) no auth layer - user decided this is docs-only
-   ("trusted LAN, never port-forward it to the internet"), not worth the engineering cost for a
-   mod that runs on someone's own home network, (4) on request timeout/unreachable server: skip
-   that line's audio, advance dialogue normally, surface a brief in-game toast rather than
-   stalling or failing silently. Existing graph-lookahead prefetch already exists to hide GPU
-   inference latency; LAN round-trip time is negligible next to that, so no new latency-hiding
-   work is implied. **Available on both platforms, not Linux-only**: the `ITtsBackend` seam
-   (Architecture item 1) already exists to let a Windows install pick "remote sidecar" instead of
-   its default in-process ONNX backend (2b). This doesn't reopen the dependency-hell problem 2b
-   exists to avoid - the Python/PyTorch/CUDA stack lives on whichever machine runs the sidecar,
-   never on the game machine, whichever OS the game itself is running. Not started - README
-   documents the plan for users, this is the build-side tracking entry.
-2b. **Windows in-process ONNX backend (decided, not yet implemented)** - separate build target;
-   no Python/Docker/CUDA toolkit on the player's machine. Chatterbox-Turbo via its official
+2. **Voice server (currently `src/TtsSidecar/` in code - "sidecar" is dev-internal naming, not
+   the public term; docs/README call this the voice server)** - a standalone process that takes
+   `{text, speaker, annotation}` over HTTP and returns PCM. The core design goal is full
+   client/server modularity: the game (Windows/macOS/Linux) and the voice server (Linux or
+   Windows today, macOS unresearched - see 2d) are always separate processes talking the same
+   protocol, whether that's two processes on one machine or two machines on a LAN (2c). Same
+   machine is just the zero-config default, not a different architecture. The concrete engine
+   backend varies by platform (Python/PyTorch/GPU on Linux, ONNX Runtime on Windows - see 2b),
+   but both speak the same `/synth` protocol so either can be swapped, networked, or upgraded
+   independently.
+   The Linux backend: engine chosen by bake-off (see below); voice map `speaker_guid → voice
+   prompt/embedding`; translates neutral annotations per engine. This is the dev's own working
+   setup (`.venv-tts`, smoke-tested end-to-end) and the basis for the **Linux/Proton release
+   build**, but not itself the shipped artifact: the release needs this frozen into a single
+   self-contained binary (PyInstaller-style, no `pip install`, no Docker, nothing the end user
+   manages) plus a Steam launch-options wrapper script that auto-starts it, runs the game under
+   Proton, and kills it on exit. Neither the freeze-to-binary nor the launcher wrapper is built
+   yet. See memory `rt-distribution-architecture`.
+2b. **Windows voice-server backend: ONNX Runtime (decided, not yet implemented)** - no Python/
+   Docker/CUDA toolkit on the player's machine, whether or not that machine is also running the
+   game. Runs inside a normal local voice-server process by default, same `/synth` protocol as
+   the Linux backend - not a fundamentally different, non-networked architecture. (An in-process
+   variant - loading these same ONNX graphs directly inside the C# game mod, skipping the local
+   HTTP hop entirely - is possible later as an optional zero-server convenience mode, but it
+   takes that install out of the modular client/server model since it can no longer be pointed
+   at a different machine. Not the default, not planned before the standalone server version.)
+   Chatterbox-Turbo via its official
    `ResembleAI/chatterbox-turbo-ONNX` export, four ONNX sessions, not uniformly CPU/GPU split:
    - `language_model` (GPU, DirectML) - the per-token hot loop, the one session that must be
      accelerated.
@@ -95,6 +92,27 @@ an opt-in local tool builds voice references from the *user's own* game files.
    runtime mod, and a 100+-consecutive-line soak test before any Windows release. See
    `HANDOFF-2026-09-03-1956.md` and `HANDOFF-2026-09-04-*.md` (if written) for the full research
    trail and citations.
+2c. **LAN / separate-machine mode (decided, not yet implemented)** - the mod already only talks
+   to the voice server over plain HTTP (`NeuralVoiceUnity.cs`'s `SIDECAR_URL` const), so this is
+   a config change to an existing interface, not a new one, and it's the natural consequence of
+   2's client/server modularity goal rather than a special case bolted onto one platform. Needed:
+   (1) the voice server's `uvicorn --host 127.0.0.1` becomes a configurable bind address
+   (`0.0.0.0` for LAN mode) on whichever backend (2 or 2b) is running it, (2) `SIDECAR_URL`
+   becomes a mod-menu setting (`ModSettingEntry`, matching the existing `Configuration/Settings/`
+   pattern) instead of a hardcoded const, (3) no auth layer - user decided this is docs-only
+   ("trusted LAN, never port-forward it to the internet"), not worth the engineering cost for a
+   mod that runs on someone's own home network, (4) on request timeout/unreachable server: skip
+   that line's audio, advance dialogue normally, surface a brief in-game toast rather than
+   stalling or failing silently. Existing graph-lookahead prefetch already exists to hide GPU
+   inference latency; LAN round-trip time is negligible next to that, so no new latency-hiding
+   work is implied. Not started - README documents the plan for users, this is the build-side
+   tracking entry.
+2d. **macOS voice-server backend (unresearched, not decided)** - the game client side (macOS
+   Rogue Trader install pointing at a remote voice server) needs nothing new once 2c ships. A
+   macOS-hosted voice server is the open question: whether Apple's own ML stack (Core ML / MLX)
+   can run any of the bake-off's candidate engines at usable speed and quality is not yet
+   investigated. Not blocking anything - macOS players can already point at a Linux or Windows
+   voice server on their LAN via 2c.
 3. **Offline pipelines (this repo, already working)** - dialogue-graph export → ordered
    conversations → LLM emotion annotation → `annotations.<locale>.json`; 40K phonetic lexicon;
    voice-line extraction → prompt banks.
@@ -373,12 +391,13 @@ an opt-in local tool builds voice references from the *user's own* game files.
       inspection of the real `language_model.onnx` graph to rule out the DirectML Int64
       Gather/Reshape crash pattern. Not yet implemented in code - this closes the decision, not
       the build.
-- [ ] Later: implement the Windows in-process ONNX C# pipeline (Architecture 2b); user-side
-      voice-clone builder tool (architecture already decided, see memory `rt-mod-architecture-
-      findings` and `HANDOFF-2026-09-03-1956.md` - MenuGUI button, C# port of unpack_pck.py/
-      build_prompt_banks.py, vgmstream-cli subprocess); Nexus/GitHub release
-- [ ] Later: LAN/separate-machine sidecar mode (Architecture 2c) - mod-menu server address
-      field, sidecar `--host` flag, timeout-skip-with-toast behavior. Not started.
+- [ ] Later: implement the Windows ONNX voice-server backend (Architecture 2b) - the in-process
+      variant mentioned there is optional and comes later, if at all; user-side voice-clone
+      builder tool (architecture already decided, see memory `rt-mod-architecture-findings` and
+      `HANDOFF-2026-09-03-1956.md` - MenuGUI button, C# port of unpack_pck.py/build_prompt_banks.py,
+      vgmstream-cli subprocess); Nexus/GitHub release
+- [ ] Later: LAN/separate-machine mode (Architecture 2c) - mod-menu server address field, voice
+      server's `--host` flag, timeout-skip-with-toast behavior. Not started.
 - [ ] Later: player-voice-at-character-creation - synthesize the player character's own dialogue
       in whatever voice they picked at creation, mod-menu toggle to disable it and to re-pick the
       voice later. Not researched yet at the blueprint level (how the game stores/exposes the
