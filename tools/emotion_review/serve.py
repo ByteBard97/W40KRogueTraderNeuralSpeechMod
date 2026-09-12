@@ -76,8 +76,19 @@ def emotion_tiers() -> list[dict]:
 def all_emotion_words() -> set[str]:
     words: set[str] = set()
     for group in emotion_tiers():
+        if group["tier"] == "Register modifiers":
+            continue  # a separate axis (see register_words) - not a valid emotion value itself
         words.update(group["words"])
     return words
+
+
+def register_words() -> set[str]:
+    """Register modifiers (delivery quality: quiet, breathless, ...) are a separate axis from
+    emotion, not an alternative emotion - a clip can be both "angry" and "hushed" at once."""
+    for group in emotion_tiers():
+        if group["tier"] == "Register modifiers":
+            return set(group["words"])
+    return set()
 
 _lock = threading.Lock()
 
@@ -203,7 +214,8 @@ def _candidates_for(speaker: str, decisions: dict) -> dict[str, list[dict]]:
             "event": event, "text": c["texts"][0]["text"], "guid": guid,
             "intensity": ann.get("intensity"), "ser_label": ser["label"] if ser else None,
             "ser_confidence": ser["confidence"] if ser else None,
-            "original_emotion": original_emotion, "relabeled": emotion != original_emotion, **sc,
+            "original_emotion": original_emotion, "relabeled": emotion != original_emotion,
+            "register": (record or {}).get("register"), **sc,
         })
     for clips in by_emotion.values():
         clips.sort(key=lambda c: -c["score"])
@@ -325,17 +337,20 @@ class Handler(BaseHTTPRequestHandler):
     def _decide(self, body):
         speaker, event = body.get("speaker"), body.get("event")
         decision, emotion = body.get("decision"), body.get("emotion")
+        register = body.get("register")
         if not speaker or not event or decision not in ("accept", "reject", None):
             return self.send_error(400)
         if emotion is not None and emotion not in all_emotion_words():
             return self.send_error(400)
+        if register is not None and register not in register_words():
+            return self.send_error(400)
         with _lock:
             data = load_curation()
             bucket = data.setdefault(speaker, {})
-            if decision is None and emotion is None:
+            if decision is None and emotion is None and register is None:
                 bucket.pop(event, None)
             else:
-                bucket[event] = {"decision": decision, "emotion": emotion}
+                bucket[event] = {"decision": decision, "emotion": emotion, "register": register}
             save_curation(data)
         self._send_json({"ok": True})
 

@@ -55,3 +55,4 @@ docs/research/emotional-expressiveness-prompts.md
 /tools/tts_bakeoff/.venv-higgs
 /tools/tts_bakeoff/.venv-voxcpm
 /.playwright-mcp
+/tools/audio_emotion_labeling/.venv-qwen2audio

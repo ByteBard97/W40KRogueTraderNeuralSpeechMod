@@ -106,12 +106,24 @@ function renderGroup(speaker, g) {
     </div>`;
 }
 
+function emotionTiers() {
+  return EMOTION_TIERS.filter(g => g.tier !== 'Register modifiers');
+}
+
+function registerWords() {
+  return (EMOTION_TIERS.find(g => g.tier === 'Register modifiers') || {}).words || [];
+}
+
 function renderClip(speaker, c, currentEmotion) {
   const cls = c.decision === 'accept' ? 'accept' : c.decision === 'reject' ? 'reject' : '';
-  const groups = EMOTION_TIERS.map(g => `<optgroup label="${escapeHtml(g.tier)}">${
+  const groups = emotionTiers().map(g => `<optgroup label="${escapeHtml(g.tier)}">${
     g.words.map(e => `<option value="${escapeHtml(e)}" ${e === currentEmotion ? 'selected' : ''}>${escapeHtml(e)}</option>`).join('')
   }</optgroup>`).join('');
   const options = groups + `<option value="${ADD_NEW_VALUE}">+ Add new label...</option>`;
+  const currentRegister = c.register || '';
+  const registerOptions = `<option value="">(no register)</option>` +
+    registerWords().map(w => `<option value="${escapeHtml(w)}" ${w === currentRegister ? 'selected' : ''}>${escapeHtml(w)}</option>`).join('') +
+    `<option value="${ADD_NEW_VALUE}">+ Add new register...</option>`;
   return `
     <div class="clip ${cls}" data-speaker="${escapeHtml(speaker)}" data-event="${escapeHtml(c.event)}">
       <audio controls preload="none" src="${escapeHtml(c.url)}"></audio>
@@ -119,6 +131,7 @@ function renderClip(speaker, c, currentEmotion) {
       <div class="meta">${c.duration}s · score ${c.score} · intensity ${c.intensity ?? '?'}
         ${c.ser_label ? ` · SER heard: <strong>${escapeHtml(c.ser_label)}</strong> (${Math.round((c.ser_confidence ?? 0) * 100)}%)` : ''}</div>
       <select class="relabel-select" data-original="${escapeHtml(c.original_emotion)}">${options}</select>
+      <select class="register-select" data-original="${escapeHtml(currentRegister)}">${registerOptions}</select>
       ${c.relabeled ? `<span class="relabel-badge">relabeled from ${escapeHtml(c.original_emotion)}</span>` : ''}
       <button class="accept-btn ${c.decision === 'accept' ? 'active' : ''}">Accept</button>
       <button class="reject-btn ${c.decision === 'reject' ? 'active' : ''}">Reject</button>
@@ -132,10 +145,13 @@ document.getElementById('groups').addEventListener('click', e => {
   decide(clipEl.dataset.speaker, clipEl.dataset.event, btn.classList.contains('accept-btn') ? 'accept' : 'reject', btn);
 });
 document.getElementById('groups').addEventListener('change', e => {
-  const sel = e.target.closest('.relabel-select');
+  const relabelSel = e.target.closest('.relabel-select');
+  const registerSel = e.target.closest('.register-select');
+  const sel = relabelSel || registerSel;
   if (!sel) return;
   const clipEl = sel.closest('.clip');
-  relabel(clipEl.dataset.speaker, clipEl.dataset.event, sel);
+  if (relabelSel) return relabel(clipEl.dataset.speaker, clipEl.dataset.event, clipEl);
+  return relabelRegister(clipEl.dataset.speaker, clipEl.dataset.event, clipEl);
 });
 
 function currentRelabel(clipEl) {
@@ -143,18 +159,34 @@ function currentRelabel(clipEl) {
   return sel.value === sel.dataset.original ? null : sel.value;
 }
 
+function currentRegister(clipEl) {
+  const sel = clipEl.querySelector('.register-select');
+  return sel.value || null;
+}
+
+function currentDecisionOf(clipEl) {
+  return clipEl.classList.contains('accept') ? 'accept'
+       : clipEl.classList.contains('reject') ? 'reject' : null;
+}
+
 async function decide(speaker, event, decision, btn) {
   const clipEl = btn.closest('.clip');
   const already = clipEl.classList.contains(decision);
   const finalDecision = already ? null : decision;
-  await postDecide(speaker, event, finalDecision, currentRelabel(clipEl));
+  await postDecide(speaker, event, finalDecision, currentRelabel(clipEl), currentRegister(clipEl));
   loadItems(speaker, document.getElementById('emotion').value);
 }
 
-async function relabel(speaker, event, selectEl) {
+async function addNewLabel(promptText) {
+  const word = (prompt(promptText) || '').trim().toLowerCase();
+  return word || null;
+}
+
+async function relabel(speaker, event, clipEl) {
+  const selectEl = clipEl.querySelector('.relabel-select');
   let newEmotion = selectEl.value;
   if (newEmotion === ADD_NEW_VALUE) {
-    const word = (prompt('New label (e.g. "wistful", "quiet-threatening"):') || '').trim().toLowerCase();
+    const word = await addNewLabel('New label (e.g. "wistful", "quiet-threatening"):');
     if (!word) {
       selectEl.value = selectEl.dataset.original;  // cancelled - revert the dropdown
       return;
@@ -166,20 +198,42 @@ async function relabel(speaker, event, selectEl) {
     newEmotion = word;  // the new <option> doesn't exist in this select's DOM yet - use the
                         // word directly rather than round-tripping through selectEl.value
   }
-  const clipEl = selectEl.closest('.clip');
-  const currentDecision = clipEl.classList.contains('accept') ? 'accept'
-                         : clipEl.classList.contains('reject') ? 'reject' : null;
   const emotionToSend = newEmotion === selectEl.dataset.original ? null : newEmotion;
-  await postDecide(speaker, event, currentDecision, emotionToSend);
+  await postDecide(speaker, event, currentDecisionOf(clipEl), emotionToSend, currentRegister(clipEl));
   // Reassigning moves the clip to a different emotion group - stay on the current filter (the
   // clip will simply disappear from view, which is the correct signal that it moved).
   loadItems(speaker, document.getElementById('emotion').value);
 }
 
-async function postDecide(speaker, event, decision, emotion) {
+async function relabelRegister(speaker, event, clipEl) {
+  const selectEl = clipEl.querySelector('.register-select');
+  let newRegister = selectEl.value;
+  let addedNew = false;
+  if (newRegister === ADD_NEW_VALUE) {
+    const word = await addNewLabel('New register modifier (e.g. "muffled"):');
+    if (!word) {
+      selectEl.value = selectEl.dataset.original;  // cancelled - revert the dropdown
+      return;
+    }
+    await fetch('/add_emotion', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ word, tier: 'Register modifiers' }),
+    });
+    newRegister = word;
+    addedNew = true;
+  }
+  await postDecide(speaker, event, currentDecisionOf(clipEl), currentRelabel(clipEl), newRegister || null);
+  // Picking an existing register word doesn't move the clip to a different group (grouping is
+  // by emotion only), so skip the reload for snappier interaction. Adding a brand-new word is
+  // the exception: EMOTION_TIERS is stale until reloaded, so the select would otherwise stay
+  // stuck showing "+ Add new register..." instead of the word that was actually just saved.
+  if (addedNew) loadItems(speaker, document.getElementById('emotion').value);
+}
+
+async function postDecide(speaker, event, decision, emotion, register) {
   await fetch('/decide', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ speaker, event, decision, emotion }),
+    body: JSON.stringify({ speaker, event, decision, emotion, register }),
   });
 }
 
