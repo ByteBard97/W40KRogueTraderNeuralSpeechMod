@@ -3,7 +3,7 @@ from scoring import tier_similarity, recall_at_k, best_of_set_similarity
 
 WORD_TO_TIER = {
     "rueful": "Low-mid energy", "somber": "Low energy", "grim": "Mid energy",
-    "ecstatic": "High energy", "angry": "Original", "commanding": "Original",
+    "ecstatic": "High energy", "stern": "Mid energy", "firm": "Mid energy",
 }
 
 
@@ -12,7 +12,7 @@ def test_tier_similarity_exact_word_is_one():
 
 
 def test_tier_similarity_same_tier_is_point_seven():
-    assert tier_similarity("angry", "commanding", WORD_TO_TIER) == 0.7
+    assert tier_similarity("stern", "firm", WORD_TO_TIER) == 0.7
 
 
 def test_tier_similarity_adjacent_energy_tier_is_point_four():
@@ -42,3 +42,27 @@ def test_best_of_set_similarity_takes_max():
 
 def test_best_of_set_similarity_empty_set_is_zero():
     assert best_of_set_similarity("rueful", [], WORD_TO_TIER) == 0.0
+
+
+# --- legacy-word energy override: real vocab.py "Original"/"Custom" words that predate
+# the energy-tier system and previously scored a flat 0.0 against any real-tier word no
+# matter how close a synonym, since "Original"/"Custom" were never on the ladder ---
+
+def test_legacy_word_gets_partial_credit_against_adjacent_real_tier():
+    # "commanding" (Original enum, overridden to Mid-high energy) vs "firm" (a real
+    # Mid-energy vocab word) - adjacent tiers, so this now gets partial credit instead of
+    # the flat 0.0 it scored before the override existed.
+    assert tier_similarity("commanding", "firm", {"firm": "Mid energy"}) == 0.4
+
+
+def test_legacy_word_gets_same_tier_credit_against_real_neighbor():
+    # "pleading" (Original enum, overridden to High energy) vs "desperate" (a real
+    # High-energy vocab word) - same effective tier, near-synonyms in practice.
+    assert tier_similarity("pleading", "desperate", {"desperate": "High energy"}) == 0.7
+
+
+def test_two_legacy_words_compare_via_their_overrides():
+    # Both "angry" and "commanding" are Original-enum words; their overrides (High energy
+    # and Mid-high energy) are adjacent, not identical - 0.4, not the 1.0/0.7 a naive
+    # same-bucket view would give two words that both happen to be "Original".
+    assert tier_similarity("angry", "commanding", {}) == 0.4

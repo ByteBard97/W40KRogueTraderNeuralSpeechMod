@@ -25,8 +25,11 @@ def test_report_computes_top1_and_recall():
 def test_report_computes_best_of_set_similarity_mean():
     report = build_report(GROUND_TRUTH, LABELS, WORD_TO_TIER, "qwen2audio", "audio", "ph1")
     # EVT_1: max(sim(rueful,somber)=0.4, sim(rueful,rueful)=1.0) = 1.0
-    # EVT_2: max(sim(commanding,angry)=0.7) = 0.7
-    assert report["graded_similarity_mean"] == (1.0 + 0.7) / 2
+    # EVT_2: sim(commanding,angry) = 0.4 - both are real vocab.py words with a scoring-only
+    # energy-tier override (see scoring.py's _LEGACY_ENERGY_OVERRIDE); they land on
+    # adjacent tiers (Mid-high vs High), not the same tier this fixture's WORD_TO_TIER
+    # naively assigns them both to ("Original") - the override takes precedence.
+    assert report["graded_similarity_mean"] == (1.0 + 0.4) / 2
 
 
 def test_report_disagreement_list_only_has_top1_mismatches():
