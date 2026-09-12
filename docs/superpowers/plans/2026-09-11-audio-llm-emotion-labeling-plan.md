@@ -36,9 +36,10 @@ itself was frequently uncertain between several plausible labels.
 - Output signal file: `data/voices/emotion_banks/audio_llm_labels.json`, keyed
   `event -> backend -> mode -> prompt_hash -> entry`. `prompt_hash` is part of the key
   path, not just a stored field.
-- Pilot scope: all 325 Abelard catalog clips (`data/voices/catalog.json`, `speaker ==
-  "Abelard"`). Accuracy is scored only against the 79 with non-null `emotion` in
-  `data/voices/emotion_banks/curation.json`.
+- Pilot scope: exactly the 79 events with non-null `emotion` in
+  `data/voices/emotion_banks/curation.json` (all Abelard currently) — not that speaker's
+  other ~246 unlabeled catalog clips. There's no ground truth to compare against on the
+  unlabeled ones, so labeling them during the pilot wouldn't answer anything.
 - Run any GPU step (smoke tests, pilot, full run) with Solasta 2 closed — it currently
   holds ~5GB of the RTX 5080's 16GB.
 - Model `notes` proposals (off-vocabulary words) are tallied and reported, never
@@ -816,14 +817,18 @@ git commit -m "Add tier-based scoring functions for pilot accuracy report"
   `load_vocab` (Task 3), and (for the CLI only) `backends.qwen2audio` / `backends.ultravox`
   (Tasks 1-2), each exposing `load_model()` and `generate(model, processor, wav_path, prompt_text)`.
 - Produces: `iter_labels(catalog, existing, backend_name, mode, prompt_hash_value,
-  generate_fn, vocab, backend_meta, speaker_filter=None) -> Iterator[tuple[str, dict]]`
-  — pure, no file I/O, used directly by tests and by the CLI wrapper below.
-  `generate_fn(wav_path: str, prompt_text: str) -> str`.
+  generate_fn, vocab, backend_meta, event_filter=None) -> Iterator[tuple[str, dict]]`
+  — pure, no file I/O, used directly by tests and by the CLI wrapper below. `event_filter`
+  is an explicit `set[str]` of event names to restrict to, or `None` for the whole
+  catalog. `generate_fn(wav_path: str, prompt_text: str) -> str`.
 - Produces: a CLI (`label.py --backend {qwen2audio,ultravox} --mode {audio,audio+text}
   [--pilot | --speaker NAME] [--limit N]`) that loads/saves
-  `data/voices/emotion_banks/audio_llm_labels.json` around `iter_labels()`. `--pilot` is
-  sugar for `--speaker Abelard`; both flags exist from the start so Task 10's
-  generalization check needs no CLI changes.
+  `data/voices/emotion_banks/audio_llm_labels.json` around `iter_labels()`. `--pilot`
+  builds `event_filter` from the events with non-null `emotion` in `curation.json`
+  (exactly the 79 ground-truth events — not a speaker filter, since most of Abelard's own
+  catalog clips have no human label to compare against). `--speaker NAME` builds
+  `event_filter` from that speaker's catalog clips instead (used by Task 10's
+  generalization check). Both flags exist from the start so Task 10 needs no CLI changes.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -875,17 +880,19 @@ def test_different_prompt_hash_is_not_skipped():
     assert "EVT_1" in {event for event, _ in results}
 
 
-def test_speaker_filter_restricts_to_one_speaker():
+def test_event_filter_restricts_to_the_given_event_names():
     ph = prompt_hash(VOCAB, "audio")
     results = list(iter_labels(CATALOG, {}, "qwen2audio", "audio", ph,
-                                fake_generate, VOCAB, BACKEND_META, speaker_filter="Abelard"))
+                                fake_generate, VOCAB, BACKEND_META,
+                                event_filter={"EVT_1", "EVT_2"}))
     assert {event for event, _ in results} == {"EVT_1", "EVT_2"}
 
 
 def test_entry_shape_includes_parsed_labels_meta_and_latency():
     ph = prompt_hash(VOCAB, "audio")
     _, entry = next(iter_labels(CATALOG, {}, "qwen2audio", "audio", ph,
-                                 fake_generate, VOCAB, BACKEND_META, speaker_filter="Abelard"))
+                                 fake_generate, VOCAB, BACKEND_META,
+                                 event_filter={"EVT_1"}))
     assert entry["labels"] == [{"word": "angry", "confidence": 0.9}]
     assert entry["parse_ok"] is True
     assert entry["model_id"] == "fake/model"
@@ -900,7 +907,7 @@ def test_unparseable_response_still_yields_entry_with_parse_ok_false():
     ph = prompt_hash(VOCAB, "audio")
     _, entry = next(iter_labels(CATALOG, {}, "qwen2audio", "audio", ph,
                                  lambda wav, p: "not json at all",
-                                 VOCAB, BACKEND_META, speaker_filter="Abelard"))
+                                 VOCAB, BACKEND_META, event_filter={"EVT_1"}))
     assert entry["parse_ok"] is False
     assert entry["labels"] == []
 ```
@@ -946,9 +953,9 @@ OUT_PATH = VOICES / "emotion_banks/audio_llm_labels.json"
 def iter_labels(catalog: dict, existing: dict, backend_name: str, mode: str,
                  prompt_hash_value: str, generate_fn: Callable[[str, str], str],
                  vocab: dict, backend_meta: dict,
-                 speaker_filter: str | None = None) -> Iterator[tuple[str, dict]]:
+                 event_filter: set[str] | None = None) -> Iterator[tuple[str, dict]]:
     for event, clip in catalog.items():
-        if speaker_filter and clip.get("speaker") != speaker_filter:
+        if event_filter is not None and event not in event_filter:
             continue
         already = (existing.get(event, {}).get(backend_name, {})
                    .get(mode, {}).get(prompt_hash_value))
@@ -989,11 +996,22 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--backend", required=True, choices=["qwen2audio", "ultravox"])
     ap.add_argument("--mode", required=True, choices=["audio", "audio+text"])
-    ap.add_argument("--pilot", action="store_true", help="shorthand for --speaker Abelard")
+    ap.add_argument("--pilot", action="store_true",
+                    help="restrict to exactly the ground-truth events in curation.json")
     ap.add_argument("--speaker", default=None, help="restrict to one speaker's catalog clips")
     ap.add_argument("--limit", type=int, default=0, help="cap number of clips processed (debugging)")
     args = ap.parse_args()
-    speaker_filter = "Abelard" if args.pilot else args.speaker
+
+    catalog = json.loads((VOICES / "catalog.json").read_text(encoding="utf-8"))
+    if args.pilot:
+        curation = json.loads((VOICES / "emotion_banks/curation.json").read_text(encoding="utf-8"))
+        event_filter = {event for speaker_clips in curation.values()
+                         for event, rec in speaker_clips.items() if rec.get("emotion")}
+    elif args.speaker:
+        event_filter = {event for event, clip in catalog.items()
+                         if clip.get("speaker") == args.speaker}
+    else:
+        event_filter = None
 
     from vocab import load_vocab
     vocab = load_vocab(VOICES / "emotion_banks/custom_emotions.json")
@@ -1013,12 +1031,11 @@ def main() -> None:
     def generate_fn(wav_path: str, prompt_text: str) -> str:
         return backend_generate(model, processor, str(VOICES / wav_path), prompt_text)
 
-    catalog = json.loads((VOICES / "catalog.json").read_text(encoding="utf-8"))
     existing = json.loads(OUT_PATH.read_text(encoding="utf-8")) if OUT_PATH.exists() else {}
 
     count = 0
     for event, entry in iter_labels(catalog, existing, args.backend, args.mode, ph,
-                                     generate_fn, vocab, backend_meta, speaker_filter):
+                                     generate_fn, vocab, backend_meta, event_filter):
         existing.setdefault(event, {}).setdefault(args.backend, {}).setdefault(args.mode, {})[ph] = entry
         count += 1
         print(f"[{count}] {event}: {entry['labels']} (parse_ok={entry['parse_ok']}, "
@@ -1339,19 +1356,23 @@ git commit -m "Add pilot accuracy report scoring Abelard ground truth"
 
 ---
 
-### Task 9: Run the full Abelard pilot and pick a backend
+### Task 9: Run the ground-truth pilot and pick a backend
 
 This is an operational task, not a coding task — it runs the software built in Tasks 1-8.
 
-**Files:** none created; produces `data/voices/emotion_banks/audio_llm_labels.json` (full)
-and `data/voices/emotion_banks/pilot_report.md`.
+**Files:** none created; produces `data/voices/emotion_banks/audio_llm_labels.json`
+(pilot subset) and `data/voices/emotion_banks/pilot_report.md`.
 
 - [ ] **Step 1: Confirm Solasta 2 is closed**
 
 Run: `nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv`
 Expected: no `Brimstone-Win64-Shipping.exe` row (or any other large GPU consumer).
 
-- [ ] **Step 2: Run all 4 combinations across all 325 Abelard clips**
+- [ ] **Step 2: Run all 4 combinations across the 79 ground-truth events**
+
+`--pilot` restricts to exactly the 79 Abelard events with a non-null `emotion` in
+`curation.json` — not that speaker's other ~246 unlabeled catalog clips, since there's
+no ground truth to compare against on those (see Global Constraints).
 
 ```bash
 cd tools/audio_emotion_labeling
@@ -1391,7 +1412,7 @@ input to Task 10 and to the eventual full-corpus run.
 - [ ] **Step 5: Commit**
 
 Check the size of `audio_llm_labels.json` first (`ls -la`) — it carries a full
-`raw_response` string per entry, 4 backend/mode combinations × 325 clips. If it's large
+`raw_response` string per entry, 4 backend/mode combinations × 79 clips. If it's large
 enough to be unwieldy in git (multi-MB), consider whether it belongs in the repo at all
 versus being a local/data-only artifact like other generated files under `data/voices/`;
 `ser_scores.json` is the existing precedent for tracking a generated signal file, so

@@ -23,10 +23,11 @@ then run it overnight across the full 5,188-clip catalog.
 **In scope:** picking a model backend via a small accuracy pilot, and a harness that can
 label the full catalog with the winning backend.
 
-**Pilot scope note:** the pilot runs all 325 Abelard catalog clips (not just the 79 with
-existing human labels) — the 79 give accuracy metrics, the remaining ~246 give realistic
-throughput/latency data at meaningful volume and are a useful by-product (a fully labeled
-Abelard). Still one speaker; see the single-speaker limitation under Pilot run.
+**Pilot scope note:** the pilot runs only the 79 Abelard catalog clips that already have a
+human label in `curation.json` — there's no comparison to make on the other ~246
+unlabeled Abelard clips, so labeling them now would just burn GPU time without answering
+the "how accurate is this backend" question the pilot exists to answer. Still one
+speaker; see the single-speaker limitation under Pilot run.
 
 **Out of scope (explicit follow-up, not blocked on by this work):** wiring the resulting
 labels into `curate.html`/`serve.py` as a visible signal column, and any adjudication UI
@@ -132,8 +133,8 @@ rather than relying on either model's loader to do it silently.
 label.py --backend {qwen2audio,ultravox} --mode {audio,audio+text} [--pilot]
 ```
 
-`--pilot` restricts the run to all 325 Abelard catalog clips (accuracy is scored on the
-79 with ground truth; see Scope). Output:
+`--pilot` restricts the run to exactly the 79 Abelard events with ground truth in
+`curation.json` (see Scope) — not the speaker's other ~246 unlabeled clips. Output:
 `data/voices/emotion_banks/audio_llm_labels.json`, keyed
 `event -> backend -> mode -> prompt_hash -> {labels, raw_response, model_id, quant,
 temperature, max_new_tokens, timestamp}` — `prompt_hash` is part of the key path, not just
@@ -175,8 +176,7 @@ clips had several plausible labels, or none that fit well):
 
 ## Pilot run
 
-325 Abelard clips × 2 backends × 2 modes = 1,300 generate calls (accuracy scored on the
-79 with ground truth, the rest for volume/throughput). Per-clip latency is recorded during
+79 Abelard ground-truth events × 2 backends × 2 modes = 316 generate calls. Per-clip latency is recorded during
 the pilot (not yet measured) to project full-corpus (5,188-clip) wall-clock before
 deciding whether the overnight run uses both modes or just the pilot's winning mode:
 back-of-envelope *estimate pending pilot data*, both modes across the full catalog is
