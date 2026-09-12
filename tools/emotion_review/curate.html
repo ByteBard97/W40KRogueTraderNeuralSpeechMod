@@ -30,6 +30,9 @@
   .clip button.active.reject-btn { background: var(--reject); border-color: var(--reject); color: #1a0808; }
   .clip .relabel-select { font-size: 12px; padding: 3px 6px; }
   .clip .relabel-badge { color: var(--accent); font-size: 11px; white-space: nowrap; }
+  .clip .ai-agree { color: var(--accept); }
+  .clip .ai-disagree { color: var(--muted); }
+  .clip .ai-oov { border-bottom: 1px dashed var(--accent); }
   audio { height: 32px; }
   #empty { color: var(--muted); margin-top: 40px; }
 </style>
@@ -37,9 +40,10 @@
 <body>
 <h1>Emotion Clip Curation</h1>
 <div class="sub">
-  Each clip's emotion label comes from the LLM annotation of the dialogue <em>text</em> - it never
-  heard the take. Listen and confirm it actually sounds that way before it goes in the reference
-  bank. Clips are sorted best-scored (audio quality) first within each emotion.
+  Each clip is grouped by the audio-LLM's own guess (it listened to the take) where one exists,
+  falling back to the text-only annotation otherwise. Listen and confirm it actually sounds that
+  way before it goes in the reference bank. Clips are sorted best-scored (audio quality) first
+  within each emotion.
 </div>
 <div id="filters">
   <select id="speaker"></select>
@@ -114,6 +118,36 @@ function registerWords() {
   return (EMOTION_TIERS.find(g => g.tier === 'Register modifiers') || {}).words || [];
 }
 
+function knownWords() {
+  const words = new Set();
+  emotionTiers().forEach(g => g.words.forEach(w => words.add(w)));
+  return words;
+}
+
+function aiPickSummary(pred, known) {
+  if (!pred) return '—';
+  if (!pred.parse_ok || !pred.labels.length) return '<em>unparseable</em>';
+  const top = pred.labels[0];
+  const oov = !known.has(top.word);
+  return `<span class="${oov ? 'ai-oov' : ''}" title="${oov ? 'not in the curated vocabulary' : ''}">${escapeHtml(top.word)}</span> ${Math.round(top.confidence * 100)}%`;
+}
+
+function aiSummaryLine(c) {
+  const audio = c.audio_llm && c.audio_llm.audio;
+  const audioText = c.audio_llm && c.audio_llm['audio+text'];
+  if (!audio && !audioText) return '';
+  const known = knownWords();
+  const a1 = audio && audio.parse_ok && audio.labels.length ? audio.labels[0].word : null;
+  const a2 = audioText && audioText.parse_ok && audioText.labels.length ? audioText.labels[0].word : null;
+  const agreeCls = a1 && a2 ? (a1 === a2 ? 'ai-agree' : 'ai-disagree') : '';
+  const agreeMark = a1 && a2 ? (a1 === a2 ? ' ✓' : ' ≠') : '';
+  const tooltip = [['audio', audio], ['audio+text', audioText]]
+    .filter(([, p]) => p && p.parse_ok)
+    .map(([label, p]) => `${label}: ${p.labels.map(l => `${l.word} ${Math.round(l.confidence * 100)}%`).join(', ')}`)
+    .join(' | ');
+  return ` · <span class="${agreeCls}" title="${escapeHtml(tooltip)}">AI heard: ${aiPickSummary(audio, known)} / ${aiPickSummary(audioText, known)}${agreeMark}</span>`;
+}
+
 function renderClip(speaker, c, currentEmotion) {
   const cls = c.decision === 'accept' ? 'accept' : c.decision === 'reject' ? 'reject' : '';
   const groups = emotionTiers().map(g => `<optgroup label="${escapeHtml(g.tier)}">${
@@ -129,10 +163,10 @@ function renderClip(speaker, c, currentEmotion) {
       <audio controls preload="none" src="${escapeHtml(c.url)}"></audio>
       <div class="text">${escapeHtml(c.text)}</div>
       <div class="meta">${c.duration}s · score ${c.score} · intensity ${c.intensity ?? '?'}
-        ${c.ser_label ? ` · SER heard: <strong>${escapeHtml(c.ser_label)}</strong> (${Math.round((c.ser_confidence ?? 0) * 100)}%)` : ''}</div>
-      <select class="relabel-select" data-original="${escapeHtml(c.original_emotion)}">${options}</select>
+        ${c.ser_label ? ` · SER heard: <strong>${escapeHtml(c.ser_label)}</strong> (${Math.round((c.ser_confidence ?? 0) * 100)}%)` : ''}${aiSummaryLine(c)}</div>
+      <select class="relabel-select" data-original="${escapeHtml(currentEmotion)}">${options}</select>
       <select class="register-select" data-original="${escapeHtml(currentRegister)}">${registerOptions}</select>
-      ${c.relabeled ? `<span class="relabel-badge">relabeled from ${escapeHtml(c.original_emotion)}</span>` : ''}
+      ${c.relabeled ? `<span class="relabel-badge">you relabeled this (text expected ${escapeHtml(c.original_emotion)})</span>` : ''}
       <button class="accept-btn ${c.decision === 'accept' ? 'active' : ''}">Accept</button>
       <button class="reject-btn ${c.decision === 'reject' ? 'active' : ''}">Reject</button>
     </div>`;

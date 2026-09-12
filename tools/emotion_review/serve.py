@@ -39,6 +39,8 @@ CATALOG = json.loads((VOICES / "catalog.json").read_text(encoding="utf-8"))
 ANNOTATIONS = json.loads((ROOT / "data/annotations/annotations.enGB.json").read_text(encoding="utf-8"))
 SER_PATH = VOICES / "emotion_banks/ser_scores.json"
 SER_SCORES = json.loads(SER_PATH.read_text(encoding="utf-8")) if SER_PATH.exists() else {}
+AUDIO_LLM_PATH = VOICES / "emotion_banks/audio_llm_labels.json"
+AUDIO_LLM_LABELS = json.loads(AUDIO_LLM_PATH.read_text(encoding="utf-8")) if AUDIO_LLM_PATH.exists() else {}
 CURATION_PATH = VOICES / "emotion_banks/curation.json"
 CUSTOM_EMOTIONS_PATH = VOICES / "emotion_banks/custom_emotions.json"
 
@@ -106,12 +108,35 @@ def load_curation() -> dict:
     return data
 
 
-def effective_emotion(record: dict | None, original: str) -> str:
-    """A human relabel (this clip actually sounds like a different emotion than the LLM's
-    text-based prediction) overrides the original annotation for clip-bank purposes only - it
-    never touches data/annotations/annotations.enGB.json, since these lines have real recorded
-    audio and are never TTS-synthesized at runtime."""
-    return (record or {}).get("emotion") or original
+def audio_llm_prediction(event: str, mode: str) -> dict | None:
+    """The stored tools/audio_emotion_labeling prediction for this event/mode, regardless of
+    prompt_hash - only one prompt version has ever been run, so there's at most one entry."""
+    by_mode = AUDIO_LLM_LABELS.get(event, {}).get("ultravox", {}).get(mode, {})
+    return next(iter(by_mode.values()), None)
+
+
+def audio_llm_emotion(event: str) -> str | None:
+    """Best available audio-informed emotion for a voiced clip: prefers the audio+text pass
+    (highest measured accuracy in the pilot - see docs/superpowers/specs/...), falls back to
+    audio-only, else None (caller falls back further to the text-only annotation)."""
+    for mode in ("audio+text", "audio"):
+        pred = audio_llm_prediction(event, mode)
+        if pred and pred.get("labels"):
+            return pred["labels"][0]["word"]
+    return None
+
+
+def effective_emotion(event: str, record: dict | None, original: str) -> str:
+    """A human relabel (this clip actually sounds like a different emotion than the automated
+    guess) always wins - it never touches data/annotations/annotations.enGB.json, since these
+    lines have real recorded audio and are never TTS-synthesized at runtime. Absent a human
+    decision, prefer the audio-informed prediction (a model that actually listened to this take)
+    over the text-only annotation `original` (written blind to the real performance, before this
+    project's audio-based labeling existed)."""
+    human = (record or {}).get("emotion")
+    if human:
+        return human
+    return audio_llm_emotion(event) or original
 
 
 def save_curation(data: dict) -> None:
@@ -151,10 +176,13 @@ def supply_candidates() -> dict[tuple[str, str], list[dict]]:
             continue
         guid = c["texts"][0].get("guid")
         ann = ANNOTATIONS.get(guid)
-        if not ann:
+        # A text annotation used to be the only way to classify a voiced clip at all; an
+        # audio-informed prediction is just as good a signal now, so only skip a clip with
+        # neither (no way to tell what emotion it might even be).
+        if not ann and not audio_llm_emotion(event):
             continue
         record = curation.get(speaker, {}).get(event)
-        emotion = effective_emotion(record, ann.get("emotion", "neutral"))
+        emotion = effective_emotion(event, record, (ann or {}).get("emotion", "neutral"))
         ser = SER_SCORES.get(event)
         expected_ser_label = EMOTION_TO_SER.get(emotion)
         if not ser or not expected_ser_label:
@@ -190,14 +218,18 @@ def combo_status(candidates: list[dict], target_duration: float) -> dict:
 
 def _candidates_for(speaker: str, decisions: dict) -> dict[str, list[dict]]:
     """{emotion: [candidate, ...]} for one speaker, scored and sorted best-first. Grouped by the
-    human-relabeled emotion where one exists, else the LLM's original text-based prediction."""
+    human-relabeled emotion where one exists, else the audio-informed prediction, else the LLM's
+    original text-based prediction."""
     by_emotion: dict[str, list[dict]] = {}
     for event, c in CATALOG.items():
         if c.get("speaker") != speaker or not c.get("texts"):
             continue
         guid = c["texts"][0].get("guid")
         ann = ANNOTATIONS.get(guid)
-        if not ann:
+        # A text annotation used to be the only way to classify a voiced clip at all; an
+        # audio-informed prediction is just as good a signal now, so only skip a clip with
+        # neither (no way to tell what emotion it might even be).
+        if not ann and not audio_llm_emotion(event):
             continue
         try:
             x, sr = load_wav(VOICES / c["wav"])
@@ -207,14 +239,20 @@ def _candidates_for(speaker: str, decisions: dict) -> dict[str, list[dict]]:
         if not sc.get("ok"):
             continue
         ser = SER_SCORES.get(event)
-        original_emotion = ann.get("emotion", "neutral")
+        original_emotion = (ann or {}).get("emotion", "neutral")  # text-only annotation, blind to audio
         record = decisions.get(event)
-        emotion = effective_emotion(record, original_emotion)
+        emotion = effective_emotion(event, record, original_emotion)
         by_emotion.setdefault(emotion, []).append({
             "event": event, "text": c["texts"][0]["text"], "guid": guid,
-            "intensity": ann.get("intensity"), "ser_label": ser["label"] if ser else None,
+            "intensity": (ann or {}).get("intensity"), "ser_label": ser["label"] if ser else None,
             "ser_confidence": ser["confidence"] if ser else None,
-            "original_emotion": original_emotion, "relabeled": emotion != original_emotion,
+            "original_emotion": original_emotion, "audio_emotion": audio_llm_emotion(event),
+            "audio_llm": {"audio": audio_llm_prediction(event, "audio"),
+                          "audio+text": audio_llm_prediction(event, "audio+text")},
+            # "relabeled" means a human explicitly overrode the automated pick - it is NOT set
+            # just because the audio-informed guess disagrees with the text-only annotation,
+            # which is expected and not something a human did.
+            "relabeled": bool((record or {}).get("emotion")),
             "register": (record or {}).get("register"), **sc,
         })
     for clips in by_emotion.values():
@@ -376,13 +414,13 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def _speakers_with_data() -> set[str]:
-    have_ann = set()
-    for c in CATALOG.values():
-        if not c.get("texts"):
+    have_data = set()
+    for event, c in CATALOG.items():
+        if not c.get("texts") or not c.get("speaker"):
             continue
-        if ANNOTATIONS.get(c["texts"][0].get("guid")):
-            have_ann.add(c["speaker"])
-    return have_ann
+        if ANNOTATIONS.get(c["texts"][0].get("guid")) or audio_llm_emotion(event):
+            have_data.add(c["speaker"])
+    return have_data
 
 
 TARGET_DURATION = 8.0
