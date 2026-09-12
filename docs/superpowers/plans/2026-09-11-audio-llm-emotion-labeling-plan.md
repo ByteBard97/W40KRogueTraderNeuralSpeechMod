@@ -1110,7 +1110,13 @@ git commit -m "Add resumable batch labeling runner"
   full `audio_llm_labels.json` structure. `event_context`, when given, is
   `{event: {"transcript": str, "text_llm_emotion": str | None}}` — attached to each
   disagreement entry so a human reviewing the report doesn't have to cross-reference
-  `catalog.json`/`annotations.enGB.json` by hand.
+  `catalog.json`/`annotations.enGB.json` by hand. The returned dict includes
+  `parse_failure_rate` (fraction of scored events where the model's response failed to
+  parse at all, per `label.py`'s `parse_ok` flag) as its own field, separate from
+  `top1_exact`/`graded_similarity_mean` — a malformed-JSON response scores as a miss on
+  those, identically to a genuine wrong-emotion guess, so this field is what lets a
+  reader tell "the model picked badly" apart from "the model's output wasn't parseable,"
+  which matters directly for the backend-selection decision this report exists to inform.
 - Produces: `duplicate_base_lines(ground_truth: dict[str, str]) -> dict[str, list[str]]`
   — base line name -> list of its Wwise state-variant sibling event names, for any base
   line with more than one ground-truth event (see spec: 11 such pairs in the Abelard set).
@@ -1191,6 +1197,18 @@ def test_duplicate_base_lines_groups_state_variant_siblings():
     }
     dupes = duplicate_base_lines(ground_truth)
     assert dupes == {"PRL_Foo_04": ["PRL_Foo_04 [statevar=1]", "PRL_Foo_04 [statevar=2]"]}
+
+
+def test_report_tracks_parse_failure_rate_separately_from_wrong_answers():
+    # A malformed-JSON response (parse_ok=False, empty labels) must not be silently
+    # indistinguishable from a genuine wrong-emotion guess in the headline metrics -
+    # both currently score as a top-1 miss and a 0.0 similarity, but only this field
+    # tells a reader how much of that is unparseable output rather than bad judgment.
+    labels = dict(LABELS)
+    labels["EVT_1"] = {"qwen2audio": {"audio": {"ph1": {
+        "labels": [], "notes": "", "parse_ok": False, "raw_response": "not valid json"}}}}
+    report = build_report(GROUND_TRUTH, labels, WORD_TO_TIER, "qwen2audio", "audio", "ph1")
+    assert report["parse_failure_rate"] == 0.5  # EVT_1 failed, EVT_2 parsed fine
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1230,12 +1248,15 @@ def build_report(ground_truth: dict[str, str], labels: dict, word_to_tier: dict,
     disagree_confidences = []
     disagreements = []
     notes_used = 0
+    parse_failures = 0
 
     for event, human_word in ground_truth.items():
         entry = labels.get(event, {}).get(backend, {}).get(mode, {}).get(prompt_hash_value)
         if entry is None:
             continue
         n_scored += 1
+        if not entry.get("parse_ok", True):
+            parse_failures += 1
         model_words = [l["word"] for l in entry["labels"]]
         top1 = model_words[0] if model_words else None
         top1_confidence = entry["labels"][0]["confidence"] if entry["labels"] else None
@@ -1276,6 +1297,7 @@ def build_report(ground_truth: dict[str, str], labels: dict, word_to_tier: dict,
         "mean_confidence_on_agreement": _mean(agree_confidences),
         "mean_confidence_on_disagreement": _mean(disagree_confidences),
         "notes_used_fraction": notes_used / n_scored if n_scored else 0.0,
+        "parse_failure_rate": parse_failures / n_scored if n_scored else 0.0,
         "disagreements": disagreements,
     }
 
@@ -1332,7 +1354,8 @@ def main() -> None:
         lines.append(f"## {backend} / {mode} (prompt_hash={ph})\n")
         for key in ("n_scored", "top1_exact", "recall_at_1", "recall_at_2", "recall_at_3",
                     "graded_similarity_mean", "mean_confidence_on_agreement",
-                    "mean_confidence_on_disagreement", "notes_used_fraction"):
+                    "mean_confidence_on_disagreement", "notes_used_fraction",
+                    "parse_failure_rate"):
             lines.append(f"- {key}: {report[key]}")
         lines.append(f"\n### Disagreements ({len(report['disagreements'])})\n")
         for d in report["disagreements"]:
@@ -1353,7 +1376,7 @@ if __name__ == "__main__":
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd tools/audio_emotion_labeling && python3 -m pytest tests/test_score_pilot.py -v`
-Expected: PASS (7 tests)
+Expected: PASS (8 tests)
 
 - [ ] **Step 5: Commit**
 

@@ -173,6 +173,13 @@ clips had several plausible labels, or none that fit well):
    the human was unsure," which a pure agreement rate would penalize.
 6. **`notes` usage** — how often the model used the free-text escape hatch instead of the
    vocabulary, and the most common proposed words (see Prompt format above).
+7. **Parse failure rate** — fraction of scored events where the model's response failed
+   to parse at all (per `label.py`'s `parse_ok` flag), reported separately from the
+   metrics above. A malformed-JSON response scores as a miss on top-1/recall/graded
+   similarity identically to a genuine wrong-emotion guess, which would otherwise make a
+   backend with a fixable output-formatting quirk indistinguishable from one that's
+   genuinely worse at judging emotion — exactly the kind of confound this metric exists
+   to surface before it silently decides which backend wins the pilot.
 
 ## Pilot run
 
