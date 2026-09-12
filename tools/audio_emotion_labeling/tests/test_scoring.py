@@ -48,21 +48,28 @@ def test_best_of_set_similarity_empty_set_is_zero():
 # the energy-tier system and previously scored a flat 0.0 against any real-tier word no
 # matter how close a synonym, since "Original"/"Custom" were never on the ladder ---
 
-def test_legacy_word_gets_partial_credit_against_adjacent_real_tier():
-    # "commanding" (Original enum, overridden to Mid-high energy) vs "firm" (a real
-    # Mid-energy vocab word) - adjacent tiers, so this now gets partial credit instead of
-    # the flat 0.0 it scored before the override existed.
-    assert tier_similarity("commanding", "firm", {"firm": "Mid energy"}) == 0.4
-
-
 def test_legacy_word_gets_same_tier_credit_against_real_neighbor():
+    # "commanding" (Original enum, overridden to Mid energy) vs "firm" (a real Mid-energy
+    # vocab word) - same effective tier. This is the exact pair that first surfaced the
+    # scoring gap (previously scored a flat 0.0 despite being close synonyms).
+    assert tier_similarity("commanding", "firm", {"firm": "Mid energy"}) == 0.7
+
+
+def test_legacy_word_gets_partial_credit_against_adjacent_real_tier():
+    # "commanding" (Mid energy) vs "defiant" (a real Mid-high-energy vocab word) -
+    # adjacent tiers, so this gets partial credit instead of the flat 0.0 it scored
+    # before the override existed.
+    assert tier_similarity("commanding", "defiant", {"defiant": "Mid-high energy"}) == 0.4
+
+
+def test_pleading_gets_same_tier_credit_against_real_high_energy_neighbor():
     # "pleading" (Original enum, overridden to High energy) vs "desperate" (a real
     # High-energy vocab word) - same effective tier, near-synonyms in practice.
     assert tier_similarity("pleading", "desperate", {"desperate": "High energy"}) == 0.7
 
 
 def test_two_legacy_words_compare_via_their_overrides():
-    # Both "angry" and "commanding" are Original-enum words; their overrides (High energy
-    # and Mid-high energy) are adjacent, not identical - 0.4, not the 1.0/0.7 a naive
+    # "angry" (High energy) and "commanding" (Mid energy) are both Original-enum words,
+    # but their overrides are two ladder steps apart - 0.0, not the 1.0/0.7 a naive
     # same-bucket view would give two words that both happen to be "Original".
-    assert tier_similarity("angry", "commanding", {}) == 0.4
+    assert tier_similarity("angry", "commanding", {}) == 0.0

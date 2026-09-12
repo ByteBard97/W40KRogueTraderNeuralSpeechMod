@@ -12,11 +12,15 @@ from vocab import ENERGY_LADDER
 # to anything. This maps each of those words onto its nearest energy tier, by comparison
 # to its neighbors in custom_emotions.json, for scoring purposes only - it does not change
 # vocab.py's actual tier assignment or the prompt text sent to the model. "Register
-# modifiers" words are deliberately left unmapped: they're deliveries/manner (quiet,
-# clipped, hushed...), a genuinely separate axis from emotion, not values on this ladder.
+# modifiers" words (quiet, clipped, hushed...) are deliberately left unmapped: they're
+# vocal delivery/manner, a genuinely separate axis from emotion, not values on this
+# ladder - and, unlike the words below, none of them are ever a valid emotion pick in the
+# first place (only EMOTION_ORDER/Custom words are). "whisper" IS one of those valid
+# picks despite also describing delivery, so it still needs a placement; Low energy
+# (alongside somber/hollow/numb) fits its withdrawn, subdued connotation as an emotion.
 _LEGACY_ENERGY_OVERRIDE = {
     "angry": "High energy", "fear": "High energy", "pleading": "High energy",
-    "commanding": "Mid-high energy", "surprised": "Mid-high energy", "dramatic": "Mid-high energy",
+    "commanding": "Mid energy", "surprised": "Mid-high energy", "dramatic": "Mid-high energy",
     "happy": "Mid energy", "amused": "Mid energy", "neutral": "Mid energy", "hopeful": "Mid energy",
     "sarcastic": "Low-mid energy", "skeptical": "Low-mid energy",
     "sad": "Low energy", "whisper": "Low energy",
