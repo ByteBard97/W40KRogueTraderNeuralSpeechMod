@@ -7,6 +7,7 @@ from transformers import AutoModel, AutoModelForCausalLM, AutoProcessor, BitsAnd
 
 MODEL_ID = "fixie-ai/ultravox-v0_5-llama-3_1-8b"
 REVISION = "94aa77f70ca548e669ea61f737e159b2fddbb7f7"
+LLAMA_REVISION = "0e9e39f249a16976918f6564b8830bc894c89659"
 
 
 def load_model():
@@ -53,18 +54,33 @@ def load_model():
         # this kwarg, both with and without an extra manual cast of `audio_values` in generate()
         # below -- the embedding dtype was the actual root cause, not audio_values itself).
         quantized_lm = AutoModelForCausalLM.from_pretrained(
-            model.config.text_model_id, quantization_config=bnb_config, device_map={"": 0},
-            dtype=torch.bfloat16)
+            model.config.text_model_id, revision=LLAMA_REVISION,
+            quantization_config=bnb_config, device_map={"": 0}, dtype=torch.bfloat16)
         model.language_model = quantized_lm
         model.audio_tower.to("cuda:0")
         model.multi_modal_projector.to("cuda:0")
         quant = "4bit-bnb"
     except Exception as e:  # noqa: BLE001 - bnb kernel support on this GPU is unverified
         print(f"4-bit load failed ({e}); falling back to bf16")
+        # NOTE: a GPU-resident bf16 load of this model does not work on this hardware, in
+        # either of its two forms -- both reproduced directly, not just inferred:
+        #   1. device_map={"": 0} (single GPU, no offload): OOMs immediately at load time.
+        #      Llama-3.1-8B-Instruct alone in bf16 is ~16GB, which already exceeds this card's
+        #      ~13.7GB free VRAM before the Whisper encoder/projector are even added.
+        #   2. device_map="auto" (real accelerate CPU offload, i.e. NOT the meta-tensor bug
+        #      that broke the *composite* UltravoxModel's own device_map="auto" path above --
+        #      this is a plain, native LlamaForCausalLM, so accelerate's offload hooks work
+        #      correctly here): loads without error, but OOMs during generate() when an
+        #      offloaded layer streams back onto the GPU
+        #      (torch.OutOfMemoryError: "Tried to allocate 1002.00 MiB... 963.31 MiB is free").
+        # So this fallback runs the whole composite model on CPU instead (no device_map at
+        # all): slower (~13s/generation and a one-time ~100s build, measured on this machine,
+        # vs. sub-second on the 4-bit GPU path), but it actually completes, unlike either
+        # GPU-resident bf16 variant. `model.device` reports "cpu", so generate()'s existing
+        # `.to(model.device)` on its inputs already does the right thing here unmodified.
         model = AutoModel.from_pretrained(
-            MODEL_ID, revision=REVISION, trust_remote_code=True,
-            torch_dtype=torch.bfloat16, device_map="auto")
-        quant = "bf16"
+            MODEL_ID, revision=REVISION, trust_remote_code=True, dtype=torch.bfloat16)
+        quant = "bf16-cpu"
     return model, processor, {"model_id": MODEL_ID, "quant": quant,
                                "temperature": 0.0, "max_new_tokens": 192}
 
