@@ -1070,9 +1070,17 @@ cd tools/audio_emotion_labeling
 Expected: each prints `loaded ...` with a `quant` value, then 2 lines showing an event
 name, a labels list (ideally 3 entries with real vocabulary words), `parse_ok=True`, and
 a latency in seconds. Inspect `data/voices/emotion_banks/audio_llm_labels.json` afterward
-— it should contain exactly those 2 events with the expected key nesting. Re-run the same
-command once more and confirm the log shows `done: 0 clips labeled` (everything already
-labeled at that prompt hash) before proceeding to Task 9's full pilot.
+— it should contain exactly those 2 events with the expected key nesting.
+
+To verify resumability: re-run the exact same command once more. Because `--pilot`
+selects all 79 ground-truth events (not just these 2), the correct behavior is that this
+second run skips the first 2 (already labeled) and labels 2 *different*, previously-
+unlabeled events — **not** `done: 0 clips labeled`, since 77 of the 79 are still
+unlabeled. A cleaner no-op check is calling `iter_labels()` directly with the accumulated
+`audio_llm_labels.json` as `existing` and confirming the already-labeled events are
+absent from its output (skip-set check), rather than relying on the CLI's aggregate
+`count` — that's real evidence resumability works without needing to exhaust all 79
+events first. Proceed to Task 9's full pilot once this is confirmed either way.
 
 - [ ] **Step 6: Commit**
 
