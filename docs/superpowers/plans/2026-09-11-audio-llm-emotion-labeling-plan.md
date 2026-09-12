@@ -182,6 +182,15 @@ that plausibly describes vocal delivery. If it crashes with an OOM or a `bitsand
 CUDA-kernel error even on the bf16 fallback path, stop and report — that's a real
 blocker, not something to paper over.
 
+Note on `generate()`'s audio handling: it both `librosa.load()`s the clip *and* passes
+`"audio_url": wav_path` in the chat-template conversation dict. This matches Qwen2-Audio's
+official usage pattern — the `audio_url` only tells `apply_chat_template` where to insert
+the audio placeholder token in the text, the actual decoded array passed to the model
+comes from the separate `processor(audios=[audio], ...)` call — so it should not double-
+load or double-process the audio. If this step's output describes audio that doesn't
+match the clip, or the processor call errors, that assumption is the first thing to
+re-check.
+
 - [ ] **Step 4: Commit**
 
 ```bash
@@ -575,6 +584,25 @@ def test_clamps_out_of_range_confidence():
     raw = '{"labels": [{"word": "angry", "confidence": 1.7}], "notes": ""}'
     result = parse_model_response(raw)
     assert result["labels"][0]["confidence"] == 1.0
+
+
+def test_picks_real_answer_over_an_earlier_echoed_example():
+    # Small models sometimes echo part of the instruction's own example JSON before
+    # giving the real answer. A naive "first { to last }" span would swallow both
+    # objects plus the prose between them and fail to parse at all.
+    raw = ('Example format: {"labels": [{"word": "example", "confidence": 0.5}], "notes": ""} '
+           'Now here is my actual answer: '
+           '{"labels": [{"word": "commanding", "confidence": 0.85}], "notes": "firm"}')
+    result = parse_model_response(raw)
+    assert result["labels"] == [{"word": "commanding", "confidence": 0.85}]
+    assert result["notes"] == "firm"
+
+
+def test_ignores_unrelated_brace_pair_before_the_real_object():
+    raw = ('Confidence is like a score in the {0,1} range. '
+           '{"labels": [{"word": "angry", "confidence": 0.7}], "notes": ""}')
+    result = parse_model_response(raw)
+    assert result["labels"] == [{"word": "angry", "confidence": 0.7}]
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -587,52 +615,70 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'parsing'`
 ```python
 # tools/audio_emotion_labeling/parsing.py
 """Robust extraction of the {"labels": [...], "notes": ...} JSON object a 7B model was
-asked to emit, tolerating prose wrapping and dropping individually malformed entries."""
+asked to emit, tolerating prose wrapping and dropping individually malformed entries.
+
+Uses brace-depth tracking rather than a greedy regex: a naive r"\{.*\}" span from the
+first "{" to the last "}" breaks the moment the model echoes any brace-containing prose
+(e.g. part of its own instructions) before or after the real JSON object, or emits more
+than one brace pair — the combined span is not valid JSON and a greedy match reports a
+parse failure on output that actually contained a perfectly good answer."""
 from __future__ import annotations
 
 import json
-import re
 
 
-def _extract_json_object(raw_text: str) -> dict | None:
-    try:
-        return json.loads(raw_text)
-    except json.JSONDecodeError:
-        pass
-    match = re.search(r"\{.*\}", raw_text, re.DOTALL)
-    if not match:
-        return None
-    try:
-        return json.loads(match.group(0))
-    except json.JSONDecodeError:
-        return None
+def _iter_json_candidates(raw_text: str):
+    """Yields each top-level, brace-balanced {...} substring of raw_text, in the order
+    they appear."""
+    depth = 0
+    start = None
+    for i, ch in enumerate(raw_text):
+        if ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            if depth > 0:
+                depth -= 1
+                if depth == 0 and start is not None:
+                    yield raw_text[start:i + 1]
+                    start = None
 
 
 def parse_model_response(raw_text: str) -> dict | None:
-    obj = _extract_json_object(raw_text)
-    if not isinstance(obj, dict) or "labels" not in obj or not isinstance(obj["labels"], list):
-        return None
-
-    labels = []
-    for item in obj["labels"]:
-        if not isinstance(item, dict):
+    # Try the whole response as-is first (the common case), then each balanced-brace
+    # candidate found within it, most-recent-first — if the model echoed an example
+    # before giving its real answer, the real answer comes later in the text.
+    candidates = [raw_text] + list(reversed(list(_iter_json_candidates(raw_text))))
+    for candidate in candidates:
+        try:
+            obj = json.loads(candidate)
+        except json.JSONDecodeError:
             continue
-        word = item.get("word")
-        confidence = item.get("confidence")
-        if not isinstance(word, str) or not isinstance(confidence, (int, float)):
+        if not isinstance(obj, dict) or "labels" not in obj or not isinstance(obj["labels"], list):
             continue
-        labels.append({"word": word, "confidence": max(0.0, min(1.0, float(confidence)))})
-    if not labels:
-        return None
 
-    notes = obj.get("notes", "")
-    return {"labels": labels, "notes": notes if isinstance(notes, str) else ""}
+        labels = []
+        for item in obj["labels"]:
+            if not isinstance(item, dict):
+                continue
+            word = item.get("word")
+            confidence = item.get("confidence")
+            if not isinstance(word, str) or not isinstance(confidence, (int, float)):
+                continue
+            labels.append({"word": word, "confidence": max(0.0, min(1.0, float(confidence)))})
+        if not labels:
+            continue
+
+        notes = obj.get("notes", "")
+        return {"labels": labels, "notes": notes if isinstance(notes, str) else ""}
+    return None
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd tools/audio_emotion_labeling && python3 -m pytest tests/test_parsing.py -v`
-Expected: PASS (6 tests)
+Expected: PASS (8 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -774,8 +820,10 @@ git commit -m "Add tier-based scoring functions for pilot accuracy report"
   — pure, no file I/O, used directly by tests and by the CLI wrapper below.
   `generate_fn(wav_path: str, prompt_text: str) -> str`.
 - Produces: a CLI (`label.py --backend {qwen2audio,ultravox} --mode {audio,audio+text}
-  [--pilot] [--limit N]`) that loads/saves `data/voices/emotion_banks/audio_llm_labels.json`
-  around `iter_labels()`.
+  [--pilot | --speaker NAME] [--limit N]`) that loads/saves
+  `data/voices/emotion_banks/audio_llm_labels.json` around `iter_labels()`. `--pilot` is
+  sugar for `--speaker Abelard`; both flags exist from the start so Task 10's
+  generalization check needs no CLI changes.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -871,6 +919,7 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'label'`
 Usage (run from inside the matching venv):
   .venv-qwen2audio/bin/python label.py --backend qwen2audio --mode audio --pilot
   .venv-ultravox/bin/python label.py --backend ultravox --mode audio+text --pilot --limit 5
+  .venv-qwen2audio/bin/python label.py --backend qwen2audio --mode audio --speaker Argenta --limit 20
 
 Writes data/voices/emotion_banks/audio_llm_labels.json, keyed
 event -> backend -> mode -> prompt_hash -> entry. Safe to interrupt and re-run: already
@@ -932,13 +981,19 @@ def _atomic_write(path: Path, data: dict) -> None:
     os.replace(tmp, path)
 
 
+SAVE_EVERY = 25  # re-serializing the whole file after every single clip is wasted work
+                  # at full-corpus scale; batching costs at most this many clips on a crash
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--backend", required=True, choices=["qwen2audio", "ultravox"])
     ap.add_argument("--mode", required=True, choices=["audio", "audio+text"])
-    ap.add_argument("--pilot", action="store_true", help="restrict to all Abelard catalog clips")
+    ap.add_argument("--pilot", action="store_true", help="shorthand for --speaker Abelard")
+    ap.add_argument("--speaker", default=None, help="restrict to one speaker's catalog clips")
     ap.add_argument("--limit", type=int, default=0, help="cap number of clips processed (debugging)")
     args = ap.parse_args()
+    speaker_filter = "Abelard" if args.pilot else args.speaker
 
     from vocab import load_vocab
     vocab = load_vocab(VOICES / "emotion_banks/custom_emotions.json")
@@ -960,19 +1015,20 @@ def main() -> None:
 
     catalog = json.loads((VOICES / "catalog.json").read_text(encoding="utf-8"))
     existing = json.loads(OUT_PATH.read_text(encoding="utf-8")) if OUT_PATH.exists() else {}
-    speaker_filter = "Abelard" if args.pilot else None
 
     count = 0
     for event, entry in iter_labels(catalog, existing, args.backend, args.mode, ph,
                                      generate_fn, vocab, backend_meta, speaker_filter):
         existing.setdefault(event, {}).setdefault(args.backend, {}).setdefault(args.mode, {})[ph] = entry
-        _atomic_write(OUT_PATH, existing)
         count += 1
         print(f"[{count}] {event}: {entry['labels']} (parse_ok={entry['parse_ok']}, "
               f"{entry['latency_s']}s)")
+        if count % SAVE_EVERY == 0:
+            _atomic_write(OUT_PATH, existing)
         if args.limit and count >= args.limit:
             break
 
+    _atomic_write(OUT_PATH, existing)  # final flush, covers the last partial batch
     print(f"done: {count} clips labeled")
 
 
@@ -1003,9 +1059,13 @@ labeled at that prompt hash) before proceeding to Task 9's full pilot.
 
 - [ ] **Step 6: Commit**
 
+Do **not** stage `data/voices/emotion_banks/audio_llm_labels.json` here — Step 5's 4-clip
+smoke run is throwaway output that Task 9's real pilot run overwrites wholesale; commit
+that file (if at all — check its size first, it carries a full `raw_response` per entry)
+once it holds the real pilot data in Task 9.
+
 ```bash
 git add tools/audio_emotion_labeling/label.py tools/audio_emotion_labeling/tests/test_label_resume.py
-git add data/voices/emotion_banks/audio_llm_labels.json
 git commit -m "Add resumable batch labeling runner"
 ```
 
@@ -1330,6 +1390,13 @@ input to Task 10 and to the eventual full-corpus run.
 
 - [ ] **Step 5: Commit**
 
+Check the size of `audio_llm_labels.json` first (`ls -la`) — it carries a full
+`raw_response` string per entry, 4 backend/mode combinations × 325 clips. If it's large
+enough to be unwieldy in git (multi-MB), consider whether it belongs in the repo at all
+versus being a local/data-only artifact like other generated files under `data/voices/`;
+`ser_scores.json` is the existing precedent for tracking a generated signal file, so
+tracking this one too is reasonable unless size says otherwise.
+
 ```bash
 git add data/voices/emotion_banks/audio_llm_labels.json data/voices/emotion_banks/pilot_report.md
 git commit -m "Run Abelard pilot across both backends and modes, pick winner"
@@ -1356,20 +1423,8 @@ for speaker in ('Argenta', 'Cassia', 'Idira'):
 "
 ```
 
-Then run `label.py` filtered to each of those speakers. `label.py` doesn't currently
-expose a `--speaker` flag (only `--pilot` for Abelard) — add one:
-
-```python
-# tools/audio_emotion_labeling/label.py — in main(), replace:
-    speaker_filter = "Abelard" if args.pilot else None
-# with:
-    speaker_filter = "Abelard" if args.pilot else args.speaker
-```
-
-```python
-# and add to the argparse setup:
-    ap.add_argument("--speaker", default=None, help="restrict to one speaker's catalog clips")
-```
+Then run `label.py` filtered to each of those speakers, using the `--speaker` flag
+already built into Task 7's CLI:
 
 ```bash
 .venv-qwen2audio/bin/python label.py --backend qwen2audio --mode audio --speaker Argenta --limit 20
@@ -1405,8 +1460,8 @@ mean the winning backend needs re-evaluation before the full overnight run).
 - [ ] **Step 3: Commit**
 
 ```bash
-git add tools/audio_emotion_labeling/label.py data/voices/emotion_banks/audio_llm_labels.json
-git commit -m "Add speaker filter to labeling CLI, spot-check generalization beyond Abelard"
+git add data/voices/emotion_banks/audio_llm_labels.json
+git commit -m "Spot-check winning backend's generalization beyond Abelard"
 ```
 
 At this point the harness is validated and ready for the full 5,188-clip overnight run
