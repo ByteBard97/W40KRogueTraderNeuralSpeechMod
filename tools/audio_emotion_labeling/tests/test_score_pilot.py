@@ -67,3 +67,11 @@ def test_duplicate_base_lines_groups_state_variant_siblings():
     }
     dupes = duplicate_base_lines(ground_truth)
     assert dupes == {"PRL_Foo_04": ["PRL_Foo_04 [statevar=1]", "PRL_Foo_04 [statevar=2]"]}
+
+
+def test_report_tracks_parse_failure_rate_separately_from_wrong_answers():
+    labels = dict(LABELS)
+    labels["EVT_1"] = {"qwen2audio": {"audio": {"ph1": {
+        "labels": [], "notes": "", "parse_ok": False, "raw_response": "not valid json"}}}}
+    report = build_report(GROUND_TRUTH, labels, WORD_TO_TIER, "qwen2audio", "audio", "ph1")
+    assert report["parse_failure_rate"] == 0.5  # EVT_1 failed, EVT_2 parsed fine

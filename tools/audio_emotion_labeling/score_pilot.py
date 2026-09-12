@@ -26,12 +26,15 @@ def build_report(ground_truth: dict[str, str], labels: dict, word_to_tier: dict,
     disagree_confidences = []
     disagreements = []
     notes_used = 0
+    parse_failures = 0
 
     for event, human_word in ground_truth.items():
         entry = labels.get(event, {}).get(backend, {}).get(mode, {}).get(prompt_hash_value)
         if entry is None:
             continue
         n_scored += 1
+        if not entry.get("parse_ok", True):
+            parse_failures += 1
         model_words = [l["word"] for l in entry["labels"]]
         top1 = model_words[0] if model_words else None
         top1_confidence = entry["labels"][0]["confidence"] if entry["labels"] else None
@@ -72,6 +75,7 @@ def build_report(ground_truth: dict[str, str], labels: dict, word_to_tier: dict,
         "mean_confidence_on_agreement": _mean(agree_confidences),
         "mean_confidence_on_disagreement": _mean(disagree_confidences),
         "notes_used_fraction": notes_used / n_scored if n_scored else 0.0,
+        "parse_failure_rate": parse_failures / n_scored if n_scored else 0.0,
         "disagreements": disagreements,
     }
 
@@ -128,7 +132,7 @@ def main() -> None:
         lines.append(f"## {backend} / {mode} (prompt_hash={ph})\n")
         for key in ("n_scored", "top1_exact", "recall_at_1", "recall_at_2", "recall_at_3",
                     "graded_similarity_mean", "mean_confidence_on_agreement",
-                    "mean_confidence_on_disagreement", "notes_used_fraction"):
+                    "mean_confidence_on_disagreement", "notes_used_fraction", "parse_failure_rate"):
             lines.append(f"- {key}: {report[key]}")
         lines.append(f"\n### Disagreements ({len(report['disagreements'])})\n")
         for d in report["disagreements"]:
