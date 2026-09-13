@@ -40,6 +40,12 @@ def iter_labels(catalog: dict, existing: dict, backend_name: str, mode: str,
         if already:
             continue
 
+        # A small number of catalog clips (19/5188, found live) have an empty texts list -
+        # audio+text mode has nothing to put in the prompt for these, so skip rather than
+        # IndexError on clip["texts"][0]. audio-only mode doesn't need a transcript at all.
+        if mode == "audio+text" and not clip.get("texts"):
+            continue
+
         transcript = clip["texts"][0]["text"] if mode == "audio+text" else None
         prompt_text = build_prompt(vocab, mode, transcript)
 

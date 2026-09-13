@@ -75,3 +75,26 @@ def test_unparseable_response_still_yields_entry_with_parse_ok_false():
                                  VOCAB, BACKEND_META, event_filter={"EVT_1"}))
     assert entry["parse_ok"] is False
     assert entry["labels"] == []
+
+
+def test_audio_text_mode_skips_clip_with_no_transcript_instead_of_crashing():
+    # Some catalog clips have an empty texts list (found live: 19/5188, mostly _unattributed
+    # but a few named-speaker clips too) - audio+text mode has nothing to put in the prompt for
+    # these, so it must skip them rather than IndexError on clip["texts"][0].
+    catalog = dict(CATALOG, EVT_NO_TEXT={"speaker": "Abelard", "wav": "wav/Abelard/EVT_NO_TEXT.wav",
+                                          "texts": []})
+    ph = prompt_hash(VOCAB, "audio+text")
+    results = list(iter_labels(catalog, {}, "qwen2audio", "audio+text", ph,
+                                fake_generate, VOCAB, BACKEND_META,
+                                event_filter={"EVT_NO_TEXT"}))
+    assert results == []
+
+
+def test_audio_only_mode_still_labels_a_clip_with_no_transcript():
+    catalog = dict(CATALOG, EVT_NO_TEXT={"speaker": "Abelard", "wav": "wav/Abelard/EVT_NO_TEXT.wav",
+                                          "texts": []})
+    ph = prompt_hash(VOCAB, "audio")
+    results = list(iter_labels(catalog, {}, "qwen2audio", "audio", ph,
+                                fake_generate, VOCAB, BACKEND_META,
+                                event_filter={"EVT_NO_TEXT"}))
+    assert {event for event, _ in results} == {"EVT_NO_TEXT"}
