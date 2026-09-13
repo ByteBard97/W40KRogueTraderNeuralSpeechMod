@@ -615,9 +615,10 @@ Then preview the `sorted()` fix's real effect on production. **Do not use `diff_
 ```bash
 cd tools/annotate && python3 -c "
 import json
+from pathlib import Path
 from annotate import merge_cache_dirs, reconcile_sarcasm_emotion
 
-merged, _ = merge_cache_dirs(['../../data/annotations/cache_merged'])
+merged, _ = merge_cache_dirs([Path('../../data/annotations/cache_merged')])
 reconcile_sarcasm_emotion(merged)
 production = json.loads(open('../../data/annotations/annotations.enGB.json').read())
 
