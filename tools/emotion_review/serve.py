@@ -166,6 +166,24 @@ def demand_counts() -> dict[tuple[str, str], int]:
     return counts
 
 
+def clip_agreement(event: str, emotion: str, ser: dict | None) -> str:
+    """Automated cross-check for combo_status's auto-pass gate. Prefers emotion2vec+ SER where
+    it applies (the original 6-word mapping); for every other emotion word (the whole expanded
+    per-speaker vocabulary this project now uses - see tools/audio_emotion_labeling/
+    speaker_vocab.py) SER has no equivalent label at all, so fall back to the same Ultravox
+    audio-vs-audio+text top-1 agreement curate.html already shows per clip as "AI heard: X / Y
+    (dis)agree" - reusing that signal here instead of letting it default to "n/a" auto-pass,
+    which is how ~70% of "done" combos were previously getting there with zero real check."""
+    expected_ser_label = EMOTION_TO_SER.get(emotion)
+    if ser and expected_ser_label:
+        return "agree" if ser["label"] == expected_ser_label else "disagree"
+    audio = audio_llm_prediction(event, "audio")
+    audio_top1 = audio["labels"][0]["word"] if audio and audio.get("parse_ok") and audio.get("labels") else None
+    if audio_top1 is None:
+        return "n/a"
+    return "agree" if audio_top1 == emotion else "disagree"
+
+
 def supply_candidates() -> dict[tuple[str, str], list[dict]]:
     """{(speaker, emotion): [candidate, ...]} from the voiced catalog, LLM+SER cross-checked."""
     curation = load_curation()
@@ -184,11 +202,7 @@ def supply_candidates() -> dict[tuple[str, str], list[dict]]:
         record = curation.get(speaker, {}).get(event)
         emotion = effective_emotion(event, record, (ann or {}).get("emotion", "neutral"))
         ser = SER_SCORES.get(event)
-        expected_ser_label = EMOTION_TO_SER.get(emotion)
-        if not ser or not expected_ser_label:
-            agreement = "n/a"
-        else:
-            agreement = "agree" if ser["label"] == expected_ser_label else "disagree"
+        agreement = clip_agreement(event, emotion, ser)
         decision = (record or {}).get("decision")
         by_combo[(speaker, emotion)].append({
             "event": event, "duration": c.get("duration", 0), "agreement": agreement,
