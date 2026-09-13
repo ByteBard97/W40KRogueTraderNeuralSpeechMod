@@ -22,7 +22,9 @@
   .clip.accept { box-shadow: inset 3px 0 0 var(--accept); }
   .clip.reject { opacity: 0.45; box-shadow: inset 3px 0 0 var(--reject); }
   .clip .text { flex: 1; font-size: 14px; min-width: 400px; }
-  .clip audio { flex-shrink: 0; }
+  /* color-scheme:dark isn't consistently honored by <audio controls> across browsers/OSes -
+     inverting is a blunt but bulletproof way to kill the glaring white player bar regardless. */
+  .clip audio { flex-shrink: 0; filter: invert(88%) hue-rotate(180deg); }
   .clip .meta { color: var(--muted); font-size: 12px; white-space: nowrap; }
   .clip button { border: 1px solid var(--border); background: var(--panel); color: var(--text);
                  border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px; }
