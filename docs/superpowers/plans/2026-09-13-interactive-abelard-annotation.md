@@ -288,15 +288,19 @@ git commit -m "Add context_window.py: pure target-finding/chunking logic for int
 
 **Files:**
 - Modify: `tools/annotate/annotate.py:210` (argparse), `:226-227` (cache dir setup), `:247-257` (merge block), `:270` (per-conversation cache write path)
-- Modify: `tools/annotate/diff_cache_vs_production.py:16-21` (`load_cache`)
+- Modify: `tools/annotate/diff_cache_vs_production.py` (replace `load_cache` entirely with a call to `annotate.merge_cache_dirs`; `cache_dir` argument becomes `nargs="+"`)
 - Modify: `tools/annotate/tests/test_annotate.py` (append new tests)
 - Create: `tools/annotate/tests/test_diff_cache_vs_production.py`
 
 **Interfaces:**
-- Produces: `annotate.merge_cache_dirs(cache_dirs: list[Path]) -> tuple[dict, int]` (merged annotation dict, count of cache files read) — new, extracted from the inline `--merge` block so it's directly testable.
+- Produces: `annotate.merge_cache_dirs(cache_dirs: list[Path]) -> tuple[dict, int]` (merged annotation dict, count of cache files read) — new, extracted from the inline `--merge` block so it's directly testable, and reused by `diff_cache_vs_production.py` so there is exactly one implementation of "merge N cache directories" in the codebase.
 - Consumes: nothing from Task 1; independent of it.
 
-**Context — why this task exists:** `annotate.py --merge` currently rebuilds `annotations.enGB.json` from scratch out of *only* `--cache-dir`'s contents (see the real code below). Pointed at an Abelard-only cache directory, it would silently overwrite the other ~44,500 lines of the corpus. Fixing this is required before Task 3/4's output can ever be safely merged. While touching this code, also fix a second, independent, pre-existing bug found during spec review: `cache_dir.glob("*.json")` iterates in arbitrary filesystem order, and the corpus already has 1685 duplicate `text_key`s across cache files today, meaning today's merge already picks an arbitrary winner for those, nondeterministically. `sorted()` fixes both the new multi-dir case and this pre-existing one-directory case.
+**Context — why this task exists, and a critical fact found only by running code against the real repo, not by reading `annotate.py`'s comments:** `annotate.py --merge` currently rebuilds `annotations.enGB.json` from scratch out of *only* `--cache-dir`'s contents. Pointed at an Abelard-only cache directory, it would silently overwrite the rest of the corpus. Fixing this is required before Task 3/4's output can ever be safely merged.
+
+**`data/annotations/cache` (this file's own default) is *not* the full corpus.** Verified directly: it has 200 files / 5,599 guids. `data/annotations/cache_merged` has 1,328 files / 45,114 guids — an exact key-set match with shipped `annotations.enGB.json`. Every real merge in this project must name `cache_merged` explicitly; never rely on the code's own default for a real merge. (Two earlier spec-review rounds assumed the default was correct from the code's own comment, without checking — this was caught only when a plan reviewer actually ran `merge_cache_dirs` against both directories and compared guid counts. **Step 6 of this task repeats that exact check** so it's never re-assumed again.)
+
+While touching this code, also fix a second, independent, pre-existing bug: `cache_dir.glob("*.json")` iterates in arbitrary filesystem order, and `cache_merged` has 1,680 duplicate `text_key`s across its files, meaning today's merge already picks an arbitrary winner for those, nondeterministically. `sorted()` fixes this — but **verified directly against real data, applying it is not a no-op**: a `sorted()` merge of `cache_merged` alone (followed by `reconcile_sarcasm_emotion`, exactly like a real `--merge` run), diffed against today's shipped `annotations.enGB.json`, changes 487 of the 45,114 records — 115 of them in `emotion` — because sorted-filename order picks a different deterministic winner than historical scandir order did for some of those 1,680 collisions. Fixing the bug is still correct (a reproducible result beats an accidental one), but this must be surfaced to a human before it's ever applied to production, not silently absorbed into a merge that also happens to add Abelard's work. **Step 7 below produces that preview and stops there — it does not run a real merge.**
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -347,7 +351,7 @@ def test_merge_cache_dirs_guid_in_only_one_dir_passes_through(tmp_path):
 
 
 def test_merge_cache_dirs_duplicate_guid_within_one_dir_is_deterministic_by_filename(tmp_path):
-    # Regression test for the sorted() fix - mirrors the corpus's real 1685 duplicate
+    # Regression test for the sorted() fix - mirrors cache_merged's real 1,680 duplicate
     # text_keys, where today's merge picks an arbitrary winner. sorted() processes
     # conv_a.json before conv_z.json, so conv_z's value (processed last) always wins,
     # regardless of the order the files happened to be created on disk.
@@ -359,33 +363,10 @@ def test_merge_cache_dirs_duplicate_guid_within_one_dir_is_deterministic_by_file
     assert merged["dupkey"]["emotion"] == "angry"
 ```
 
-Create `tools/annotate/tests/test_diff_cache_vs_production.py`:
-
-```python
-import json
-
-from diff_cache_vs_production import load_cache
-
-
-def _write_cache_file(path, text_key, emotion):
-    path.write_text(json.dumps({
-        "conv": "c", "model": "test",
-        "lines": [{"guid": text_key, "emotion": emotion, "intensity": 0.5,
-                   "pace": "normal", "nonverbal": [], "instruct": "x", "text_hash": "abc123"}],
-    }), encoding="utf-8")
-
-
-def test_load_cache_duplicate_guid_within_dir_is_deterministic_by_filename(tmp_path):
-    _write_cache_file(tmp_path / "conv_z.json", "dupkey", "angry")
-    _write_cache_file(tmp_path / "conv_a.json", "dupkey", "sad")
-    merged = load_cache(tmp_path)
-    assert merged["dupkey"]["emotion"] == "angry"
-```
-
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd tools/annotate && python3 -m pytest tests/test_annotate.py tests/test_diff_cache_vs_production.py -v`
-Expected: the `test_annotate.py` tests FAIL with `ImportError: cannot import name 'merge_cache_dirs'`. The new `test_diff_cache_vs_production.py` test's outcome before the fix is **filesystem-dependent** (unsorted `glob()` order varies by OS/filesystem) — it may pass or fail on this machine before Step 4, and that is not a signal to act on either way. Don't try to interpret it pre-fix; its job is to fail reliably if the `sorted()` fix in Step 4 is ever reverted. Proceed to Step 3 regardless of what it currently reports.
+Run: `cd tools/annotate && python3 -m pytest tests/test_annotate.py -v`
+Expected: the new tests FAIL with `ImportError: cannot import name 'merge_cache_dirs'`.
 
 - [ ] **Step 3: Fix `annotate.py`**
 
@@ -401,10 +382,11 @@ to:
 
 ```python
     ap.add_argument("--cache-dir", action="append", default=None,
-                    help="override cache dir (default data/annotations/cache); repeatable - "
-                         "later directories take precedence over earlier ones for a given "
-                         "guid when merging, and the LAST directory given is where an "
-                         "annotation run writes its own cache files")
+                    help="override cache dir (default data/annotations/cache - NOTE: this "
+                         "default is NOT the full corpus, use data/annotations/cache_merged "
+                         "for a real merge); repeatable - later directories take precedence "
+                         "over earlier ones for a given guid when merging, and the LAST "
+                         "directory given is where an annotation run writes its own cache files")
 ```
 
 Change the cache-dir setup (currently `annotate.py:226-227`):
@@ -428,7 +410,7 @@ Add this new function just above `def main() -> None:`:
 ```python
 def merge_cache_dirs(cache_dirs: list[Path]) -> tuple[dict, int]:
     """Merge every cache-dir's *.json files (sorted within each dir for determinism -
-    the corpus has 1685 duplicate text_keys across cache files today, so unsorted glob
+    cache_merged alone has 1,680 duplicate text_keys across its files, so unsorted glob
     order already picks an arbitrary winner for those), later directories' entries
     overriding earlier ones on a guid conflict. Returns (merged_dict, file_count)."""
     merged: dict = {}
@@ -483,9 +465,11 @@ to:
         cache_file = write_cache_dir / f"{conv['guid']}.json"
 ```
 
-- [ ] **Step 4: Fix `diff_cache_vs_production.py`**
+- [ ] **Step 4: Refactor `diff_cache_vs_production.py` to reuse `merge_cache_dirs` instead of keeping its own parallel `load_cache`**
 
-Change `load_cache` (currently lines 16-21):
+This file previously had its own `load_cache(cache_dir)` with the identical unsorted-glob gap, only ever accepting one directory. Keeping two independent copies of "merge N cache directories" is exactly the kind of duplication that let both this bug and the `cache`-vs-`cache_merged` mistake go unnoticed for two review rounds — so this file now imports and calls `annotate.merge_cache_dirs` directly, and accepts one or more directories itself (needed for the Step 7 preview below, which must simulate a *multi*-directory merge before it's ever run for real).
+
+Read the current `tools/annotate/diff_cache_vs_production.py` first. Replace its `load_cache` function and the top of `main()`:
 
 ```python
 def load_cache(cache_dir: Path) -> dict:
@@ -494,38 +478,126 @@ def load_cache(cache_dir: Path) -> dict:
         for r in json.load(open(f, encoding="utf-8"))["lines"]:
             merged[r["guid"]] = r
     return merged
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("cache_dir")
+    ap.add_argument("--out", default=None)
+    args = ap.parse_args()
+
+    production = json.loads((ROOT / "data/annotations/annotations.enGB.json").read_text(encoding="utf-8"))
+    pilot = load_cache(Path(args.cache_dir))
+```
+
+with:
+
+```python
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent))
+from annotate import merge_cache_dirs  # noqa: E402
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("cache_dir", nargs="+",
+                    help="one or more cache directories, later ones taking precedence on "
+                         "a guid conflict - same semantics as annotate.py --merge")
+    ap.add_argument("--out", default=None)
+    args = ap.parse_args()
+
+    production = json.loads((ROOT / "data/annotations/annotations.enGB.json").read_text(encoding="utf-8"))
+    pilot, _ = merge_cache_dirs([Path(d) for d in args.cache_dir])
+```
+
+(Move the `import sys` to the top of the file with the other imports rather than mid-file if the existing file's import block makes that cleaner — the exact placement doesn't matter, only that it's imported once.)
+
+The rest of `main()` (the `common`/`new_only`/`changed`/`unchanged` computation and report-writing) is unchanged — it already only reads from `pilot`/`production`, both still plain dicts.
+
+Also update the two remaining references to `args.cache_dir` later in `main()` (the report title and the default `--out` filename), which currently assume a single string:
+
+```python
+    lines = [f"# Pilot review: {Path(args.cache_dir).name}", "",
 ```
 
 to:
 
 ```python
-def load_cache(cache_dir: Path) -> dict:
-    merged = {}
-    for f in sorted(cache_dir.glob("*.json")):
-        for r in json.load(open(f, encoding="utf-8"))["lines"]:
-            merged[r["guid"]] = r
-    return merged
+    lines = [f"# Pilot review: {'+'.join(Path(d).name for d in args.cache_dir)}", "",
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+and:
+
+```python
+    out = Path(args.out) if args.out else ROOT / f"data/annotations/{Path(args.cache_dir).name}_review.md"
+```
+
+to:
+
+```python
+    out = Path(args.out) if args.out else ROOT / f"data/annotations/{'_'.join(Path(d).name for d in args.cache_dir)}_review.md"
+```
+
+- [ ] **Step 5: Write a small test for the new multi-directory wiring**
+
+Create `tools/annotate/tests/test_diff_cache_vs_production.py` — this only needs to prove the re-exported `merge_cache_dirs` import actually works from this module; the merge logic itself is already fully covered by Step 1's tests on the original in `annotate.py`. (`diff_cache_vs_production.py`'s `ROOT` and production-file path are resolved from `__file__` at import time with no override argument, unlike `interactive_submit.py`'s `--input`, so a full `main()` invocation isn't easily testable here without monkeypatching a module constant — not worth it for what would be a duplicate of Step 1's coverage.)
+
+```python
+import json
+
+from diff_cache_vs_production import merge_cache_dirs
+
+
+def _write_cache_file(path, text_key, emotion):
+    path.write_text(json.dumps({
+        "conv": "c", "model": "test",
+        "lines": [{"guid": text_key, "emotion": emotion, "intensity": 0.5,
+                   "pace": "normal", "nonverbal": [], "instruct": "x", "text_hash": "abc123"}],
+    }), encoding="utf-8")
+
+
+def test_merge_cache_dirs_is_reexported_and_later_dir_wins(tmp_path):
+    # diff_cache_vs_production.py imports merge_cache_dirs from annotate rather than
+    # defining its own - this just confirms the import/re-export actually works and
+    # behaves identically to Task 2 Step 1's tests on the original.
+    d1, d2 = tmp_path / "cache1", tmp_path / "cache2"
+    d1.mkdir()
+    d2.mkdir()
+    _write_cache_file(d1 / "conv1.json", "key1", "neutral")
+    _write_cache_file(d2 / "conv1.json", "key1", "angry")
+    merged, _ = merge_cache_dirs([d1, d2])
+    assert merged["key1"]["emotion"] == "angry"
+```
+
+- [ ] **Step 6: Run tests to verify they pass**
 
 Run: `cd tools/annotate && python3 -m pytest tests/test_annotate.py tests/test_diff_cache_vs_production.py tests/test_schema.py -v`
 Expected: All PASS (including every pre-existing `test_annotate.py` test — this change must not break `conv_payload`/`validate`/`build_system`, which are untouched).
 
-- [ ] **Step 6: Manually verify the single-`--cache-dir` path is unaffected**
+- [ ] **Step 7: Manually verify `cache_merged` vs `cache`, and preview the `sorted()` fix's real effect on production — do not run a real merge**
 
-Run (read-only, does not write anything since `--merge` is not passed):
+First, confirm the critical fact this task's "Context" section states, on this machine, right now:
 ```bash
 cd tools/annotate && python3 -c "
 from pathlib import Path
 from annotate import merge_cache_dirs
-merged, count = merge_cache_dirs([Path('../../data/annotations/cache')])
-print(f'{count} cache files, {len(merged)} merged annotations')
+for name in ('cache', 'cache_merged'):
+    merged, count = merge_cache_dirs([Path(f'../../data/annotations/{name}')])
+    print(f'{name}: {count} files, {len(merged)} guids')
 "
 ```
-Expected: prints a file count and merged-annotation count consistent with the shipped `data/annotations/annotations.enGB.json` having 45,114 entries (the merged count here should be close to that — it reflects only what's in the cache dir, which is the source `--merge` already uses in production).
+Expected: `cache: 200 files, 5599 guids` and `cache_merged: 1328 files, 45114 guids`. If `cache_merged`'s guid count doesn't match `data/annotations/annotations.enGB.json`'s entry count, stop and investigate before proceeding to any real merge — the rest of this project's merge story depends on `cache_merged` being the correct source.
 
-- [ ] **Step 7: Commit**
+Then preview the `sorted()` fix's effect on production, using the now-multi-dir-capable review tool, pointed at `cache_merged` alone (no Abelard cache dir yet — this is purely about the `sorted()` change, not about this feature):
+```bash
+cd tools/annotate && python3 diff_cache_vs_production.py ../../data/annotations/cache_merged --out /tmp/sorted_fix_preview.md
+```
+Expected: the tool's own printed summary reports 487 changed records out of the comparable set (matches this task's "Context" section, verified independently before this plan was written). **This is expected and is not a bug to fix** — it's the real, human-reviewable cost of making the merge deterministic. Read `/tmp/sorted_fix_preview.md`'s "Changed emotion" table and confirm the changes look like reasonable alternate labels (not garbage), then tell the user this preview exists and that a human should look at it before the *first* real merge under this fixed code is ever run — that real merge is explicitly out of scope for this plan (see spec Non-goals: "Not auto-merging into `annotations.enGB.json`").
+
+Clean up: `gio trash /tmp/sorted_fix_preview.md` once reviewed (never `rm` — see the global CLAUDE.md rule on destructive deletes).
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add tools/annotate/annotate.py tools/annotate/diff_cache_vs_production.py tools/annotate/tests/test_annotate.py tools/annotate/tests/test_diff_cache_vs_production.py
@@ -724,6 +796,33 @@ def _args(**overrides):
                      chunk_size=50, chunk_overlap=10, input=None)
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
+
+
+def test_run_rejects_malformed_json_with_a_clean_error_not_a_traceback(tmp_path):
+    convs_path = tmp_path / "convs.json"
+    convs_path.write_text(json.dumps([{
+        "guid": "conv1", "name": "TestConv", "lines": [_target("a", text="hello")],
+    }]), encoding="utf-8")
+    submitted_path = tmp_path / "submitted.json"
+    submitted_path.write_text("{not valid json", encoding="utf-8")
+    cache_dir = tmp_path / "cache"
+
+    with pytest.raises(SubmitError, match="not valid JSON"):
+        run(_args(json_file=str(submitted_path), cache_dir=str(cache_dir), input=str(convs_path)))
+    assert not (cache_dir / "conv1.json").exists()
+
+
+def test_run_rejects_a_json_list_instead_of_an_object(tmp_path):
+    convs_path = tmp_path / "convs.json"
+    convs_path.write_text(json.dumps([{
+        "guid": "conv1", "name": "TestConv", "lines": [_target("a", text="hello")],
+    }]), encoding="utf-8")
+    submitted_path = tmp_path / "submitted.json"
+    submitted_path.write_text("[1, 2, 3]", encoding="utf-8")
+    cache_dir = tmp_path / "cache"
+
+    with pytest.raises(SubmitError, match="expected a JSON object"):
+        run(_args(json_file=str(submitted_path), cache_dir=str(cache_dir), input=str(convs_path)))
 
 
 def test_run_writes_unchunked_cache_file_for_small_conversation(tmp_path):
@@ -1003,7 +1102,13 @@ def run(args: argparse.Namespace) -> None:
     required = required_targets_for_chunk(ranges, targets, idxs, args.chunk, already_labeled)
 
     raw = sys.stdin.read() if args.json_file == "-" else Path(args.json_file).read_text(encoding="utf-8")
-    submitted = json.loads(raw)
+    try:
+        submitted = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise SubmitError(f"{args.json_file}: not valid JSON ({e})") from e
+    if not isinstance(submitted, dict):
+        raise SubmitError(f"{args.json_file}: expected a JSON object of "
+                           f"{{text_key: label}}, got {type(submitted).__name__}")
 
     vocab = load_abelard_vocab()
     records = validate_submission(submitted, required, vocab)
@@ -1085,15 +1190,16 @@ from context_window import (  # noqa: E402
     abelard_targets, canonical_chunk, chunk_ranges, dialogue_lines,
     target_indices, unlabeled_targets, validate_chunk_params,
 )
+from schema import NONVERBALS, PACES  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_CACHE_DIR = ROOT / "data/annotations/cache_claude_abelard"
 CONVERSATIONS_PATH = ROOT / "data/conversations.enGB.json"
 BIOS_PATH = ROOT / "data/character_bios.json"
 VOCAB_PATH = ROOT / "data/voices/emotion_banks/speaker_vocab.json"
-PACES_LINE = "Paces: slow, normal, fast"
-NONVERBAL_LINE = ("Nonverbal (optional): laugh, chuckle, sigh, gasp, groan, sniff, "
-                   "cough, clear_throat, shush")
+# Derived from schema.py, never redefined by hand - see the plan's Global Constraints.
+PACES_LINE = "Paces: " + ", ".join(PACES)
+NONVERBAL_LINE = "Nonverbal (optional): " + ", ".join(NONVERBALS)
 
 
 def scan_already_labeled_keys(cache_dir: Path) -> set[str]:
@@ -1145,13 +1251,22 @@ def render(conv: dict, chunk_index: int, chunk_size: int, overlap: int,
     body = []
     canonical_here = []
     elsewhere_here = []
+    seen_target_keys: set[str] = set()
     for i in range(start, end):
         line = dialogue[i]
         key = line["text_key"]
         text = line["text"]
-        if key not in idx_by_key:
+        # `key in seen_target_keys` guards a real corpus shape (LucidIdira_dialogue has
+        # the same text_key for Abelard twice in one conversation - abelard_targets()
+        # already dedupes it to one required label, but dialogue_lines() intentionally
+        # keeps both physical lines for display). Without this guard both physical
+        # occurrences would independently render as a target marker for the same key,
+        # implying two labels are needed when only one is - the second occurrence just
+        # renders as plain dialogue instead.
+        if key not in idx_by_key or key in seen_target_keys:
             body.append(f"[{speaker_label(line)}] {text}")
             continue
+        seen_target_keys.add(key)
         is_canonical_here = canonical_by_key[key] == chunk_index and key not in already_labeled
         if is_canonical_here:
             canonical_here.append(key)
@@ -1203,7 +1318,9 @@ def main() -> None:
         dialogue = dialogue_lines(conv)
         idxs = target_indices(dialogue, all_targets)
         ranges = chunk_ranges(dialogue, idxs, chunk_size, overlap)
-        if args.chunk_index >= len(ranges):
+        if args.chunk_index < 0 or args.chunk_index >= len(ranges):
+            # Python's negative-index semantics (ranges[-1] silently returning the last
+            # chunk) would otherwise make a negative chunk_index look like it worked.
             print(f"chunk {args.chunk_index} does not exist for this conversation "
                   f"(it has {len(ranges)} chunk(s), valid range 0-{len(ranges) - 1})",
                   file=sys.stderr)
@@ -1267,15 +1384,16 @@ convs = json.load(open('../../data/conversations.enGB.json'))
 print(next(c['guid'] for c in convs if c.get('name') == 'BathTime_dialogue'))
 "
 python3 interactive_next.py --cache-dir /tmp/abelard_smoketest <paste the guid> 99
+python3 interactive_next.py --cache-dir /tmp/abelard_smoketest <paste the same guid> -- -1
 ```
-Expected: a one-line error on stderr naming the valid chunk range (e.g. "chunk 99 does not exist... valid range 0-N"), exit code 1 — not a Python traceback/`IndexError`.
+Expected: both print a one-line error on stderr naming the valid chunk range (e.g. "chunk 99 does not exist... valid range 0-N" / "chunk -1 does not exist..."), exit code 1 — not a Python traceback and not a silent, wrong success (Python's negative-index semantics would otherwise make `-1` quietly return the *last* chunk instead of erroring; the `--` before `-1` stops argparse from treating it as a flag).
 
 - [ ] **Step 4: Clean up the smoke-test cache directory**
 
 ```bash
 gio trash /tmp/abelard_smoketest /tmp/test_labels.json
 ```
-(Per this project's hard rule against `rm`/`rm -rf` — see `CLAUDE.md` — always `gio trash` for cleanup, never `rm`.)
+(Per the operator's global CLAUDE.md rule against `rm`/`rm -rf` — not this project's own local `CLAUDE.md`, which only covers the humanizer skill for public writing — always `gio trash` for cleanup, never `rm`.)
 
 - [ ] **Step 5: Commit**
 
@@ -1312,6 +1430,44 @@ work):
 
 Both fixes are reflected directly in Task 1's and Task 3's code and tests above, not
 described here as pending work.
+
+A third review pass (Kimi, run manually against this repo — not from the plan's
+descriptions, from actually executing code against the real files) found two more critical
+findings and several minor ones, all verified independently before being fixed here:
+
+- **`data/annotations/cache` — `annotate.py`'s own default — is not the full corpus.**
+  Confirmed by direct count: 200 files / 5,599 guids, versus `data/annotations/cache_merged`'s
+  1,328 files / 45,114 guids (an exact match with shipped `annotations.enGB.json`). Every
+  merge command in this plan and the spec previously named `cache`, which would have wiped
+  ~39,500 lines of production on the first real merge — the exact bug the repeatable
+  `--cache-dir` fix (round 2) was meant to prevent, one level up, because both prior review
+  rounds assumed the code's own comment ("the default cache dir already holds the full
+  corpus") was true without checking the directory's actual contents. Fixed throughout Task
+  2 and the spec; Task 2 Step 7 now re-verifies this fact directly rather than re-assuming it.
+- **The `sorted()` fix (round 2) has a real, non-trivial effect on production, verified
+  directly** (not assumed to be a no-op): a `sorted()` merge of `cache_merged` alone,
+  followed by `reconcile_sarcasm_emotion` exactly as a real `--merge` does, changes 487 of
+  the 45,114 shipped records (115 in `emotion`) versus today's production file — confirmed
+  by actually running both the old (unsorted) and new (sorted) merge logic and diffing the
+  results, twice, independently, with matching numbers both times. Task 2 Step 7 now
+  produces this diff as a human-reviewable preview and explicitly does not run a real merge;
+  `diff_cache_vs_production.py` was refactored to reuse `annotate.merge_cache_dirs` and
+  accept multiple directories so that preview reflects exactly what a real merge would do.
+- **Minor, also fixed:** a negative `--chunk`/explicit `chunk_index` argument to
+  `interactive_next.py` silently rendered the *last* chunk instead of erroring (Python's
+  negative-index semantics on `ranges[chunk_index]`) — now bounds-checked on both ends.
+  `LucidIdira_dialogue`'s real intra-conversation duplicate `text_key` (positions 22 and 36)
+  would have rendered as two separate `>>>` target markers for the same required label,
+  even after the round-2 fix correctly deduped it in `abelard_targets()` — `render()` now
+  tracks which target keys it has already marked and shows any repeat physical occurrence as
+  plain dialogue instead. `interactive_next.py` hardcoded its displayed pace/nonverbal word
+  lists instead of deriving them from `schema.PACES`/`schema.NONVERBALS` — a direct
+  violation of this plan's own Global Constraints, now fixed to import and join them.
+  Malformed submission JSON crashed with a raw traceback instead of a clean `SubmitError` —
+  now caught and converted, with a test. A cleanup step's rationale cited "this project's
+  `CLAUDE.md`" for the no-`rm` rule; that rule is actually in the operator's *global*
+  `CLAUDE.md`, not this project's local one (which is only about the humanizer skill) —
+  citation corrected.
 
 - **Spec coverage:** every function named in the spec's `context_window.py`/`interactive_next.py`/`interactive_submit.py` sections has a corresponding implementation and test above; the merge/diff `sorted()` fix, the repeatable `--cache-dir`, the dedup policy, and the canonical-chunk policy are all implemented, not just described.
 - **Deliberate additions beyond the spec's literal function list:** `target_indices()` in `context_window.py` (the spec's `chunk_ranges`/`canonical_chunk` signatures take `list[int]` positions but nothing in the spec named the function that produces them from target *lines*); `scan_already_labeled_keys()` and the `already_labeled` parameter on `required_targets_for_chunk()` in `interactive_submit.py` (needed once the advisor review exposed that the dedup policy has to be enforced on the write path, not just the read/render path).
