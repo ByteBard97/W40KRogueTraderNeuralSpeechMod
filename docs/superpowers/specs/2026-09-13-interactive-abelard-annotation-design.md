@@ -23,10 +23,10 @@ production data until a human explicitly merges it.
 
 - Not building an MCP server. Claude already has Bash/Read/Write; a script pair invoked via
   Bash gives the same interactivity with none of the protocol/registration overhead.
-- Not re-implementing schema validation or diff review — `tools/annotate/schema.py` and
-  `diff_cache_vs_production.py` are reused unchanged. `annotate.py --merge` needs one small,
-  backward-compatible fix (see "Downstream reuse: the merge bug") — everything else about it
-  is reused as-is.
+- Not re-implementing schema validation — `tools/annotate/schema.py` is reused unchanged.
+  `annotate.py --merge` and `diff_cache_vs_production.py` both need small,
+  backward-compatible fixes (see "Downstream reuse: review and merge") — the validation
+  logic in `schema.py` itself is untouched.
 - Not handling any speaker other than Abelard, or voiced-catalog-clip relabeling (curate.html)
   — both explicitly deferred to a later pass, per user decision during brainstorming.
 - Not auto-merging into `annotations.enGB.json`. Merge is a separate, explicit,
@@ -290,60 +290,80 @@ On success: computes `text_hash = sha1(text)[:12]` for each line (matching
 chunked (see "Retuning mid-corpus is safe by construction" above), and prints a one-line
 confirmation with remaining-conversation count.
 
-### Downstream reuse: review (unchanged) and merge (one required fix)
+### Downstream reuse: review and merge (both need a fix — round 3 finding)
 
-- Review, reused with the same `sorted()` fix as merge (not otherwise changed):
-  `python3 tools/annotate/diff_cache_vs_production.py data/annotations/cache_claude_abelard
-  --out <report>.md`. Verified safe against a small cache: it iterates `for g in pilot`
-  (`diff_cache_vs_production.py:33-36`), never the other direction, so a 572-entry cache
-  diffed against the 45,114-entry production file does not produce spurious "removed" rows
-  for everything absent from the small cache — 557 of the 572 targets already exist in
-  production, so the report is mostly changed/unchanged rows plus ~15 new ones, exactly
-  what the tool is shaped for. Its `load_cache()` (line 20) has the same unsorted-glob
-  collision-ordering gap as `--merge`'s loop, for the same pre-existing reason (1685
-  corpus-wide duplicate keys); fixed identically since it's the same root cause.
+**`data/annotations/cache` is NOT the full corpus — `data/annotations/cache_merged` is.**
+Verified by directly counting files and guids, not assumed from `annotate.py`'s code
+comments: `annotate.py`'s own default `CACHE` constant (`data/annotations/cache`) has only
+200 files / 5,599 guids. `data/annotations/cache_merged` has 1,328 files / 45,114 guids —
+an exact key-set match with shipped `annotations.enGB.json`. Every merge command in this
+spec and its plan must name `cache_merged` explicitly; the code's own default is stale
+relative to how production was actually built and must never be relied on for a real merge.
+This was missed in spec review rounds 1 and 2 — both assumed "the default cache dir already
+holds the full corpus" from the code's own comment, without ever checking the directory's
+actual contents. Caught only once a plan reviewer ran the merge against real data.
 
-- **Merge bug found during spec review, must be fixed as part of this work, not deferred**:
-  `annotate.py --merge` (`annotate.py:247-257`) does not update production — it *rebuilds*
-  `annotations.enGB.json` from scratch out of nothing but `--cache-dir`'s contents (`merged =
-  {}`, then only ever populated from files under that one directory). The existing workflow
-  only looks additive because its default cache dir already holds the full corpus. Pointed
-  at `data/annotations/cache_claude_abelard` alone, it would overwrite the 45,114-line
-  production file with just Abelard's ~572 entries — silent, severe data loss.
-
-  Fix: make `--cache-dir` repeatable (`action="append"`, default `[CACHE]` preserving
-  today's single-dir behavior exactly) and change the merge loop to glob each directory,
-  **sorted**, in the order given, with a later directory's entry for a given guid
-  overriding an earlier one. Merging Claude's work in then looks like:
+- **Merge bug (round 2, still required)**: `annotate.py --merge` (`annotate.py:247-257`)
+  does not update production — it *rebuilds* `annotations.enGB.json` from scratch out of
+  nothing but `--cache-dir`'s contents. Pointed at `data/annotations/cache_claude_abelard`
+  alone, it would overwrite the 45,114-line production file with just Abelard's ~572
+  entries. Fix: make `--cache-dir` repeatable (`action="append"`, default `[CACHE]`
+  preserving today's single-dir behavior exactly), glob each directory **sorted** (see
+  below), later directory's entry winning on a guid conflict. The correct merge command is:
   ```
   python3 tools/annotate/annotate.py --merge \
-      --cache-dir data/annotations/cache --cache-dir data/annotations/cache_claude_abelard
+      --cache-dir data/annotations/cache_merged --cache-dir data/annotations/cache_claude_abelard
   ```
-  i.e. "full corpus, with Abelard's interactive labels taking precedence where they exist."
-
-  The `sorted()` is a second fix bundled into the same code, found during spec review round
-  2: `cache_dir.glob("*.json")` iterates in arbitrary filesystem (`os.scandir`) order, and
-  the production cache directory already has 1685 corpus-wide duplicate `text_key`s across
-  its per-conversation files today — meaning **today's merge already silently picks an
-  arbitrary winner** for those, nondeterministically across machines/runs. This isn't
-  something the interactive harness introduces; it's a pre-existing gap in code this spec
-  is already modifying, cheap to close while there, and worth fixing now rather than
-  rediscovering later. Consequence for the "byte-identical" backward-compat claim: a single
-  `--cache-dir` run is byte-identical to *a resort of* today's output, not necessarily
-  today's literal historical output if that output happened to depend on scandir order for
-  one of those 1685 collisions — the compat test (below) must pin expected output against a
-  freshly-computed `sorted()` merge, not a captured historical artifact.
+  i.e. "full corpus (from `cache_merged`), with Abelard's interactive labels taking
+  precedence where they exist" — never the bare `cache` directory.
 
   A second, separate consumer of `--cache-dir` needs a decision now that it's a list: the
   non-merge (annotation-run) path (`annotate.py:226-227` for the `mkdir`, `:270-277` for
   per-conversation cache writes) currently assumes one directory. **Decision: the
-  annotation-run path writes to `cache_dirs[-1]`** (the last directory given) — with today's
-  single-value usage unchanged (`[-1]` of a one-element list is that element), and no
-  present use case for running an automated annotation pass with multiple `--cache-dir`
-  values, so this is a forward-compatible default rather than a real design tradeoff.
+  annotation-run path writes to `cache_dirs[-1]`** (the last directory given) — today's
+  single-value usage is unchanged, and there's no present use case for an automated
+  annotation pass with multiple `--cache-dir` values, so this is forward-compatible rather
+  than a real tradeoff.
+
+- **`sorted()` fix (round 2) — real, verified consequence for real data (round 3
+  finding), not a no-op**: `cache_dir.glob("*.json")` iterates in arbitrary filesystem
+  order, and `cache_merged` has 1,680 duplicate `text_key`s across its per-conversation
+  files — meaning today's merge already picks an arbitrary winner for those,
+  nondeterministically. Fixing this with `sorted()` is still correct (determinism beats an
+  accidental historical winner), but **it is not free**: simulating the exact fixed
+  pipeline (`sorted()` merge of `cache_merged` alone, then `reconcile_sarcasm_emotion`,
+  same as `--merge` already does) against shipped production, verified directly: **key sets
+  match exactly (45,114/45,114), but 487 of those records differ from shipped production,
+  115 of them in `emotion`** — sorted-filename order simply picks a different deterministic
+  winner than today's scandir order did for a chunk of those 1,680 collisions. This is
+  unrelated to Abelard or this harness; it is what applying the `sorted()` fix to the real
+  corpus, on its own, does. **This must not be applied to production silently.** Before the
+  first real merge under the fixed code, generate a preview (a `sorted()` merge of
+  `cache_merged` alone, diffed against shipped production — see the updated
+  `diff_cache_vs_production.py` below, which can now do exactly this) and have a human
+  decide whether the resulting ~487-record shift is acceptable before running `--merge` for
+  real. It should be — the alternative is knowingly keeping an arbitrary, unreproducible
+  historical accident — but that is a human call about production data, not something this
+  spec or its implementation should decide unilaterally.
 
   This is the one piece of "reuse" that requires an actual (small, backward-compatible)
   code change to `annotate.py`, not zero new code.
+
+- **Review tool, refactored to reuse the same merge logic**: `diff_cache_vs_production.py`
+  had its own `load_cache()` with the identical unsorted-glob gap, and only ever accepted
+  one `cache_dir`. Rather than fix `load_cache()` in parallel (two copies of the same
+  merge logic drifting is exactly the kind of thing that caused this round's findings to go
+  unnoticed for two review rounds), it now imports and calls `annotate.merge_cache_dirs()`
+  directly, and its `cache_dir` argument becomes `nargs="+"` (one or more directories, same
+  later-wins precedence as `--merge`). This makes it capable of previewing *exactly* what a
+  real `--merge` invocation would produce — including across multiple directories — before
+  ever running it for real, which is what the ~487-record preview above depends on. Usage
+  for Abelard's actual review, once ready:
+  `python3 tools/annotate/diff_cache_vs_production.py data/annotations/cache_merged
+  data/annotations/cache_claude_abelard --out <report>.md`. Verified safe against a small
+  second cache: the report iterates `for g in pilot` (i.e. everything in the merge result),
+  never the other direction, so it does not produce spurious "removed" rows for anything
+  merely absent from the smaller of the two directories.
 
   `--merge` also runs `reconcile_sarcasm_emotion` — tuned for qwen3's specific failure mode
   of picking an emotion enum that contradicts its own free-text `instruct`. Claude's
@@ -374,7 +394,7 @@ speaker_vocab.json ───────┘                                     
                                                                                     │
                                                               (explicit, later, human-triggered)
                                                                                     v
-                                    annotate.py --merge --cache-dir cache --cache-dir cache_claude_abelard
+                        annotate.py --merge --cache-dir cache_merged --cache-dir cache_claude_abelard
                                                                                     │
                                                                                     v
                                                                        annotations.enGB.json
@@ -441,6 +461,12 @@ speaker_vocab.json ───────┘                                     
   duplicate keys).
 - Merge is deterministic across two runs with cache files re-created in a different
   filesystem order (regression test for the `sorted()` fix).
+
+`diff_cache_vs_production.py`'s own tests are subsumed by the above once it's refactored to
+call `annotate.merge_cache_dirs()` directly rather than keep a parallel `load_cache()` — its
+only remaining untested-elsewhere behavior is accepting multiple `cache_dir` arguments
+(`nargs="+"`), which needs one small test confirming it passes them through to
+`merge_cache_dirs()` in the given order.
 
 No new tests needed for `interactive_next.py`'s stdout rendering — it's cheap enough to spot
 check visually (as the actual harness usage does anyway); its scan/skip logic is exercised
