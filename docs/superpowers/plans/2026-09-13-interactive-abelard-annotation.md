@@ -589,13 +589,28 @@ for name in ('cache', 'cache_merged'):
 ```
 Expected: `cache: 200 files, 5599 guids` and `cache_merged: 1328 files, 45114 guids`. If `cache_merged`'s guid count doesn't match `data/annotations/annotations.enGB.json`'s entry count, stop and investigate before proceeding to any real merge — the rest of this project's merge story depends on `cache_merged` being the correct source.
 
-Then preview the `sorted()` fix's effect on production, using the now-multi-dir-capable review tool, pointed at `cache_merged` alone (no Abelard cache dir yet — this is purely about the `sorted()` change, not about this feature):
+Then preview the `sorted()` fix's real effect on production. **Do not use `diff_cache_vs_production.py` for this specific preview** — it only ever compares the `emotion` field (never the full record) and never applies `reconcile_sarcasm_emotion`, so pointed at a raw `sorted()` merge it would report 312 emotion changes, not the 487-all-field/115-emotion figure a *real* `--merge` run actually produces (`reconcile_sarcasm_emotion` closes 197 of those 312 apparent gaps by flipping both sides to `sarcastic`, since it runs on the merged side both times in a real merge but never runs on the diff tool's raw pilot input). Changing `diff_cache_vs_production.py` itself to always apply `reconcile_sarcasm_emotion` is out of scope here — it's a general-purpose pilot-review tool with its own existing tests and use case (Task 2 doesn't change its comparison semantics, only its directory-handling). Instead, run this one-off snippet, which reproduces exactly what a real `--merge` run would produce and diffs every field, not just `emotion`:
 ```bash
-cd tools/annotate && python3 diff_cache_vs_production.py ../../data/annotations/cache_merged --out /tmp/sorted_fix_preview.md
-```
-Expected: the tool's own printed summary reports 487 changed records out of the comparable set (matches this task's "Context" section, verified independently before this plan was written). **This is expected and is not a bug to fix** — it's the real, human-reviewable cost of making the merge deterministic. Read `/tmp/sorted_fix_preview.md`'s "Changed emotion" table and confirm the changes look like reasonable alternate labels (not garbage), then tell the user this preview exists and that a human should look at it before the *first* real merge under this fixed code is ever run — that real merge is explicitly out of scope for this plan (see spec Non-goals: "Not auto-merging into `annotations.enGB.json`").
+cd tools/annotate && python3 -c "
+import json
+from annotate import merge_cache_dirs, reconcile_sarcasm_emotion
 
-Clean up: `gio trash /tmp/sorted_fix_preview.md` once reviewed (never `rm` — see the global CLAUDE.md rule on destructive deletes).
+merged, _ = merge_cache_dirs(['../../data/annotations/cache_merged'])
+reconcile_sarcasm_emotion(merged)
+production = json.loads(open('../../data/annotations/annotations.enGB.json').read())
+
+common = [g for g in merged if g in production]
+changed = [g for g in common if merged[g] != production[g]]
+emotion_changed = [g for g in changed if merged[g]['emotion'] != production[g]['emotion']]
+print(f'{len(changed)} of {len(common)} records differ from shipped production after the sorted() fix')
+print(f'{len(emotion_changed)} of those differ in emotion specifically')
+print()
+print('first 5 emotion changes:')
+for g in emotion_changed[:5]:
+    print(f'  {g}: {production[g][\"emotion\"]!r} -> {merged[g][\"emotion\"]!r}')
+"
+```
+Expected: `487 of 45114 records differ ... 115 of those differ in emotion` (matches this task's "Context" section, verified independently, twice, before this plan was written). **This is expected and is not a bug to fix** — it's the real, human-reviewable cost of making the merge deterministic; the alternative is keeping an arbitrary, unreproducible historical accident. Skim the printed examples and confirm they look like reasonable alternate labels (not garbage), then tell the user this preview exists and that a human should look at the full list before the *first* real merge under this fixed code is ever run — that real merge is explicitly out of scope for this plan (see spec Non-goals: "Not auto-merging into `annotations.enGB.json`"). If a fuller reviewable table is wanted, redirect the snippet's per-`g` loop (drop the `[:5]`) to a file instead of printing 115 lines to the terminal.
 
 - [ ] **Step 8: Commit**
 
@@ -675,6 +690,14 @@ def test_required_targets_for_chunk_rejects_out_of_range_chunk():
         required_targets_for_chunk([(0, 50)], [_target("a")], [10], chunk=5)
 
 
+def test_required_targets_for_chunk_rejects_negative_chunk():
+    # Without this, a negative chunk would never equal any real canonical_chunk() result
+    # (always >= 0), so required silently comes back empty and the eventual error is a
+    # confusing "unexpected guids" instead of a clear "chunk does not exist".
+    with pytest.raises(SubmitError, match="does not exist"):
+        required_targets_for_chunk([(0, 50)], [_target("a")], [10], chunk=-1)
+
+
 def test_required_targets_for_chunk_excludes_already_labeled_targets():
     # A target already labeled via a different conversation (a cross-conversation
     # duplicate text_key) must not be required here either - see this task's note on
@@ -699,6 +722,15 @@ def test_validate_submission_happy_path_returns_records_with_text_hash():
     assert len(records) == 1
     assert records[0]["guid"] == "a"
     assert records[0]["text_hash"] == _sha1_12("hello")
+
+
+def test_validate_submission_rejects_non_dict_label():
+    # {"a": "resigned"} instead of {"a": {"emotion": "resigned", ...}} would otherwise
+    # crash on rec.get(...) with an AttributeError instead of a clean SubmitError.
+    required = [_target("a")]
+    submitted = {"a": "resigned"}
+    with pytest.raises(SubmitError, match="JSON object"):
+        validate_submission(submitted, required, VOCAB)
 
 
 def test_validate_submission_rejects_missing_guid():
@@ -1016,7 +1048,7 @@ def required_targets_for_chunk(ranges: list[tuple[int, int]], targets: list[dict
     572 real targets share a text_key with another target, 6 across different
     conversations) - requiring it again here would make that conversation permanently
     unsubmittable."""
-    if chunk >= len(ranges):
+    if chunk < 0 or chunk >= len(ranges):
         raise SubmitError(f"chunk {chunk} does not exist for this conversation "
                            f"(it has {len(ranges)} chunk(s), valid range 0-{len(ranges) - 1})")
     return [t for t, idx in zip(targets, idxs)
@@ -1044,6 +1076,8 @@ def validate_submission(submitted: dict, required: list[dict], vocab: list[str])
     for target in required:
         key = target["text_key"]
         rec = submitted[key]
+        if not isinstance(rec, dict):
+            raise SubmitError(f"{key}: label must be a JSON object, got {type(rec).__name__}")
         problems = []
         emotion = rec.get("emotion")
         if emotion not in vocab:
@@ -1468,6 +1502,32 @@ findings and several minor ones, all verified independently before being fixed h
   `CLAUDE.md`" for the no-`rm` rule; that rule is actually in the operator's *global*
   `CLAUDE.md`, not this project's local one (which is only about the humanizer skill) —
   citation corrected.
+
+A fourth pass (Kimi again, verifying the round-3 fixes specifically) confirmed everything
+above was applied correctly, and found three residuals, all fixed and independently
+re-verified before being committed:
+
+- **Task 2 Step 7's expected preview number was simply wrong.** `diff_cache_vs_production.py`
+  only ever compares the `emotion` field (never a full record) and never applies
+  `reconcile_sarcasm_emotion` — so pointed at a raw `sorted()` merge it reports 312 emotion
+  changes, not 487 (which was never a number that tool could produce at all, being an
+  all-field count from a one-off comparison script written during spec review) or even 115
+  (which only emerges once `reconcile_sarcasm_emotion` closes 197 of those 312 apparent
+  gaps). Verified by actually running the numbers both ways. Rather than change
+  `diff_cache_vs_production.py`'s own comparison semantics (out of scope — it's a
+  general-purpose tool with its own use case), Step 7 now runs a small one-off snippet that
+  reproduces exactly what a real `--merge` does (`merge_cache_dirs` + `reconcile_sarcasm_emotion`,
+  diffing every field) — tested verbatim (with a temporary shim standing in for
+  `merge_cache_dirs`, since Task 2's code doesn't exist yet at plan-review time) and
+  confirmed it prints exactly "487 ... 115 ...".
+- **`interactive_submit.py --chunk -1` wasn't bounds-checked** — only `interactive_next.py`
+  was fixed for this in round 3. `required_targets_for_chunk` failed safe (an always-empty
+  required set turns into a correct-but-confusing "unexpected guids" error) but didn't name
+  the real problem. Now checks `chunk < 0` explicitly, with a test.
+- **A non-dict per-record label value** (e.g. `{"a": "resigned"}` instead of
+  `{"a": {"emotion": "resigned", ...}}`) crashed `validate_submission` with an
+  `AttributeError` on `rec.get(...)` instead of the clean `SubmitError` the malformed-JSON
+  fix (round 3) was supposed to guarantee. Now checked explicitly, with a test.
 
 - **Spec coverage:** every function named in the spec's `context_window.py`/`interactive_next.py`/`interactive_submit.py` sections has a corresponding implementation and test above; the merge/diff `sorted()` fix, the repeatable `--cache-dir`, the dedup policy, and the canonical-chunk policy are all implemented, not just described.
 - **Deliberate additions beyond the spec's literal function list:** `target_indices()` in `context_window.py` (the spec's `chunk_ranges`/`canonical_chunk` signatures take `list[int]` positions but nothing in the spec named the function that produces them from target *lines*); `scan_already_labeled_keys()` and the `already_labeled` parameter on `required_targets_for_chunk()` in `interactive_submit.py` (needed once the advisor review exposed that the dedup policy has to be enforced on the write path, not just the read/render path).
