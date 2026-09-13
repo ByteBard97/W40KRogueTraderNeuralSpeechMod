@@ -41,8 +41,19 @@ def dialogue_lines(conv: dict) -> list[dict]:
 
 
 def target_indices(dialogue: list[dict], targets: list[dict]) -> list[int]:
-    """Position of each target line within `dialogue`, matched by text_key."""
-    index_by_key = {line["text_key"]: i for i, line in enumerate(dialogue)}
+    """Position of each target line within `dialogue`, matched by text_key. When a
+    text_key repeats in dialogue (a real corpus shape - LucidIdira_dialogue has this),
+    the FIRST occurrence is used, matching abelard_targets' first-occurrence-wins
+    dedup contract - a naive {key: i for ...} dict comprehension instead keeps the
+    LAST occurrence, silently pointing a target at a different physical line than the
+    one abelard_targets treats as canonical (found during Task 1's review, confirmed
+    with a reproduction: two lines sharing text_key 'dup' at positions 2 and 5 - the
+    naive version returns [5], not [2])."""
+    index_by_key: dict[str, int] = {}
+    for i, line in enumerate(dialogue):
+        key = line.get("text_key")
+        if key is not None and key not in index_by_key:
+            index_by_key[key] = i
     return [index_by_key[t["text_key"]] for t in targets]
 
 

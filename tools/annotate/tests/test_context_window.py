@@ -59,6 +59,17 @@ def test_target_indices_maps_targets_to_dialogue_positions():
     assert target_indices(dialogue, targets) == [1]
 
 
+def test_target_indices_uses_first_occurrence_for_a_duplicated_text_key():
+    # Found during Task 1 review: a naive {key: i for i, line in enumerate(dialogue)}
+    # dict comprehension keeps the LAST occurrence on a duplicate key, contradicting
+    # abelard_targets' documented first-occurrence-wins contract for the exact real
+    # corpus shape (LucidIdira_dialogue) this module's docstrings call out.
+    dialogue = [_line("a", "Idira"), _line("dup", "Abelard", text="same"),
+                _line("c", "Idira"), _line("dup", "Abelard", text="same")]
+    targets = [_line("dup", "Abelard", text="same")]  # abelard_targets already deduped to one
+    assert target_indices(dialogue, targets) == [1]
+
+
 def test_chunk_ranges_whole_conversation_when_under_chunk_size():
     lines = [_line(str(i)) for i in range(10)]
     assert chunk_ranges(lines, target_indices=[3], chunk_size=50, overlap=10) == [(0, 10)]
