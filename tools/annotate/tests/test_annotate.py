@@ -74,7 +74,7 @@ def test_build_system_embeds_given_emotions():
 
 import json
 
-from annotate import merge_cache_dirs
+from annotate import find_empty_cache_dirs, merge_cache_dirs
 
 
 def _write_cache_file(path, conv_guid, text_key, emotion):
@@ -126,3 +126,25 @@ def test_merge_cache_dirs_duplicate_guid_within_one_dir_is_deterministic_by_file
     _write_cache_file(d / "conv_a.json", "conv_a", "dupkey", "sad")
     merged, _ = merge_cache_dirs([d])
     assert merged["dupkey"]["emotion"] == "angry"
+
+
+def test_find_empty_cache_dirs_all_empty(tmp_path):
+    d1, d2 = tmp_path / "cache1", tmp_path / "cache2"
+    d1.mkdir()
+    d2.mkdir()
+    assert find_empty_cache_dirs([d1, d2]) == [d1, d2]
+
+
+def test_find_empty_cache_dirs_none_empty(tmp_path):
+    d = tmp_path / "cache"
+    d.mkdir()
+    _write_cache_file(d / "conv1.json", "conv1", "key1", "neutral")
+    assert find_empty_cache_dirs([d]) == []
+
+
+def test_find_empty_cache_dirs_mixed(tmp_path):
+    d1, d2 = tmp_path / "cache1", tmp_path / "cache2"
+    d1.mkdir()
+    d2.mkdir()
+    _write_cache_file(d1 / "conv1.json", "conv1", "key1", "neutral")
+    assert find_empty_cache_dirs([d1, d2]) == [d2]

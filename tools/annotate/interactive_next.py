@@ -31,11 +31,17 @@ PACES_LINE = "Paces: " + ", ".join(PACES)
 NONVERBAL_LINE = "Nonverbal (optional): " + ", ".join(NONVERBALS)
 
 
-def scan_already_labeled_keys(cache_dir: Path) -> set[str]:
+def scan_already_labeled_keys(cache_dir: Path, exclude_path: Path | None = None) -> set[str]:
     """Every text_key with a label anywhere in cache_dir, across every conversation's
-    cache file - the global dedup set (see context_window.unlabeled_targets)."""
+    cache file - the global dedup set (see context_window.unlabeled_targets).
+    `exclude_path` (the file this call is about to revisit, if any) is skipped, so
+    revisiting a conversation to check or correct it doesn't see its own prior output
+    as already-labeled-elsewhere - see interactive_submit.py's function of the same
+    name, which needed this for the same reason."""
     keys = set()
     for f in cache_dir.glob("*.json"):
+        if exclude_path is not None and f.resolve() == exclude_path.resolve():
+            continue
         for rec in json.loads(f.read_text(encoding="utf-8"))["lines"]:
             keys.add(rec["guid"])
     return keys
@@ -154,7 +160,11 @@ def main() -> None:
                   f"(it has {len(ranges)} chunk(s), valid range 0-{len(ranges) - 1})",
                   file=sys.stderr)
             sys.exit(1)
-        print(render(conv, args.chunk_index, chunk_size, overlap, already_labeled, bios, vocab))
+        chunked = len(ranges) > 1
+        out_path = (cache_dir / f"{args.conv_guid}__chunk{args.chunk_index}.json" if chunked
+                    else cache_dir / f"{args.conv_guid}.json")
+        already_labeled_here = scan_already_labeled_keys(cache_dir, exclude_path=out_path)
+        print(render(conv, args.chunk_index, chunk_size, overlap, already_labeled_here, bios, vocab))
         return
 
     for conv in convs:

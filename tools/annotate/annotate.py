@@ -199,6 +199,14 @@ def annotate_conv(conv: dict, backend, model: str, system: str = SYSTEM, json_sc
     return go(lines)
 
 
+def find_empty_cache_dirs(cache_dirs: list[Path]) -> list[Path]:
+    """Which of `cache_dirs` have zero *.json files - a --merge guard against a
+    typo'd or nonexistent --cache-dir silently contributing nothing and overwriting
+    production with a drastically smaller (or, if all given directories are empty,
+    completely empty) result."""
+    return [d for d in cache_dirs if not list(d.glob("*.json"))]
+
+
 def merge_cache_dirs(cache_dirs: list[Path]) -> tuple[dict, int]:
     """Merge every cache-dir's *.json files (sorted within each dir for determinism -
     cache_merged alone has 1,680 duplicate text_keys across its files, so unsorted glob
@@ -267,6 +275,13 @@ def main() -> None:
     json_schema = build_json_schema(emotions)
 
     if args.merge:
+        empty_dirs = find_empty_cache_dirs(cache_dirs)
+        if empty_dirs:
+            print(f"ERROR: refusing to merge - these --cache-dir director"
+                  f"{'y has' if len(empty_dirs) == 1 else 'ies have'} no .json files "
+                  f"(check for a typo): {', '.join(str(d) for d in empty_dirs)}",
+                  file=sys.stderr)
+            sys.exit(1)
         merged, file_count = merge_cache_dirs(cache_dirs)
         fixed = reconcile_sarcasm_emotion(merged)
         out = ROOT / "data/annotations/annotations.enGB.json"
