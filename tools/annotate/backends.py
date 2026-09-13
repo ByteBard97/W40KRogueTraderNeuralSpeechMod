@@ -16,13 +16,19 @@ class BackendError(RuntimeError):
     pass
 
 
-def ollama(system: str, user: str, schema: dict, model: str = "qwen3:14b", host: str = "http://localhost:11434") -> dict:
+def ollama(system: str, user: str, schema: dict, model: str = "qwen3:14b", host: str = "http://localhost:11434",
+           think: bool = False) -> dict:
+    # think=False is right for qwen3/deepseek-r1-class models (skip the reasoning trace, we only
+    # need the JSON) but breaks gpt-oss/harmony-format reasoning models under schema-constrained
+    # decoding: forcing think off there returns an EMPTY content field (confirmed against gpt-oss:20b
+    # via Ollama 0.34.0 - grammar-constrained decoding with the harmony chat template appears to need
+    # the reasoning channel to reach the final-answer channel at all). Those models need think=True.
     body = {
         "model": model,
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         "stream": False,
         "format": schema,
-        "think": False,  # qwen3/deepseek-r1-class models: skip the reasoning trace, we only need the JSON
+        "think": think,
         "options": {"temperature": 0.2, "num_ctx": 8192},
     }
     req = urllib.request.Request(f"{host}/api/chat", data=json.dumps(body).encode(),

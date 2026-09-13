@@ -27,14 +27,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from backends import BACKENDS, BackendError  # noqa: E402
-from schema import EMOTIONS, JSON_SCHEMA, NONVERBALS, PACES  # noqa: E402
+from schema import EMOTIONS, JSON_SCHEMA, NONVERBALS, PACES, build_json_schema  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 CACHE = ROOT / "data/annotations/cache"
+DEFAULT_VOCAB_PATH = ROOT / "data/voices/emotion_banks/speaker_vocab.json"
 
-SYSTEM = f"""You are annotating lines from the dark-gothic sci-fi CRPG Warhammer 40,000: Rogue Trader
+
+def build_system(emotions: list[str]) -> str:
+    return f"""You are annotating lines from the dark-gothic sci-fi CRPG Warhammer 40,000: Rogue Trader
 for expressive text-to-speech. For EVERY line you receive, output one record:
-- emotion: one of {EMOTIONS}
+- emotion: one of {emotions}
 - intensity: 0.0-1.0 (0.2 subtle, 0.5 clear, 0.9 extreme)
 - pace: one of {PACES}
 - nonverbal: subset of {NONVERBALS} - vocal sounds the actor should ADD (usually empty; use only
@@ -55,18 +58,30 @@ in a conversation pull the surrounding lines toward the same emotion.
 Return JSON only."""
 
 
+SYSTEM = build_system(EMOTIONS)
+
+
 def line_hash(text: str) -> str:
     return hashlib.sha1(text.encode()).hexdigest()[:12]
 
 
-def conv_payload(conv: dict) -> tuple[str, list[dict]]:
-    """Render a conversation as a numbered script; return (user_prompt, lines)."""
+def conv_payload(conv: dict, speaker_filter: str | None = None, unvoiced_only: bool = False) -> tuple[str, list[dict]]:
+    """Render a conversation as a numbered script; return (user_prompt, lines).
+
+    speaker_filter/unvoiced_only narrow which of the conversation's lines are annotated
+    (e.g. one character's not-yet-voiced lines for a per-speaker vocabulary re-pass) -
+    other lines in the same conversation are simply omitted from the request, at the cost
+    of the model not seeing what was said to/around the kept lines."""
     lines = []
     for l in conv.get("lines", []):
         if "guid" not in l or not l.get("text") or not l.get("text_key"):
             continue
         sp = l.get("speaker") or {}
         who = sp.get("name") or sp.get("kind") or "unknown"
+        if speaker_filter is not None and who != speaker_filter:
+            continue
+        if unvoiced_only and l.get("voiced") is not None:
+            continue
         lines.append({"guid": l["text_key"], "speaker": who, "text": l["text"],
                       "animation": l.get("animation"), "kind": l["kind"]})
     if not lines:
@@ -80,16 +95,17 @@ def conv_payload(conv: dict) -> tuple[str, list[dict]]:
     return user, lines
 
 
-def validate(result: dict, lines: list[dict]) -> list[dict]:
+def validate(result: dict, lines: list[dict], emotions: list[str] = EMOTIONS) -> list[dict]:
     got = {r["guid"]: r for r in result.get("lines", [])}
     want = [l["guid"] for l in lines]
     missing = [g for g in want if g not in got]
     if missing:
         raise BackendError(f"missing {len(missing)} guids (first: {missing[0]})")
+    fallback_emotion = "neutral" if "neutral" in emotions else emotions[0]
     out = []
     for l in lines:
         r = got[l["guid"]]
-        r["emotion"] = r["emotion"] if r["emotion"] in EMOTIONS else "neutral"
+        r["emotion"] = r["emotion"] if r["emotion"] in emotions else fallback_emotion
         r["pace"] = r["pace"] if r["pace"] in PACES else "normal"
         r["nonverbal"] = [n for n in r.get("nonverbal", []) if n in NONVERBALS]
         r["intensity"] = max(0.0, min(1.0, float(r.get("intensity", 0.3))))
@@ -138,8 +154,10 @@ BIOS_PATH = ROOT / "data/character_bios.json"
 CHAR_BIOS = json.loads(BIOS_PATH.read_text(encoding="utf-8")) if BIOS_PATH.exists() else {}
 
 
-def annotate_conv(conv: dict, backend, model: str) -> list[dict] | None:
-    user, lines = conv_payload(conv)
+def annotate_conv(conv: dict, backend, model: str, system: str = SYSTEM, json_schema: dict = JSON_SCHEMA,
+                   emotions: list[str] = EMOTIONS, speaker_filter: str | None = None,
+                   unvoiced_only: bool = False) -> list[dict] | None:
+    user, lines = conv_payload(conv, speaker_filter=speaker_filter, unvoiced_only=unvoiced_only)
     if not lines:
         return []
 
@@ -156,8 +174,8 @@ def annotate_conv(conv: dict, backend, model: str) -> list[dict] | None:
         script = "\n".join(f"[{l['guid']}] {l['speaker']}: {l['text']}" for l in lines_subset)
         user = f"{bio_block}Annotate every line.\n\n{script}"
         try:
-            result = backend(SYSTEM, user, JSON_SCHEMA, model=model)
-            return validate(result, lines_subset)
+            result = backend(system, user, json_schema, model=model)
+            return validate(result, lines_subset, emotions=emotions)
         except BackendError as e:
             if len(lines_subset) <= 1:
                 # Isolated to a single line the model can't/won't annotate (seen on lines with
@@ -191,11 +209,40 @@ def main() -> None:
     ap.add_argument("--input", default=None, help="override conversations JSON (default data/conversations.enGB.json)")
     ap.add_argument("--cache-dir", default=None, help="override cache dir (default data/annotations/cache)")
     ap.add_argument("--host", default="http://localhost:11434", help="ollama host")
+    ap.add_argument("--think", action="store_true",
+                    help="enable the model's reasoning trace before its JSON answer - required for "
+                         "gpt-oss and other harmony-format reasoning models (schema-constrained "
+                         "decoding returns empty content without it); qwen3-class models don't need "
+                         "it and are faster with it off")
+    ap.add_argument("--speaker", default=None,
+                    help="restrict annotation to one speaker's lines, and (if the speaker has an "
+                         "entry in --vocab-file) swap in their per-speaker emotion vocabulary")
+    ap.add_argument("--vocab-file", default=None,
+                    help=f"speaker_vocab.json path (default {DEFAULT_VOCAB_PATH}); only consulted with --speaker")
+    ap.add_argument("--unvoiced-only", action="store_true",
+                    help="skip lines that already have real game audio (voiced is not null)")
     args = ap.parse_args()
 
     cache_dir = Path(args.cache_dir) if args.cache_dir else CACHE
     cache_dir.mkdir(parents=True, exist_ok=True)
     convs = json.load(open(args.input or (ROOT / "data/conversations.enGB.json"), encoding="utf-8"))
+
+    emotions = EMOTIONS
+    if args.speaker:
+        vocab_path = Path(args.vocab_file) if args.vocab_file else DEFAULT_VOCAB_PATH
+        if vocab_path.exists():
+            speaker_vocab = json.loads(vocab_path.read_text(encoding="utf-8"))
+            words = speaker_vocab.get(args.speaker, {}).get("words")
+            if words:
+                emotions = words
+                print(f"using per-speaker vocabulary for {args.speaker} ({len(emotions)} words): {emotions}")
+            else:
+                print(f"WARNING: no vocabulary entry for speaker {args.speaker!r} in {vocab_path}, "
+                      f"using default EMOTIONS", file=sys.stderr)
+        else:
+            print(f"WARNING: vocab file {vocab_path} not found, using default EMOTIONS", file=sys.stderr)
+    system_prompt = build_system(emotions)
+    json_schema = build_json_schema(emotions)
 
     if args.merge:
         merged = {}
@@ -212,7 +259,7 @@ def main() -> None:
     shard_i, shard_n = (int(x) for x in args.shard.split("/"))
     raw_backend = BACKENDS[args.backend]
     if args.backend == "ollama":
-        backend = lambda system, user, schema, model: raw_backend(system, user, schema, model=model, host=args.host)  # noqa: E731
+        backend = lambda system, user, schema, model: raw_backend(system, user, schema, model=model, host=args.host, think=args.think)  # noqa: E731
     else:
         backend = raw_backend
     done = failed = 0
@@ -224,7 +271,8 @@ def main() -> None:
         if cache_file.exists():
             continue
         try:
-            recs = annotate_conv(conv, backend, args.model)
+            recs = annotate_conv(conv, backend, args.model, system=system_prompt, json_schema=json_schema,
+                                  emotions=emotions, speaker_filter=args.speaker, unvoiced_only=args.unvoiced_only)
             cache_file.write_text(json.dumps({"conv": conv["guid"], "model": args.model,
                                               "lines": recs}, ensure_ascii=False), encoding="utf-8")
             done += 1
