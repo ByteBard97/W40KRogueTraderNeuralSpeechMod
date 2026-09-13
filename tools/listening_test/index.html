@@ -67,6 +67,9 @@
   #reference summary { cursor: pointer; font-size: 0.85em; color: var(--muted); }
   #reference summary::marker { color: var(--accent); }
   .ref-clip { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  /* color-scheme:dark (see :root) isn't consistently honored by <audio controls> across every
+     browser/OS - inverting is a blunt but bulletproof way to kill a glaring white player bar. */
+  audio { filter: invert(88%) hue-rotate(180deg); }
   .ref-clip audio { flex-shrink: 0; width: 220px; height: 32px; }
   .ref-clip .ref-text { font-size: 0.85em; color: var(--muted); font-style: italic; }
   #rank-hint { font-size: 0.85em; color: var(--muted); margin-bottom: 10px; }
