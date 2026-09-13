@@ -99,9 +99,9 @@ def canonical_chunk(target_index: int, ranges: list[tuple[int, int]]) -> int:
 
 
 def unlabeled_targets(targets: list[dict], already_labeled_keys: set[str]) -> list[dict]:
-    """`targets` minus any whose text_key is already in already_labeled_keys. 13 of the
-    572 real Abelard targets share a text_key with another target (6 across different
-    conversations), so a target can legitimately need this exclusion globally, not just
+    """`targets` minus any whose text_key is already in already_labeled_keys. Some
+    targets share a text_key with another target, including across different
+    conversations, so a target can legitimately need this exclusion globally, not just
     within one conversation - see the design spec's 'Deduplication and canonical-chunk
     policy'."""
     return [t for t in targets if t["text_key"] not in already_labeled_keys]

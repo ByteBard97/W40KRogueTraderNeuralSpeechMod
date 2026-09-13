@@ -134,6 +134,27 @@ def test_validate_submission_rejects_out_of_range_intensity():
         validate_submission(submitted, required, VOCAB)
 
 
+def test_validate_submission_rejects_boolean_intensity():
+    # bool is a subclass of int in Python, so isinstance(True, (int, float)) is True -
+    # without an explicit bool check, "intensity": true would silently become 1.0
+    # instead of being rejected as the wrong type.
+    required = [_target("a")]
+    submitted = {"a": _label(intensity=True)}
+    with pytest.raises(SubmitError, match="intensity"):
+        validate_submission(submitted, required, VOCAB)
+
+
+def test_validate_submission_rejects_null_nonverbal():
+    # rec.get("nonverbal", []) only supplies the default when the key is missing -
+    # an explicit "nonverbal": null returns None, and iterating over it used to raise
+    # a raw TypeError instead of a clean SubmitError.
+    required = [_target("a")]
+    submitted = {"a": _label()}
+    submitted["a"]["nonverbal"] = None
+    with pytest.raises(SubmitError, match="nonverbal"):
+        validate_submission(submitted, required, VOCAB)
+
+
 def test_validate_submission_rejects_empty_instruct():
     required = [_target("a")]
     submitted = {"a": _label(instruct="")}

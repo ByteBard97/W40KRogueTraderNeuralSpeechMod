@@ -122,11 +122,15 @@ def validate_submission(submitted: dict, required: list[dict], vocab: list[str])
         if pace not in PACES:
             problems.append(f"pace {pace!r} not one of {PACES}")
         nonverbal = rec.get("nonverbal", [])
+        if not isinstance(nonverbal, list):
+            problems.append(f"nonverbal must be a list, got {type(nonverbal).__name__}")
+            nonverbal = []
         bad_nonverbal = [n for n in nonverbal if n not in NONVERBALS]
         if bad_nonverbal:
             problems.append(f"nonverbal entries not in {NONVERBALS}: {bad_nonverbal}")
         intensity = rec.get("intensity")
-        if not isinstance(intensity, (int, float)) or not (0.0 <= intensity <= 1.0):
+        if (isinstance(intensity, bool) or not isinstance(intensity, (int, float))
+                or not (0.0 <= intensity <= 1.0)):
             problems.append(f"intensity {intensity!r} must be a number in [0, 1]")
         instruct = rec.get("instruct", "")
         if not instruct:
