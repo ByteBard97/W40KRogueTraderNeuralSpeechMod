@@ -76,6 +76,16 @@ def test_abelard_targets_skips_lines_with_no_speaker_key():
     assert abelard_targets(conv) == []
 
 
+def test_abelard_targets_dedupes_intra_conversation_duplicate_text_key():
+    # LucidIdira_dialogue has exactly this shape in the real corpus: the same text_key
+    # appearing twice for Abelard within one conversation. Without deduping here,
+    # target_indices' dict-based lookup collapses both to one index while
+    # validate_submission still iterates both as separate list entries, writing two
+    # records with the same guid into one cache file's "lines" array.
+    conv = {"lines": [_line("dup", "Abelard", text="first"), _line("dup", "Abelard", text="first")]}
+    assert len(abelard_targets(conv)) == 1
+
+
 def test_dialogue_lines_includes_all_speakers_excludes_structural():
     conv = {"lines": [_line("a", "Abelard"), _line("b", "Idira"), _structural("x")]}
     assert {l["text_key"] for l in dialogue_lines(conv)} == {"a", "b"}
@@ -171,11 +181,18 @@ from __future__ import annotations
 
 def abelard_targets(conv: dict) -> list[dict]:
     """Abelard's lines in `conv` that need a label: unvoiced (voiced absent or None),
-    speaker.name == 'Abelard', with real text and a text_key. Document order.
+    speaker.name == 'Abelard', with real text and a text_key. Document order, deduped
+    by text_key within this conversation (first occurrence wins) - the real corpus has
+    at least one conversation (LucidIdira_dialogue) with the same text_key appearing
+    twice for Abelard, and every downstream dict/set keyed by text_key (target_indices,
+    validate_submission's required_keys) silently breaks if a duplicate reaches it.
+    Cross-conversation duplicates are a separate concern, handled by
+    unlabeled_targets/scan_already_labeled_keys since they span different conv objects.
 
     This is the single source of truth for "how many lines need labeling" for a given
     conversation - never hardcode a count derived from it."""
     targets = []
+    seen_keys = set()
     for line in conv.get("lines", []):
         speaker = line.get("speaker") or {}
         if speaker.get("name") != "Abelard":
@@ -184,6 +201,9 @@ def abelard_targets(conv: dict) -> list[dict]:
             continue
         if not line.get("text") or not line.get("text_key"):
             continue
+        if line["text_key"] in seen_keys:
+            continue
+        seen_keys.add(line["text_key"])
         targets.append(line)
     return targets
 
@@ -365,7 +385,7 @@ def test_load_cache_duplicate_guid_within_dir_is_deterministic_by_filename(tmp_p
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `cd tools/annotate && python3 -m pytest tests/test_annotate.py tests/test_diff_cache_vs_production.py -v`
-Expected: FAIL — `test_annotate.py` tests fail with `ImportError: cannot import name 'merge_cache_dirs'`; the new `test_diff_cache_vs_production.py` test currently PASSES already (the bug is real but this particular fixture doesn't yet prove it fails without sorting — confirm by reading the diff below) — that's fine, its purpose is to fail once the fix is *removed*, i.e. it's a regression guard. Proceed to Step 3 regardless.
+Expected: the `test_annotate.py` tests FAIL with `ImportError: cannot import name 'merge_cache_dirs'`. The new `test_diff_cache_vs_production.py` test's outcome before the fix is **filesystem-dependent** (unsorted `glob()` order varies by OS/filesystem) — it may pass or fail on this machine before Step 4, and that is not a signal to act on either way. Don't try to interpret it pre-fix; its job is to fail reliably if the `sorted()` fix in Step 4 is ever reverted. Proceed to Step 3 regardless of what it currently reports.
 
 - [ ] **Step 3: Fix `annotate.py`**
 
@@ -523,7 +543,9 @@ git commit -m "Make annotate.py --merge safe for multiple cache dirs, fix nondet
 **Interfaces:**
 - Consumes from Task 1: `abelard_targets`, `canonical_chunk`, `chunk_ranges`, `dialogue_lines`, `target_indices`, `validate_chunk_params` (all from `context_window`).
 - Consumes from `tools/annotate/schema.py` (unchanged): `PACES`, `NONVERBALS`.
-- Produces: `SubmitError` (exception class), `find_conversation(convs, conv_guid) -> dict`, `resolve_chunk_params(cache_dir, conv_guid, cli_chunk_size, cli_overlap) -> tuple[int, int]`, `required_targets_for_chunk(ranges, targets, idxs, chunk) -> list[dict]`, `validate_submission(submitted, required, vocab) -> list[dict]`, `run(args) -> None` — all consumed only by this script's own tests and CLI entry point; Task 4 does not import from this file (it duplicates the small `resolve_chunk_params` helper rather than cross-import a sibling CLI script — see Task 4's note).
+- Produces: `SubmitError` (exception class), `find_conversation(convs, conv_guid) -> dict`, `resolve_chunk_params(cache_dir, conv_guid, cli_chunk_size, cli_overlap) -> tuple[int, int]`, `scan_already_labeled_keys(cache_dir, exclude_path=None) -> set[str]`, `required_targets_for_chunk(ranges, targets, idxs, chunk, already_labeled=frozenset()) -> list[dict]`, `validate_submission(submitted, required, vocab) -> list[dict]`, `run(args) -> None` — all consumed only by this script's own tests and CLI entry point; Task 4 does not import from this file (it duplicates the small `resolve_chunk_params`/`scan_already_labeled_keys` helpers rather than cross-import a sibling CLI script — see Task 4's note).
+
+**Note on why `already_labeled` matters here, not just in `interactive_next.py`:** a target already labeled via a different conversation (13 of 572 targets share a `text_key` with another target, 6 across different conversations) must not be *required* in this chunk's submission either — `interactive_next.py` already excludes it from what it tells Claude to submit, so requiring it here would make every such conversation permanently unsubmittable (`missing: <key>` forever). This was found during a second plan-review pass, after the first draft of this script computed its required-target set with no awareness of what had already been labeled elsewhere.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -538,7 +560,7 @@ import pytest
 
 from interactive_submit import (
     SubmitError, find_conversation, required_targets_for_chunk,
-    resolve_chunk_params, run, validate_submission,
+    resolve_chunk_params, run, scan_already_labeled_keys, validate_submission,
 )
 
 VOCAB = ["resigned", "hopeful", "neutral", "sarcastic"]
@@ -579,6 +601,23 @@ def test_required_targets_for_chunk_filters_by_canonical_chunk():
 def test_required_targets_for_chunk_rejects_out_of_range_chunk():
     with pytest.raises(SubmitError):
         required_targets_for_chunk([(0, 50)], [_target("a")], [10], chunk=5)
+
+
+def test_required_targets_for_chunk_excludes_already_labeled_targets():
+    # A target already labeled via a different conversation (a cross-conversation
+    # duplicate text_key) must not be required here either - see this task's note on
+    # why, and context_window.unlabeled_targets in Task 1.
+    targets = [_target("a"), _target("b")]
+    ranges = [(0, 50)]
+    idxs = [10, 20]
+    required = required_targets_for_chunk(ranges, targets, idxs, 0, already_labeled={"a"})
+    assert [t["text_key"] for t in required] == ["b"]
+
+
+def test_required_targets_for_chunk_default_already_labeled_is_empty():
+    targets = [_target("a")]
+    required = required_targets_for_chunk([(0, 50)], targets, [10], 0)
+    assert [t["text_key"] for t in required] == ["a"]
 
 
 def test_validate_submission_happy_path_returns_records_with_text_hash():
@@ -646,6 +685,28 @@ def test_validate_submission_rejects_too_long_instruct():
         validate_submission(submitted, required, VOCAB)
 
 
+def test_scan_already_labeled_keys_reads_every_cache_file(tmp_path):
+    (tmp_path / "conv1.json").write_text(json.dumps({
+        "conv": "conv1", "model": "m", "lines": [{"guid": "a", "emotion": "resigned"}],
+    }), encoding="utf-8")
+    (tmp_path / "conv2__chunk0.json").write_text(json.dumps({
+        "conv": "conv2", "model": "m", "lines": [{"guid": "b", "emotion": "resigned"}],
+        "chunk_size": 50, "chunk_overlap": 10,
+    }), encoding="utf-8")
+    assert scan_already_labeled_keys(tmp_path) == {"a", "b"}
+
+
+def test_scan_already_labeled_keys_excludes_given_path(tmp_path):
+    # Resubmitting/correcting the same chunk must not see its own about-to-be-
+    # overwritten file as "already labeled elsewhere", or every key in it becomes
+    # unexpected on the very next resubmission attempt.
+    target_path = tmp_path / "conv1.json"
+    target_path.write_text(json.dumps({
+        "conv": "conv1", "model": "m", "lines": [{"guid": "a", "emotion": "resigned"}],
+    }), encoding="utf-8")
+    assert scan_already_labeled_keys(tmp_path, exclude_path=target_path) == set()
+
+
 def test_resolve_chunk_params_uses_cli_when_no_existing_chunks(tmp_path):
     assert resolve_chunk_params(tmp_path, "conv1", 50, 10) == (50, 10)
 
@@ -705,6 +766,61 @@ def test_run_writes_chunked_cache_file_with_chunk_params_recorded(tmp_path):
     assert out["chunk_size"] == 50
     assert out["chunk_overlap"] == 10
     assert out["lines"][0]["guid"] == "key10"
+
+
+def test_run_excludes_target_already_labeled_in_a_different_conversation(tmp_path):
+    # Reproduces the real corpus shape (e.g. AlternativeLordCaptains_dialogue /
+    # AlternativeLordCaptains_Fem_dialogue sharing three text_keys): "sharedkey" was
+    # already labeled while working through conv1; conv2 reuses the same text_key
+    # alongside its own "onlyinconv2" - submitting conv2 must not require "sharedkey"
+    # again, and must not choke trying to write a second copy of it.
+    convs_path = tmp_path / "convs.json"
+    convs_path.write_text(json.dumps([
+        {"guid": "conv1", "name": "Conv1", "lines": [_target("sharedkey", text="shared")]},
+        {"guid": "conv2", "name": "Conv2", "lines": [
+            _target("sharedkey", text="shared"),
+            _target("onlyinconv2", text="only here"),
+        ]},
+    ]), encoding="utf-8")
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "conv1.json").write_text(json.dumps({
+        "conv": "conv1", "model": "claude-interactive",
+        "lines": [{"guid": "sharedkey", "emotion": "resigned", "intensity": 0.4,
+                   "pace": "normal", "nonverbal": [], "instruct": "x", "text_hash": "x"}],
+    }), encoding="utf-8")
+
+    submitted_path = tmp_path / "submitted.json"
+    submitted_path.write_text(json.dumps({"onlyinconv2": _label()}), encoding="utf-8")
+
+    run(_args(conv_guid="conv2", json_file=str(submitted_path),
+              cache_dir=str(cache_dir), input=str(convs_path)))
+
+    out = json.loads((cache_dir / "conv2.json").read_text(encoding="utf-8"))
+    assert [line["guid"] for line in out["lines"]] == ["onlyinconv2"]
+
+
+def test_run_resubmitting_same_chunk_does_not_treat_its_own_prior_output_as_a_conflict(tmp_path):
+    convs_path = tmp_path / "convs.json"
+    convs_path.write_text(json.dumps([{
+        "guid": "conv1", "name": "Conv1", "lines": [_target("a", text="hello")],
+    }]), encoding="utf-8")
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    # A prior (imperfect) submission already exists for this exact chunk.
+    (cache_dir / "conv1.json").write_text(json.dumps({
+        "conv": "conv1", "model": "claude-interactive",
+        "lines": [{"guid": "a", "emotion": "resigned", "intensity": 0.3,
+                   "pace": "slow", "nonverbal": [], "instruct": "old", "text_hash": "x"}],
+    }), encoding="utf-8")
+
+    submitted_path = tmp_path / "submitted.json"
+    submitted_path.write_text(json.dumps({"a": _label(emotion="hopeful")}), encoding="utf-8")
+
+    run(_args(json_file=str(submitted_path), cache_dir=str(cache_dir), input=str(convs_path)))
+
+    out = json.loads((cache_dir / "conv1.json").read_text(encoding="utf-8"))
+    assert out["lines"][0]["emotion"] == "hopeful"  # corrected value, not silently skipped
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -776,15 +892,36 @@ def find_conversation(convs: list[dict], conv_guid: str) -> dict:
     raise SubmitError(f"no conversation with guid {conv_guid!r}")
 
 
+def scan_already_labeled_keys(cache_dir: Path, exclude_path: Path | None = None) -> set[str]:
+    """Every text_key with a label anywhere in cache_dir, across every conversation's
+    cache file. `exclude_path` (the file this submission is about to overwrite, if any)
+    is skipped, so resubmitting/correcting a chunk doesn't see its own prior output as
+    an external conflict. Same logic as interactive_next.py's function of the same name
+    - duplicated rather than cross-imported, see that file's docstring."""
+    keys = set()
+    for f in cache_dir.glob("*.json"):
+        if exclude_path is not None and f.resolve() == exclude_path.resolve():
+            continue
+        for rec in json.loads(f.read_text(encoding="utf-8"))["lines"]:
+            keys.add(rec["guid"])
+    return keys
+
+
 def required_targets_for_chunk(ranges: list[tuple[int, int]], targets: list[dict],
-                                idxs: list[int], chunk: int) -> list[dict]:
-    """The targets whose canonical chunk is exactly `chunk` - what this submission must
-    cover, no more, no less. A target merely rendered in this chunk via overlap, but
-    canonical to a different chunk, is excluded here."""
+                                idxs: list[int], chunk: int,
+                                already_labeled: set[str] = frozenset()) -> list[dict]:
+    """The targets whose canonical chunk is exactly `chunk` and that don't already have
+    a label elsewhere - what this submission must cover, no more, no less. A target
+    merely rendered in this chunk via overlap, but canonical to a different chunk, is
+    excluded here; so is a target already labeled via a different conversation (13 of
+    572 real targets share a text_key with another target, 6 across different
+    conversations) - requiring it again here would make that conversation permanently
+    unsubmittable."""
     if chunk >= len(ranges):
         raise SubmitError(f"chunk {chunk} does not exist for this conversation "
                            f"(it has {len(ranges)} chunk(s), valid range 0-{len(ranges) - 1})")
-    return [t for t, idx in zip(targets, idxs) if canonical_chunk(idx, ranges) == chunk]
+    return [t for t, idx in zip(targets, idxs)
+            if canonical_chunk(idx, ranges) == chunk and t["text_key"] not in already_labeled]
 
 
 def validate_submission(submitted: dict, required: list[dict], vocab: list[str]) -> list[dict]:
@@ -854,7 +991,16 @@ def run(args: argparse.Namespace) -> None:
     dialogue = dialogue_lines(conv)
     idxs = target_indices(dialogue, targets)
     ranges = chunk_ranges(dialogue, idxs, chunk_size, overlap)
-    required = required_targets_for_chunk(ranges, targets, idxs, args.chunk)
+
+    # Determined before validation, deliberately: scan_already_labeled_keys must exclude
+    # this exact output file, or resubmitting/correcting the same chunk would see its
+    # own prior labels as an external conflict and compute an empty required set.
+    chunked = len(ranges) > 1
+    out_path = (cache_dir / f"{args.conv_guid}__chunk{args.chunk}.json" if chunked
+                else cache_dir / f"{args.conv_guid}.json")
+
+    already_labeled = scan_already_labeled_keys(cache_dir, exclude_path=out_path)
+    required = required_targets_for_chunk(ranges, targets, idxs, args.chunk, already_labeled)
 
     raw = sys.stdin.read() if args.json_file == "-" else Path(args.json_file).read_text(encoding="utf-8")
     submitted = json.loads(raw)
@@ -862,14 +1008,10 @@ def run(args: argparse.Namespace) -> None:
     vocab = load_abelard_vocab()
     records = validate_submission(submitted, required, vocab)
 
-    chunked = len(ranges) > 1
+    payload = {"conv": args.conv_guid, "model": "claude-interactive", "lines": records}
     if chunked:
-        out_path = cache_dir / f"{args.conv_guid}__chunk{args.chunk}.json"
-        payload = {"conv": args.conv_guid, "model": "claude-interactive", "lines": records,
-                   "chunk_size": chunk_size, "chunk_overlap": overlap}
-    else:
-        out_path = cache_dir / f"{args.conv_guid}.json"
-        payload = {"conv": args.conv_guid, "model": "claude-interactive", "lines": records}
+        payload["chunk_size"] = chunk_size
+        payload["chunk_overlap"] = overlap
     out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"wrote {len(records)} label(s) to {out_path}")
 
@@ -1057,6 +1199,15 @@ def main() -> None:
             sys.exit(1)
         chunk_size, overlap = resolve_chunk_params(cache_dir, args.conv_guid,
                                                     args.chunk_size, args.chunk_overlap)
+        all_targets = abelard_targets(conv)
+        dialogue = dialogue_lines(conv)
+        idxs = target_indices(dialogue, all_targets)
+        ranges = chunk_ranges(dialogue, idxs, chunk_size, overlap)
+        if args.chunk_index >= len(ranges):
+            print(f"chunk {args.chunk_index} does not exist for this conversation "
+                  f"(it has {len(ranges)} chunk(s), valid range 0-{len(ranges) - 1})",
+                  file=sys.stderr)
+            sys.exit(1)
         print(render(conv, args.chunk_index, chunk_size, overlap, already_labeled, bios, vocab))
         return
 
@@ -1105,6 +1256,20 @@ python3 interactive_next.py --cache-dir /tmp/abelard_smoketest
 ```
 Expected: `interactive_submit.py` prints `wrote 1 label(s) to ...`; the second `interactive_next.py` call either shows the *next* conversation (if that one had only one target) or the same conversation with the just-labeled line now marked `···` instead of `>>>` and excluded from "Targets in this chunk."
 
+- [ ] **Step 3b: Manually verify the out-of-range chunk error**
+
+`BathTime_dialogue` (660 lines) is confirmed multi-chunk at the default 50/10 settings. Find its guid and confirm the bounds check produces a clear error rather than a crash:
+```bash
+cd tools/annotate
+python3 -c "
+import json
+convs = json.load(open('../../data/conversations.enGB.json'))
+print(next(c['guid'] for c in convs if c.get('name') == 'BathTime_dialogue'))
+"
+python3 interactive_next.py --cache-dir /tmp/abelard_smoketest <paste the guid> 99
+```
+Expected: a one-line error on stderr naming the valid chunk range (e.g. "chunk 99 does not exist... valid range 0-N"), exit code 1 — not a Python traceback/`IndexError`.
+
 - [ ] **Step 4: Clean up the smoke-test cache directory**
 
 ```bash
@@ -1123,7 +1288,32 @@ git commit -m "Add interactive_next.py: render the next unlabeled Abelard conver
 
 ## Plan self-review notes (for the record, not a task)
 
+This plan went through two review passes before execution: a self-review after the first
+draft, and an `advisor` review that caught two real bugs neither the self-review nor the
+spec's own two review rounds had surfaced (both fixed inline above, not left as follow-up
+work):
+
+- **`interactive_submit.py`'s `run()` originally never checked the global already-labeled
+  set** — only `interactive_next.py` did. A target already labeled via a different
+  conversation would be shown as non-canonical (not required) by `interactive_next.py` but
+  still *required* by `interactive_submit.py`, making that conversation permanently
+  unsubmittable (`missing: <key>` forever). Fixed by giving `required_targets_for_chunk` an
+  `already_labeled` parameter and having `run()` compute it via `scan_already_labeled_keys`
+  — with the wrinkle that the scan must exclude the exact file this submission is about to
+  overwrite, or resubmitting/correcting an already-labeled chunk sees its own prior output
+  as an external conflict.
+- **`abelard_targets()` originally didn't dedupe a text_key repeated *within one*
+  conversation** (confirmed real on the actual corpus — `LucidIdira_dialogue` has this
+  shape). `target_indices`'s dict-based lookup silently collapsed both occurrences to one
+  index, and `validate_submission` would still iterate both as separate list entries,
+  writing two records with the same `guid` into one cache file. Fixed by deduping inside
+  `abelard_targets()` itself (first occurrence wins), which makes every downstream
+  dict/set/zip keyed by `text_key` safe by construction rather than by caller discipline.
+
+Both fixes are reflected directly in Task 1's and Task 3's code and tests above, not
+described here as pending work.
+
 - **Spec coverage:** every function named in the spec's `context_window.py`/`interactive_next.py`/`interactive_submit.py` sections has a corresponding implementation and test above; the merge/diff `sorted()` fix, the repeatable `--cache-dir`, the dedup policy, and the canonical-chunk policy are all implemented, not just described.
-- **One deliberate small addition beyond the spec's literal function list:** `target_indices()` in `context_window.py`. The spec's `chunk_ranges`/`canonical_chunk` signatures take `list[int]` positions, but nothing in the spec named the function that maps target *lines* to their *positions* in the dialogue list — needed by both CLI scripts, so it's implemented once as pure, tested logic rather than duplicated inline.
-- **Type/signature consistency checked across tasks:** `chunk_ranges(lines, target_indices, chunk_size, overlap)` and `canonical_chunk(target_index, ranges)` are called with the same argument order and types in Task 1's tests, Task 3's `interactive_submit.py`, and Task 4's `interactive_next.py`. `required_targets_for_chunk`'s `(ranges, targets, idxs, chunk)` signature matches between its Task 3 definition and its tests.
+- **Deliberate additions beyond the spec's literal function list:** `target_indices()` in `context_window.py` (the spec's `chunk_ranges`/`canonical_chunk` signatures take `list[int]` positions but nothing in the spec named the function that produces them from target *lines*); `scan_already_labeled_keys()` and the `already_labeled` parameter on `required_targets_for_chunk()` in `interactive_submit.py` (needed once the advisor review exposed that the dedup policy has to be enforced on the write path, not just the read/render path).
+- **Type/signature consistency checked across tasks:** `chunk_ranges(lines, target_indices, chunk_size, overlap)` and `canonical_chunk(target_index, ranges)` are called with the same argument order and types in Task 1's tests, Task 3's `interactive_submit.py`, and Task 4's `interactive_next.py`. `required_targets_for_chunk`'s `(ranges, targets, idxs, chunk, already_labeled=frozenset())` signature matches between its Task 3 definition, its tests, and its two call sites in `run()`.
 - **Not covered by this plan, deliberately (per spec's Non-goals):** the actual merge into `annotations.enGB.json` (a separate, explicit, human-triggered step after review), extending this to the other 25 speakers, and voiced-catalog-clip relabeling.
