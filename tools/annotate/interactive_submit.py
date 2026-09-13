@@ -80,10 +80,10 @@ def required_targets_for_chunk(ranges: list[tuple[int, int]], targets: list[dict
     """The targets whose canonical chunk is exactly `chunk` and that don't already have
     a label elsewhere - what this submission must cover, no more, no less. A target
     merely rendered in this chunk via overlap, but canonical to a different chunk, is
-    excluded here; so is a target already labeled via a different conversation (13 of
-    572 real targets share a text_key with another target, 6 across different
-    conversations) - requiring it again here would make that conversation permanently
-    unsubmittable."""
+    excluded here; so is a target already labeled via a different conversation (some
+    targets share a text_key with another target, including across different
+    conversations - see abelard_targets' docstring) - requiring it again here would
+    make that conversation permanently unsubmittable."""
     if chunk < 0 or chunk >= len(ranges):
         raise SubmitError(f"chunk {chunk} does not exist for this conversation "
                            f"(it has {len(ranges)} chunk(s), valid range 0-{len(ranges) - 1})")
