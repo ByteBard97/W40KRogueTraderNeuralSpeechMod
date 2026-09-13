@@ -199,6 +199,21 @@ def annotate_conv(conv: dict, backend, model: str, system: str = SYSTEM, json_sc
     return go(lines)
 
 
+def merge_cache_dirs(cache_dirs: list[Path]) -> tuple[dict, int]:
+    """Merge every cache-dir's *.json files (sorted within each dir for determinism -
+    cache_merged alone has 1,680 duplicate text_keys across its files, so unsorted glob
+    order already picks an arbitrary winner for those), later directories' entries
+    overriding earlier ones on a guid conflict. Returns (merged_dict, file_count)."""
+    merged: dict = {}
+    file_count = 0
+    for d in cache_dirs:
+        for f in sorted(d.glob("*.json")):
+            file_count += 1
+            for r in json.load(open(f, encoding="utf-8"))["lines"]:
+                merged[r["guid"]] = {k: v for k, v in r.items() if k != "guid"}
+    return merged, file_count
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--backend", default="ollama", choices=list(BACKENDS))
@@ -207,7 +222,12 @@ def main() -> None:
     ap.add_argument("--shard", default="0/1", help="i/n - annotate conversations where hash%%n==i")
     ap.add_argument("--merge", action="store_true", help="merge cache into annotations.enGB.json and exit")
     ap.add_argument("--input", default=None, help="override conversations JSON (default data/conversations.enGB.json)")
-    ap.add_argument("--cache-dir", default=None, help="override cache dir (default data/annotations/cache)")
+    ap.add_argument("--cache-dir", action="append", default=None,
+                    help="override cache dir (default data/annotations/cache - NOTE: this "
+                         "default is NOT the full corpus, use data/annotations/cache_merged "
+                         "for a real merge); repeatable - later directories take precedence "
+                         "over earlier ones for a given guid when merging, and the LAST "
+                         "directory given is where an annotation run writes its own cache files")
     ap.add_argument("--host", default="http://localhost:11434", help="ollama host")
     ap.add_argument("--think", action="store_true",
                     help="enable the model's reasoning trace before its JSON answer - required for "
@@ -223,8 +243,10 @@ def main() -> None:
                     help="skip lines that already have real game audio (voiced is not null)")
     args = ap.parse_args()
 
-    cache_dir = Path(args.cache_dir) if args.cache_dir else CACHE
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_dirs = [Path(d) for d in args.cache_dir] if args.cache_dir else [CACHE]
+    for d in cache_dirs:
+        d.mkdir(parents=True, exist_ok=True)
+    write_cache_dir = cache_dirs[-1]
     convs = json.load(open(args.input or (ROOT / "data/conversations.enGB.json"), encoding="utf-8"))
 
     emotions = EMOTIONS
@@ -245,14 +267,12 @@ def main() -> None:
     json_schema = build_json_schema(emotions)
 
     if args.merge:
-        merged = {}
-        for f in cache_dir.glob("*.json"):
-            for r in json.load(open(f, encoding="utf-8"))["lines"]:
-                merged[r["guid"]] = {k: v for k, v in r.items() if k != "guid"}
+        merged, file_count = merge_cache_dirs(cache_dirs)
         fixed = reconcile_sarcasm_emotion(merged)
         out = ROOT / "data/annotations/annotations.enGB.json"
         out.write_text(json.dumps(merged, ensure_ascii=False, indent=0), encoding="utf-8")
-        print(f"merged {len(merged)} annotations from {len(list(cache_dir.glob('*.json')))} conversations -> {out}")
+        print(f"merged {len(merged)} annotations from {file_count} cache files across "
+              f"{len(cache_dirs)} director{'y' if len(cache_dirs) == 1 else 'ies'} -> {out}")
         print(f"reconciled emotion->sarcastic on {fixed} lines whose instruct text implied sarcasm/mockery")
         return
 
@@ -267,7 +287,7 @@ def main() -> None:
     for conv in convs:
         if int(conv["guid"][:8], 16) % shard_n != shard_i:
             continue
-        cache_file = cache_dir / f"{conv['guid']}.json"
+        cache_file = write_cache_dir / f"{conv['guid']}.json"
         if cache_file.exists():
             continue
         try:

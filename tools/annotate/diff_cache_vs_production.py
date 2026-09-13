@@ -8,34 +8,32 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
-
-def load_cache(cache_dir: Path) -> dict:
-    merged = {}
-    for f in cache_dir.glob("*.json"):
-        for r in json.load(open(f, encoding="utf-8"))["lines"]:
-            merged[r["guid"]] = r
-    return merged
+sys.path.insert(0, str(Path(__file__).parent))
+from annotate import merge_cache_dirs  # noqa: E402
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cache_dir")
+    ap.add_argument("cache_dir", nargs="+",
+                    help="one or more cache directories, later ones taking precedence on "
+                         "a guid conflict - same semantics as annotate.py --merge")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
     production = json.loads((ROOT / "data/annotations/annotations.enGB.json").read_text(encoding="utf-8"))
-    pilot = load_cache(Path(args.cache_dir))
+    pilot, _ = merge_cache_dirs([Path(d) for d in args.cache_dir])
 
     common = [g for g in pilot if g in production]
     new_only = [g for g in pilot if g not in production]
     changed = [g for g in common if production[g]["emotion"] != pilot[g]["emotion"]]
     unchanged = [g for g in common if production[g]["emotion"] == pilot[g]["emotion"]]
 
-    lines = [f"# Pilot review: {Path(args.cache_dir).name}", "",
+    lines = [f"# Pilot review: {'+'.join(Path(d).name for d in args.cache_dir)}", "",
              f"{len(pilot)} lines in pilot cache. {len(common)} also exist in the shipped "
              f"annotations.enGB.json ({len(new_only)} not found there - new guids or a "
              f"different input snapshot). Of the {len(common)} comparable lines, "
@@ -55,7 +53,7 @@ def main() -> None:
             new = pilot[g]
             lines.append(f"| {g} | {new['emotion']} ({new['intensity']}) | {new['instruct']} |")
 
-    out = Path(args.out) if args.out else ROOT / f"data/annotations/{Path(args.cache_dir).name}_review.md"
+    out = Path(args.out) if args.out else ROOT / f"data/annotations/{'_'.join(Path(d).name for d in args.cache_dir)}_review.md"
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"{len(changed)}/{len(common)} comparable lines changed emotion; wrote {out}")
 
