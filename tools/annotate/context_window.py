@@ -20,12 +20,25 @@ def abelard_targets(conv: dict, voiced: bool = False) -> list[dict]:
     scan_already_labeled_keys since they span different conv objects.
 
     This is the single source of truth for "how many lines need labeling" for a given
-    conversation - never hardcode a count derived from it."""
+    conversation - never hardcode a count derived from it.
+
+    Requires speaker.kind == "unit" (a confirmed speaker in the source data), not just
+    speaker.name == "Abelard" - a real, verified data bug found during the voiced
+    ground-truth pass: speaker.kind == "unit_guess" (provenance "dialog_majority") is an
+    upstream heuristic guess, and it is wrong disproportionately often. Checked directly
+    against a sample (guid a4b8348b-...): kind=unit_guess, name=Abelard, but the line's
+    own dev comment reads "Идира" (Idira, Cyrillic) and the text refers to Abelard in
+    the third person - it is Idira's line, not his. Corpus-wide this affects 31 of 85
+    raw voiced occurrences (37%) and 110 of 572 unvoiced targets (19%); every voiced
+    case manually checked came back misattributed. This filter accepts a small, known
+    false negative in exchange (one voiced line, guid ced566d2-..., is unit_guess but
+    on inspection genuinely is Abelard - continues his immediately preceding confirmed
+    line, matches his address/cursing patterns elsewhere) rather than special-casing it."""
     targets = []
     seen_keys = set()
     for line in conv.get("lines", []):
         speaker = line.get("speaker") or {}
-        if speaker.get("name") != "Abelard":
+        if speaker.get("name") != "Abelard" or speaker.get("kind") != "unit":
             continue
         is_voiced = line.get("voiced") is not None
         if is_voiced != voiced:

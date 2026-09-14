@@ -6,10 +6,11 @@ from context_window import (
 )
 
 
-def _line(text_key, speaker_name=None, text="hi", voiced=None, has_speaker_key=True):
+def _line(text_key, speaker_name=None, text="hi", voiced=None, has_speaker_key=True,
+          speaker_kind="unit"):
     line = {"guid": text_key, "kind": "cue", "text_key": text_key, "text": text, "voiced": voiced}
     if has_speaker_key:
-        line["speaker"] = {"name": speaker_name} if speaker_name else {}
+        line["speaker"] = {"name": speaker_name, "kind": speaker_kind} if speaker_name else {}
     return line
 
 
@@ -23,6 +24,19 @@ def test_abelard_targets_finds_unvoiced_abelard_lines_with_text():
         _line("a", "Abelard", voiced=None),
         _line("b", "Abelard", voiced="SomeCatalogEvent_01"),
         _line("c", "Idira", voiced=None),
+    ]}
+    assert {t["text_key"] for t in abelard_targets(conv)} == {"a"}
+
+
+def test_abelard_targets_excludes_unit_guess_speaker_kind():
+    # Real, verified data bug: speaker.kind == "unit_guess" (provenance
+    # "dialog_majority") is an upstream heuristic guess at who's speaking, and it is
+    # frequently wrong - every voiced-corpus case manually checked during the ground-
+    # truth pass turned out to be a different character's line misattributed to
+    # Abelard. Only speaker.kind == "unit" (a confirmed speaker) is trustworthy.
+    conv = {"lines": [
+        _line("a", "Abelard", speaker_kind="unit"),
+        _line("b", "Abelard", speaker_kind="unit_guess"),
     ]}
     assert {t["text_key"] for t in abelard_targets(conv)} == {"a"}
 

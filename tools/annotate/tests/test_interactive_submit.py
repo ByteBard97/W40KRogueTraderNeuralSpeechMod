@@ -12,9 +12,9 @@ from interactive_submit import (
 VOCAB = ["resigned", "hopeful", "neutral", "sarcastic"]
 
 
-def _target(text_key, text="hi", speaker_name="Abelard"):
+def _target(text_key, text="hi", speaker_name="Abelard", speaker_kind="unit"):
     return {"guid": text_key, "kind": "cue", "text_key": text_key, "text": text,
-            "speaker": {"name": speaker_name}, "voiced": None}
+            "speaker": {"name": speaker_name, "kind": speaker_kind}, "voiced": None}
 
 
 def _label(emotion="resigned", intensity=0.5, pace="normal", nonverbal=None, instruct="x"):
@@ -336,7 +336,7 @@ def test_run_resubmitting_same_chunk_does_not_treat_its_own_prior_output_as_a_co
 
 def test_run_voiced_true_targets_voiced_lines_not_unvoiced(tmp_path):
     voiced_line = {"guid": "v1", "kind": "cue", "text_key": "v1", "text": "spoken",
-                   "speaker": {"name": "Abelard"}, "voiced": "SomeCatalogEvent_01"}
+                   "speaker": {"name": "Abelard", "kind": "unit"}, "voiced": "SomeCatalogEvent_01"}
     unvoiced_line = _target("u1", text="unspoken")
     convs_path = tmp_path / "convs.json"
     convs_path.write_text(json.dumps([{
