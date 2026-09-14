@@ -5,15 +5,19 @@ module is trivially unit-testable with plain dicts."""
 from __future__ import annotations
 
 
-def abelard_targets(conv: dict) -> list[dict]:
-    """Abelard's lines in `conv` that need a label: unvoiced (voiced absent or None),
-    speaker.name == 'Abelard', with real text and a text_key. Document order, deduped
-    by text_key within this conversation (first occurrence wins) - the real corpus has
-    at least one conversation (LucidIdira_dialogue) with the same text_key appearing
-    twice for Abelard, and every downstream dict/set keyed by text_key (target_indices,
-    validate_submission's required_keys) silently breaks if a duplicate reaches it.
-    Cross-conversation duplicates are a separate concern, handled by
-    unlabeled_targets/scan_already_labeled_keys since they span different conv objects.
+def abelard_targets(conv: dict, voiced: bool = False) -> list[dict]:
+    """Abelard's lines in `conv` that need a label: by default unvoiced (voiced absent
+    or None, the original 572-line unvoiced corpus this module was built for); pass
+    `voiced=True` to instead select his lines that already have real game audio (voiced
+    is not None) - the ~84-line ground-truth pass used to calibrate his emotional range
+    before labeling the unvoiced corpus. Either way: speaker.name == 'Abelard', with
+    real text and a text_key. Document order, deduped by text_key within this
+    conversation (first occurrence wins) - the real corpus has at least one conversation
+    (LucidIdira_dialogue) with the same text_key appearing twice for Abelard, and every
+    downstream dict/set keyed by text_key (target_indices, validate_submission's
+    required_keys) silently breaks if a duplicate reaches it. Cross-conversation
+    duplicates are a separate concern, handled by unlabeled_targets/
+    scan_already_labeled_keys since they span different conv objects.
 
     This is the single source of truth for "how many lines need labeling" for a given
     conversation - never hardcode a count derived from it."""
@@ -23,7 +27,8 @@ def abelard_targets(conv: dict) -> list[dict]:
         speaker = line.get("speaker") or {}
         if speaker.get("name") != "Abelard":
             continue
-        if line.get("voiced") is not None:
+        is_voiced = line.get("voiced") is not None
+        if is_voiced != voiced:
             continue
         if not line.get("text") or not line.get("text_key"):
             continue

@@ -27,6 +27,15 @@ def test_abelard_targets_finds_unvoiced_abelard_lines_with_text():
     assert {t["text_key"] for t in abelard_targets(conv)} == {"a"}
 
 
+def test_abelard_targets_voiced_true_finds_voiced_lines_instead():
+    conv = {"lines": [
+        _line("a", "Abelard", voiced=None),
+        _line("b", "Abelard", voiced="SomeCatalogEvent_01"),
+        _line("c", "Idira", voiced="SomeCatalogEvent_02"),
+    ]}
+    assert {t["text_key"] for t in abelard_targets(conv, voiced=True)} == {"b"}
+
+
 def test_abelard_targets_skips_structural_nodes():
     conv = {"lines": [_line("a", "Abelard"), _structural("x")]}
     assert {t["text_key"] for t in abelard_targets(conv)} == {"a"}
