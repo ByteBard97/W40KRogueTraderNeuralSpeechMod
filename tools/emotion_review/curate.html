@@ -5,7 +5,7 @@
 <title>Emotion Clip Curation</title>
 <style>
   :root { color-scheme: dark; --bg: #12121a; --panel: #1c1c28; --border: #33334a; --text: #e8e8f0; --muted: #8a8aa0;
-          --accept: #3fae5c; --reject: #b23f4e; --accent: #c9a227; }
+          --accept: #3fae5c; --reject: #b23f4e; --accent: #c9a227; --agent-gt: #4ea1c9; }
   body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; margin: 0;
          padding: 24px; max-width: 1900px; margin-inline: auto; }
   h1 { font-size: 20px; margin-bottom: 4px; }
@@ -32,6 +32,8 @@
   .clip button.active.reject-btn { background: var(--reject); border-color: var(--reject); color: #1a0808; }
   .clip .relabel-select { font-size: 12px; padding: 3px 6px; }
   .clip .relabel-badge { color: var(--accent); font-size: 11px; white-space: nowrap; }
+  .clip .agent-gt-badge { color: var(--agent-gt); font-size: 11px; white-space: nowrap;
+                           border-bottom: 1px dotted var(--agent-gt); cursor: help; }
   .clip .ai-agree { color: var(--accept); }
   .clip .ai-disagree { color: var(--muted); }
   .clip .ai-oov { border-bottom: 1px dashed var(--accent); }
@@ -169,6 +171,7 @@ function renderClip(speaker, c, currentEmotion) {
       <select class="relabel-select" data-original="${escapeHtml(currentEmotion)}">${options}</select>
       <select class="register-select" data-original="${escapeHtml(currentRegister)}">${registerOptions}</select>
       ${c.relabeled ? `<span class="relabel-badge">you relabeled this (text expected ${escapeHtml(c.original_emotion)})</span>` : ''}
+      ${c.agent_emotion ? `<span class="agent-gt-badge" title="${escapeHtml(c.agent_instruct || '')}">agent ground truth: <strong>${escapeHtml(c.agent_emotion)}</strong> - reads full text + conversation + dossier, independent of your decision above</span>` : ''}
       <button class="accept-btn ${c.decision === 'accept' ? 'active' : ''}">Accept</button>
       <button class="reject-btn ${c.decision === 'reject' ? 'active' : ''}">Reject</button>
     </div>`;

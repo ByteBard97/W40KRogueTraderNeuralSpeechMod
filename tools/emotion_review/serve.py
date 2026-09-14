@@ -43,6 +43,7 @@ AUDIO_LLM_PATH = VOICES / "emotion_banks/audio_llm_labels.json"
 AUDIO_LLM_LABELS = json.loads(AUDIO_LLM_PATH.read_text(encoding="utf-8")) if AUDIO_LLM_PATH.exists() else {}
 CURATION_PATH = VOICES / "emotion_banks/curation.json"
 CUSTOM_EMOTIONS_PATH = VOICES / "emotion_banks/custom_emotions.json"
+AGENT_GROUND_TRUTH_DIR = ROOT / "data/annotations/cache_claude_abelard_voiced"
 
 CATALOG_SPEAKERS = {c["speaker"] for c in CATALOG.values() if c.get("speaker")}
 EMOTION_ORDER = ["angry", "commanding", "fear", "surprised", "pleading", "sad", "whisper",
@@ -124,6 +125,24 @@ def audio_llm_emotion(event: str) -> str | None:
         if pred and pred.get("labels"):
             return pred["labels"][0]["word"]
     return None
+
+
+def load_agent_ground_truth() -> dict[str, dict]:
+    """{text_key: {"emotion", "instruct", ...}} from the interactive_next.py/
+    interactive_submit.py --voiced ground-truth pass (tools/annotate/) - read fresh every
+    call, not cached at import time, since that pass writes new cache files as it goes and
+    a curator watching this page shouldn't need a server restart to see them appear.
+    Deliberately separate from curation.json: this is the agent's independent read of what
+    the line should sound like (dossier + full text + conversation context), shown
+    alongside a human's own accept/reject/relabel decision for comparison, never merged
+    into or overwriting it."""
+    if not AGENT_GROUND_TRUTH_DIR.exists():
+        return {}
+    by_key: dict[str, dict] = {}
+    for f in sorted(AGENT_GROUND_TRUTH_DIR.glob("*.json")):
+        for rec in json.loads(f.read_text(encoding="utf-8"))["lines"]:
+            by_key[rec["guid"]] = rec
+    return by_key
 
 
 def effective_emotion(event: str, record: dict | None, original: str) -> str:
@@ -235,6 +254,7 @@ def _candidates_for(speaker: str, decisions: dict) -> dict[str, list[dict]]:
     human-relabeled emotion where one exists, else the audio-informed prediction, else the LLM's
     original text-based prediction."""
     by_emotion: dict[str, list[dict]] = {}
+    ground_truth = load_agent_ground_truth()
     for event, c in CATALOG.items():
         if c.get("speaker") != speaker or not c.get("texts"):
             continue
@@ -256,10 +276,13 @@ def _candidates_for(speaker: str, decisions: dict) -> dict[str, list[dict]]:
         original_emotion = (ann or {}).get("emotion", "neutral")  # text-only annotation, blind to audio
         record = decisions.get(event)
         emotion = effective_emotion(event, record, original_emotion)
+        gt = ground_truth.get(guid)
         by_emotion.setdefault(emotion, []).append({
             "event": event, "text": c["texts"][0]["text"], "guid": guid,
             "intensity": (ann or {}).get("intensity"), "ser_label": ser["label"] if ser else None,
             "ser_confidence": ser["confidence"] if ser else None,
+            "agent_emotion": gt.get("emotion") if gt else None,
+            "agent_instruct": gt.get("instruct") if gt else None,
             "original_emotion": original_emotion, "audio_emotion": audio_llm_emotion(event),
             "audio_llm": {"audio": audio_llm_prediction(event, "audio"),
                           "audio+text": audio_llm_prediction(event, "audio+text")},
