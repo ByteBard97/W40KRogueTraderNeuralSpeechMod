@@ -4,8 +4,14 @@
 annotate.py's automated runs use, so --merge and diff_cache_vs_production.py consume it
 unchanged.
 
+With --voiced, labels his ~84 already-voiced lines instead - a ground-truth pass over
+real game audio to calibrate his emotional range before labeling the unvoiced corpus.
+This output is NOT meant to ever --merge into annotations.enGB.json (voiced lines use
+real audio, not TTS) - it feeds a histogram of his actual emotional distribution and
+the curate.html reference-clip review tool instead.
+
 Usage: interactive_submit.py [--cache-dir DIR] [--chunk N] [--chunk-size N]
-                              [--chunk-overlap N] [--input PATH] <conv_guid> <json_file_or_->
+                              [--chunk-overlap N] [--input PATH] [--voiced] <conv_guid> <json_file_or_->
 """
 from __future__ import annotations
 
@@ -24,6 +30,7 @@ from schema import NONVERBALS, PACES  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_CACHE_DIR = ROOT / "data/annotations/cache_claude_abelard"
+DEFAULT_VOICED_CACHE_DIR = ROOT / "data/annotations/cache_claude_abelard_voiced"
 DEFAULT_CONVERSATIONS_PATH = ROOT / "data/conversations.enGB.json"
 VOCAB_PATH = ROOT / "data/voices/emotion_banks/speaker_vocab.json"
 
@@ -148,14 +155,16 @@ def validate_submission(submitted: dict, required: list[dict], vocab: list[str])
 
 def run(args: argparse.Namespace) -> None:
     validate_chunk_params(args.chunk_size, args.chunk_overlap)
-    cache_dir = Path(args.cache_dir) if args.cache_dir else DEFAULT_CACHE_DIR
+    voiced = getattr(args, "voiced", False)
+    default_dir = DEFAULT_VOICED_CACHE_DIR if voiced else DEFAULT_CACHE_DIR
+    cache_dir = Path(args.cache_dir) if args.cache_dir else default_dir
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     input_path = Path(args.input) if args.input else DEFAULT_CONVERSATIONS_PATH
     convs = json.loads(input_path.read_text(encoding="utf-8"))
     conv = find_conversation(convs, args.conv_guid)
 
-    targets = abelard_targets(conv)
+    targets = abelard_targets(conv, voiced=voiced)
     if not targets:
         raise SubmitError(f"conversation {args.conv_guid!r} has no Abelard targets")
 
@@ -204,6 +213,9 @@ def main() -> None:
     ap.add_argument("--chunk-size", type=int, default=50)
     ap.add_argument("--chunk-overlap", type=int, default=10)
     ap.add_argument("--input", default=None, help="override conversations JSON (for testing)")
+    ap.add_argument("--voiced", action="store_true",
+                    help="label Abelard's already-voiced lines instead of the unvoiced "
+                         "corpus - must match the --voiced used with interactive_next.py")
     args = ap.parse_args()
     try:
         run(args)

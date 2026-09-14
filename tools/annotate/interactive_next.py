@@ -23,6 +23,7 @@ from schema import NONVERBALS, PACES  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_CACHE_DIR = ROOT / "data/annotations/cache_claude_abelard"
+DEFAULT_VOICED_CACHE_DIR = ROOT / "data/annotations/cache_claude_abelard_voiced"
 CONVERSATIONS_PATH = ROOT / "data/conversations.enGB.json"
 BIOS_PATH = ROOT / "data/character_bios.json"
 VOCAB_PATH = ROOT / "data/voices/emotion_banks/speaker_vocab.json"
@@ -64,9 +65,9 @@ def resolve_chunk_params(cache_dir: Path, conv_guid: str,
 
 
 def render(conv: dict, chunk_index: int, chunk_size: int, overlap: int,
-           already_labeled: set[str], bios: dict, vocab: list[str]) -> str:
+           already_labeled: set[str], bios: dict, vocab: list[str], voiced: bool = False) -> str:
     dialogue = dialogue_lines(conv)
-    all_targets = abelard_targets(conv)
+    all_targets = abelard_targets(conv, voiced=voiced)
     idx_by_key = dict(zip((t["text_key"] for t in all_targets),
                           target_indices(dialogue, all_targets)))
     ranges = chunk_ranges(dialogue, list(idx_by_key.values()), chunk_size, overlap)
@@ -120,7 +121,8 @@ def render(conv: dict, chunk_index: int, chunk_size: int, overlap: int,
         footer.append(f"(already labeled elsewhere, shown for context only: "
                        f"{', '.join(elsewhere_here)})")
     chunk_flag = f" --chunk {chunk_index}" if chunk_index else ""
-    footer.append(f"Submit with: interactive_submit.py {conv['guid']}{chunk_flag} <json-file>")
+    voiced_flag = " --voiced" if voiced else ""
+    footer.append(f"Submit with: interactive_submit.py{voiced_flag} {conv['guid']}{chunk_flag} <json-file>")
     return "\n".join(header + body + footer)
 
 
@@ -128,13 +130,18 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("conv_guid", nargs="?", default=None)
     ap.add_argument("chunk_index", nargs="?", type=int, default=0)
-    ap.add_argument("--cache-dir", default=str(DEFAULT_CACHE_DIR))
+    ap.add_argument("--cache-dir", default=None)
     ap.add_argument("--chunk-size", type=int, default=50)
     ap.add_argument("--chunk-overlap", type=int, default=10)
+    ap.add_argument("--voiced", action="store_true",
+                    help="label Abelard's ~84 already-voiced lines (real game audio) "
+                         "instead of the unvoiced corpus - a ground-truth pass to "
+                         "calibrate his emotional range before labeling unvoiced text")
     args = ap.parse_args()
 
     validate_chunk_params(args.chunk_size, args.chunk_overlap)
-    cache_dir = Path(args.cache_dir)
+    default_dir = DEFAULT_VOICED_CACHE_DIR if args.voiced else DEFAULT_CACHE_DIR
+    cache_dir = Path(args.cache_dir) if args.cache_dir else default_dir
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     convs = json.loads(CONVERSATIONS_PATH.read_text(encoding="utf-8"))
@@ -149,7 +156,7 @@ def main() -> None:
             sys.exit(1)
         chunk_size, overlap = resolve_chunk_params(cache_dir, args.conv_guid,
                                                     args.chunk_size, args.chunk_overlap)
-        all_targets = abelard_targets(conv)
+        all_targets = abelard_targets(conv, voiced=args.voiced)
         dialogue = dialogue_lines(conv)
         idxs = target_indices(dialogue, all_targets)
         ranges = chunk_ranges(dialogue, idxs, chunk_size, overlap)
@@ -164,11 +171,12 @@ def main() -> None:
         out_path = (cache_dir / f"{args.conv_guid}__chunk{args.chunk_index}.json" if chunked
                     else cache_dir / f"{args.conv_guid}.json")
         already_labeled_here = scan_already_labeled_keys(cache_dir, exclude_path=out_path)
-        print(render(conv, args.chunk_index, chunk_size, overlap, already_labeled_here, bios, vocab))
+        print(render(conv, args.chunk_index, chunk_size, overlap, already_labeled_here, bios, vocab,
+                      voiced=args.voiced))
         return
 
     for conv in convs:
-        all_targets = abelard_targets(conv)
+        all_targets = abelard_targets(conv, voiced=args.voiced)
         remaining = unlabeled_targets(all_targets, already_labeled)
         if not remaining:
             continue
@@ -183,7 +191,8 @@ def main() -> None:
             canonical_chunk(idx, ranges) for key, idx in idx_by_key.items() if key in remaining_keys
         }
         chunk_index = min(canonical_indices_for_remaining)
-        print(render(conv, chunk_index, chunk_size, overlap, already_labeled, bios, vocab))
+        print(render(conv, chunk_index, chunk_size, overlap, already_labeled, bios, vocab,
+                      voiced=args.voiced))
         return
 
     print("Nothing left to label - every Abelard target has a cache entry.")

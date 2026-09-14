@@ -205,7 +205,7 @@ def test_resolve_chunk_params_reuses_recorded_values(tmp_path):
 
 def _args(**overrides):
     defaults = dict(conv_guid="conv1", json_file=None, cache_dir=None, chunk=0,
-                     chunk_size=50, chunk_overlap=10, input=None)
+                     chunk_size=50, chunk_overlap=10, input=None, voiced=False)
     defaults.update(overrides)
     return argparse.Namespace(**defaults)
 
@@ -332,3 +332,22 @@ def test_run_resubmitting_same_chunk_does_not_treat_its_own_prior_output_as_a_co
 
     out = json.loads((cache_dir / "conv1.json").read_text(encoding="utf-8"))
     assert out["lines"][0]["emotion"] == "hopeful"  # corrected value, not silently skipped
+
+
+def test_run_voiced_true_targets_voiced_lines_not_unvoiced(tmp_path):
+    voiced_line = {"guid": "v1", "kind": "cue", "text_key": "v1", "text": "spoken",
+                   "speaker": {"name": "Abelard"}, "voiced": "SomeCatalogEvent_01"}
+    unvoiced_line = _target("u1", text="unspoken")
+    convs_path = tmp_path / "convs.json"
+    convs_path.write_text(json.dumps([{
+        "guid": "conv1", "name": "Conv1", "lines": [voiced_line, unvoiced_line],
+    }]), encoding="utf-8")
+    submitted_path = tmp_path / "submitted.json"
+    submitted_path.write_text(json.dumps({"v1": _label()}), encoding="utf-8")
+    cache_dir = tmp_path / "cache"
+
+    run(_args(json_file=str(submitted_path), cache_dir=str(cache_dir),
+              input=str(convs_path), voiced=True))
+
+    out = json.loads((cache_dir / "conv1.json").read_text(encoding="utf-8"))
+    assert [line["guid"] for line in out["lines"]] == ["v1"]
