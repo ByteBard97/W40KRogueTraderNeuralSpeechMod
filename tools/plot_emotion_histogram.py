@@ -1,16 +1,32 @@
 #!/usr/bin/env python3
-"""Plot a histogram of emotion label counts from an interactive-annotation cache dir,
-with the x-axis grouped by data/voices/emotion_banks/custom_emotions.json's energy
-tiers (Low energy -> Low-mid -> Mid -> Mid-high -> High -> Register modifiers ->
-Custom) instead of alphabetical or arbitrary order, so visually adjacent bars are
-emotionally similar.
+"""Plot a histogram of emotion label counts, with the x-axis grouped by
+data/voices/emotion_banks/custom_emotions.json's energy tiers (Low energy -> Low-mid ->
+Mid -> Mid-high -> High -> Register modifiers -> Custom) instead of alphabetical or
+arbitrary order, so visually adjacent bars are emotionally similar.
 
-Usage: python3 tools/plot_emotion_histogram.py [--cache-dir DIR] [--out PATH] [--title TEXT]
+Two data sources, pick one:
 
-Default --cache-dir is data/annotations/cache_claude_abelard_voiced (the ground-truth
-pass over Abelard's voiced lines); point it elsewhere (e.g.
-data/annotations/cache_claude_abelard, the unvoiced harness's output) to plot any other
-interactive-annotation cache directory in the same cache-file format.
+  --curation-speaker NAME   Real, ear-verified human labels from curation.json - the
+                             correct source for a voiced character's true emotional
+                             range, since a human actually listened to the recording.
+                             This is what curate.html itself is built on.
+
+  --cache-dir DIR           An interactive-annotation cache dir (interactive_next.py/
+                             interactive_submit.py's output format) - text-only, agent-
+                             assigned labels. Use this for the UNVOICED corpus, where no
+                             audio exists to listen to and a context-aware read is the
+                             only signal available. Do NOT use this for a voiced
+                             character's calibration profile - a text-only guess is
+                             strictly weaker evidence than a human who actually listened,
+                             and mixing the two silently understates how much real
+                             ground truth already exists (this mistake was made once
+                             already for Abelard: a 53-line text-only pass was reported
+                             as "his real range" when 136 of his 307 real voiced lines
+                             already had a human ear-verified label in curation.json).
+
+Usage:
+  python3 tools/plot_emotion_histogram.py --curation-speaker Abelard [--out PATH] [--title TEXT]
+  python3 tools/plot_emotion_histogram.py --cache-dir data/annotations/cache_claude_abelard
 """
 from __future__ import annotations
 
@@ -20,16 +36,33 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_CACHE_DIR = ROOT / "data/annotations/cache_claude_abelard_voiced"
+CURATION_PATH = ROOT / "data/voices/emotion_banks/curation.json"
 CUSTOM_EMOTIONS_PATH = ROOT / "data/voices/emotion_banks/custom_emotions.json"
 
 
-def count_emotions(cache_dir: Path) -> Counter:
-    """Every emotion value across every *.json cache file's "lines" list."""
+def count_emotions_from_cache(cache_dir: Path) -> Counter:
+    """Every emotion value across every *.json cache file's "lines" list - text-only,
+    agent-assigned. See this module's docstring for when this is (and isn't) the right
+    source."""
     counts: Counter = Counter()
     for f in sorted(cache_dir.glob("*.json")):
         for rec in json.loads(f.read_text(encoding="utf-8"))["lines"]:
             counts[rec["emotion"]] += 1
+    return counts
+
+
+def count_emotions_from_curation(speaker: str) -> Counter:
+    """Every human-assigned emotion in curation.json for one speaker - real, ear-
+    verified ground truth (a human listened to the actual recording and picked this).
+    The correct source for a voiced character's calibration profile."""
+    if not CURATION_PATH.exists():
+        return Counter()
+    curation = json.loads(CURATION_PATH.read_text(encoding="utf-8"))
+    counts: Counter = Counter()
+    for rec in curation.get(speaker, {}).values():
+        emotion = rec.get("emotion")
+        if emotion:
+            counts[emotion] += 1
     return counts
 
 
@@ -93,24 +126,45 @@ def plot(counts: Counter, ordered: list[tuple[str, str]], title: str, out_path: 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--cache-dir", default=str(DEFAULT_CACHE_DIR))
-    ap.add_argument("--out", default=None,
-                     help="output image path (default: <cache-dir>_histogram.png)")
+    ap.add_argument("--curation-speaker", default=None,
+                     help="plot real human-verified labels for this speaker from "
+                          "curation.json (recommended for any voiced character)")
+    ap.add_argument("--cache-dir", default=None,
+                     help="plot an interactive-annotation cache dir instead (text-only "
+                          "labels - use for the unvoiced corpus, not a voiced one)")
+    ap.add_argument("--out", default=None, help="output image path")
     ap.add_argument("--title", default=None)
     args = ap.parse_args()
 
-    cache_dir = Path(args.cache_dir)
-    counts = count_emotions(cache_dir)
+    if bool(args.curation_speaker) == bool(args.cache_dir):
+        raise SystemExit("pass exactly one of --curation-speaker or --cache-dir")
+
+    if args.curation_speaker:
+        counts = count_emotions_from_curation(args.curation_speaker)
+        source_label = f"curation.json:{args.curation_speaker}"
+        default_out = ROOT / f"data/voices/emotion_banks/{args.curation_speaker}_curated_histogram.png"
+        default_title = (f"{args.curation_speaker}: real emotional range "
+                          f"(n={sum(counts.values())}, human ear-verified)")
+        source_note = "no labels found" if not counts else None
+    else:
+        cache_dir = Path(args.cache_dir)
+        counts = count_emotions_from_cache(cache_dir)
+        source_label = str(cache_dir)
+        default_out = cache_dir.parent / f"{cache_dir.name}_histogram.png"
+        default_title = f"Emotion distribution: {cache_dir.name} ({sum(counts.values())} lines)"
+        source_note = f"no labels found in {cache_dir}" if not counts else None
+
     if not counts:
-        print(f"no labels found in {cache_dir}", flush=True)
+        print(source_note, flush=True)
         return
 
     tiers = load_tiers()
     ordered = ordered_words(counts, tiers)
-    out_path = Path(args.out) if args.out else cache_dir.parent / f"{cache_dir.name}_histogram.png"
-    title = args.title or f"Emotion distribution: {cache_dir.name} ({sum(counts.values())} lines)"
+    out_path = Path(args.out) if args.out else default_out
+    title = args.title or default_title
     plot(counts, ordered, title, out_path)
 
+    print(f"source: {source_label}")
     print(f"{sum(counts.values())} labeled lines, {len(counts)} distinct emotions")
     for word, tier in ordered:
         print(f"  [{tier}] {word}: {counts[word]}")
