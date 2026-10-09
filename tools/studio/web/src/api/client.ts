@@ -1,5 +1,5 @@
 import type {
-  OverrideBody, PoolSummary, QueueEntry, RoutesPage, SpotSample,
+  FxLabels, FxPresetInfo, FxPreview, FxWritten, OverrideBody, PoolSummary, QueueEntry, RoutesPage, SpotSample,
   CloneRequest, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
 } from './types'
 
@@ -52,4 +52,9 @@ export const api = {
   poolMerge: (slot: string, into: string) => post<{ changed: number }>(`/api/pools/slots/${encodeURIComponent(slot)}/merge`, { into }),
   poolSpot: (slot: string, seed?: number) => request<SpotSample>(`/api/pools/spot-check/${encodeURIComponent(slot)}${seed === undefined ? '' : `?seed=${seed}`}`),
   poolSpotRecord: (slot: string, results: Record<string, boolean>) => post<{ checked: number; wrong: number }>(`/api/pools/spot-check/${encodeURIComponent(slot)}`, { results }),
+  fxLibrary: () => request<FxPresetInfo[]>('/api/fx/library'),
+  fxLabels: () => request<FxLabels>('/api/fx/labels'),
+  fxSaveLabels: (labels: FxLabels) => post<FxLabels>('/api/fx/labels', labels),
+  fxPreview: () => request<FxPreview>('/api/fx/assignments/preview'),
+  fxWrite: () => post<FxWritten>('/api/fx/assignments'),
 }

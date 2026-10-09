@@ -87,17 +87,19 @@ def make_pool_repo(root: Path) -> Config:
         return {"id": rid, "name": name, "label": rid.title(), "gender": gender, "species": species, "age": age,
                 "conf": {"gender": 0.95, "species": 0.95, "age": 0.9}, "evidence": [f"{rid} said something"]}
 
-    def ln(n, key, speaker, conf=1.0):
-        return {"n": n, "key": key, "speaker": speaker, "conf": {"speaker": conf}}
+    def ln(n, key, speaker, conf=1.0, fx=None):
+        return {"n": n, "key": key, "speaker": speaker, "conf": {"speaker": conf}, **({"fx": fx} if fx else {})}
 
     roster = [
         {"conversation": "C1", "roster": [ent("a", "Heinrix"), ent("b", "Tervantias")],
          "lines": [ln(0, "u1", "a"), ln(1, "u2", "a"), ln(2, "u3", "b"), ln(3, "u4", "NARRATOR")]},
         {"conversation": " C2", "roster": [ent("m"), ent("f", gender="female"), ent("q", gender="unknown")],
-         "lines": ([ln(i, f"u{5 + i}", "m") for i in range(5)] + [ln(5 + i, f"u{10 + i}", "f") for i in range(3)]
+         "lines": ([ln(0, "u5", "m", fx=["machine"]), ln(1, "u6", "m", fx=["vox_channel", "helmet"]), ln(2, "u7", "m"),
+                   ln(3, "u8", "m"), ln(4, "u9", "m")] + [ln(5, "u10", "f", fx=["machine", "machine"]), ln(6, "u11", "f"), ln(7, "u12", "f", fx=["ethereal"])]
                    + [ln(8, "u13", "q"), ln(9, "u14", "q"), ln(10, "u15", "ghost")])},
     ]
     put(d / "npc_profile/roster_35b_all.json", roster)
+    put(d / "fx_lab/presets.json", {"Mine": {"dsp": "chain.dsp", "params": {}, "notes": "my preset"}})
     unit = lambda name: {"speaker": {"kind": "unit", "name": name, "gender": "Male"}}
     put(d / "conversations.enGB.json", [{"lines": [unit("Heinrix")] * 5 + [unit("Tervantias the Archmachinator")] * 5}])
     prompts = json.loads((d / "voices/prompts/prompts.json").read_text(encoding="utf-8"))

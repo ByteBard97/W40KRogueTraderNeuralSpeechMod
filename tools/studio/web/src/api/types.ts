@@ -210,3 +210,25 @@ export interface OverrideBody {
   slot?: string
   speaker?: string
 }
+
+export interface FxPresetInfo {
+  name: string
+  source: 'scenario' | 'saved'
+  dsp: string
+  notes: string
+}
+
+export type FxLabels = Record<string, string[]>
+
+export interface FxPreview {
+  lines: number
+  speakers: number
+  unmapped_labels: Record<string, number>
+  sample: { guid: string; presets: string[] }[]
+}
+
+export interface FxWritten {
+  path: string
+  lines: number
+  speakers: number
+}

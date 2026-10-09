@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import SpeakersView from './views/SpeakersView.vue'
 import SpeakerView from './views/SpeakerView.vue'
 import PoolsView from './views/PoolsView.vue'
+import FxView from './views/FxView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -10,5 +11,6 @@ export const router = createRouter({
     { path: '/speakers', component: SpeakersView },
     { path: '/speakers/:slug', component: SpeakerView, props: true },
     { path: '/pools', component: PoolsView },
+    { path: '/fx', component: FxView },
   ],
 })

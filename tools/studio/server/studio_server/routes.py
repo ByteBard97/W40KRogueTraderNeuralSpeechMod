@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import clone, design, fx, pools, speakers, store
+from . import clone, design, fx, fx_library, pools, speakers, store
 from .errors import ApiError
 from .router import Router
 
@@ -55,4 +55,9 @@ def build_router() -> Router:
     r.add("GET", "/api/pools/spot-check/{slot}", lambda q: pools.spot_check_sample(q.cfg, q.params["slot"], q.query.get("seed")))
     r.add("POST", "/api/pools/spot-check/{slot}",
           lambda q: pools.record_spot_check(q.cfg, q.params["slot"], q.body.get("results", {})))
+    r.add("GET", "/api/fx/library", lambda q: fx_library.library(q.cfg))
+    r.add("GET", "/api/fx/labels", lambda q: fx_library.get_labels(q.cfg))
+    r.add("POST", "/api/fx/labels", lambda q: fx_library.save_labels(q.cfg, q.body))
+    r.add("GET", "/api/fx/assignments/preview", lambda q: fx_library.preview(q.cfg))
+    r.add("POST", "/api/fx/assignments", lambda q: fx_library.write(q.cfg))
     return r

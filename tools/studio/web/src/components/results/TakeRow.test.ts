@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { ref } from 'vue'
+import { routerKey } from 'vue-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../../api/client'
 import { SPEAKER_CTX_KEY } from '../../composables/useSpeakerContext'
@@ -70,5 +71,13 @@ describe('TakeRow', () => {
     await w.find('[data-clear-fx]').trigger('click')
     await flushPromises()
     expect(api.takeFx).toHaveBeenCalledWith('pasqal', 't1', [])
+  })
+
+  it('opens the take in the FX Lab with its raw path in the query', async () => {
+    const push = vi.fn()
+    const ctx = { slug: 'pasqal', fxChosen: ref<string[]>([]), upsertTake: vi.fn() }
+    const w = mount(TakeRow, { props: { take: take() as never, line: line as never }, global: { provide: { [SPEAKER_CTX_KEY as symbol]: ctx, [routerKey as symbol]: { push } } } })
+    await w.find('[data-open-fx]').trigger('click')
+    expect(push).toHaveBeenCalledWith({ path: '/fx', query: { clip: 'data/raw.wav' } })
   })
 })

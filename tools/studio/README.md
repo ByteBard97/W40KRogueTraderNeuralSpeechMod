@@ -59,9 +59,18 @@ entry; `match_decisions.json` (written by the match review page) overrides the m
 reads `pools.json`; re-running `plan.py` is what makes the routes take effect in `jobs.jsonl`, and that run is the
 owner's call (it rewrites the job list).
 
+## FX
+
+`/fx` embeds the FX Lab (port 8908, `python3 tools/fx_lab/server.py`), lists the preset library (scenarios plus saved
+presets), edits the label map (`data/studio/fx_labels.json`: harness label to ordered presets) and expands it, plus the
+active speaker profiles, into `data/fx_lab/assignments.json` for `tools/fx_lab/batch.py`. Preview first; Write keeps the
+previous file as `assignments.json.bak`. "open in FX Lab" on a take sends its audio into the FX Lab page, and saving a
+preset there shows up in the studio. The bridge is `postMessage` pinned to the two local origins; it needed one listener
+added to `tools/fx_lab/index.html`.
+
 ## Still around
 
-The FX Lab (:8908), match review (:8920) and render QA (:8951) are not replaced yet.
+Match review (:8920) and render QA (:8951) are not replaced yet.
 
 ## Verified on the model
 

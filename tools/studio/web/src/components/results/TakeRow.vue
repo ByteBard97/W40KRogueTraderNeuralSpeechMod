@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { api } from '../../api/client'
 import type { Line, Take } from '../../api/types'
 import { useSpeakerContext } from '../../composables/useSpeakerContext'
@@ -8,6 +9,7 @@ import StarRating from '../shared/StarRating.vue'
 
 const props = defineProps<{ take: Take; line: Line | null }>()
 const ctx = useSpeakerContext()
+const router = useRouter()
 const error = ref('')
 const busy = ref(false)
 
@@ -42,6 +44,7 @@ async function applyFx(presets: string[] = presetsToApply.value) {
   <div class="take">
     <ClipCompare :clips="clips" />
     <button data-fx :disabled="!canApply || busy" @click="applyFx()">{{ take.fx ? 're-apply FX' : 'apply FX' }}</button>
+    <button data-open-fx title="Open this take in the FX Lab" @click="router?.push({ path: '/fx', query: { clip: take.raw } })">open in FX Lab</button>
     <button v-if="take.fx" data-clear-fx :disabled="busy" @click="applyFx([])">clear FX</button>
     <span class="dim">{{ source }} · seed {{ take.seed }} · cfg {{ take.options.cfg }} · {{ take.options.timesteps }} steps · {{ take.audio_s ?? '?' }}s audio</span>
     <StarRating :model-value="take.rating" @update:model-value="rate" />
