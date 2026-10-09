@@ -8,7 +8,9 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from .config import DEFAULT_BACKEND_URL, Config
+from .errors import ApiError
 from .model import ModelClient
+from . import qa
 from .routes import build_router
 
 DEFAULT_PORT = 8930
@@ -41,6 +43,15 @@ def make_server(cfg: Config, model: ModelClient, port: int = DEFAULT_PORT, web_d
                 if p is None:
                     return self._send(404, b"not found", "text/plain")
                 return self._send(200, p.read_bytes(), mimetypes.guess_type(p.name)[0] or "application/octet-stream")
+            if u.path == "/fx-file":
+                args = {k: v[0] for k, v in parse_qs(u.query).items()}
+                p = cfg.resolve_file(args.get("p", ""))
+                if p is None or p.suffix != ".wav":
+                    return self._send(404, b"not found", "text/plain")
+                try:
+                    return self._send(200, qa.compressed(p, args.get("fx", "")), "audio/wav")
+                except ApiError as e:
+                    return self._send(e.status, e.message.encode(), "text/plain")
             rel = u.path.lstrip("/")
             f = (dist / rel).resolve() if rel else None
             if f and f.is_file() and dist.resolve() in f.parents:

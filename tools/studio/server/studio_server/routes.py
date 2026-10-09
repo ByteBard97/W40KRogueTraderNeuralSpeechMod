@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import clone, design, fx, fx_library, matches, pools, speakers, store
+from . import clone, design, fx, fx_library, matches, pools, qa, speakers, store
 from .errors import ApiError
 from .router import Router
 
@@ -64,4 +64,13 @@ def build_router() -> Router:
         q.cfg, group=q.query.get("group"), speaker=q.query.get("speaker"), state=q.query.get("state"), q=q.query.get("q"),
         offset=q.query.get("offset", 0), limit=q.query.get("limit", matches.DEFAULT_LIMIT)))
     r.add("POST", "/api/matches/decision", lambda q: matches.save(q.cfg, q.body.get("id", ""), q.body.get("value", "")))
+    run = lambda q: q.query.get("run") or qa.EXPORT
+    r.add("GET", "/api/qa/runs", lambda q: qa.runs(q.cfg))
+    r.add("GET", "/api/qa/facets", lambda q: qa.facets(q.cfg, run(q)))
+    r.add("GET", "/api/qa/clips", lambda q: qa.page(
+        q.cfg, run(q), speaker=q.query.get("speaker"), ref=q.query.get("ref"), engine=q.query.get("engine"),
+        flag=q.query.get("flag"), verdict=q.query.get("verdict"), q=q.query.get("q"),
+        sort=q.query.get("sort", "suspicious"), seed=q.query.get("seed", 0),
+        offset=q.query.get("offset", 0), limit=q.query.get("limit", qa.DEFAULT_LIMIT)))
+    r.add("POST", "/api/qa/verdict", lambda q: qa.set_verdict(q.cfg, q.body.get("run") or qa.EXPORT, q.body))
     return r
