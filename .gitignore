@@ -57,3 +57,8 @@ docs/research/emotional-expressiveness-prompts.md
 /.playwright-mcp
 /tools/audio_emotion_labeling/.venv-qwen2audio
 /tools/audio_emotion_labeling/.venv-ultravox
+/tools/audio_emotion_labeling/.venv-omni
+/tools/scorer/.venv-scorer
+/tools/fx_lab/vendor/
+/tools/studio/web/node_modules/
+/tools/studio/web/dist/
