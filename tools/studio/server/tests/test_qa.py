@@ -42,7 +42,9 @@ def qcfg(tmp_path):
         {"guid": "r3", "status": "error", "speaker": "Pasqal", "engine": "voxcpm2", "text": "failed", "flags": []},
     ]) + "\n", encoding="utf-8")
     (run / "asr.jsonl").write_text(json.dumps({"guid": "r2", "flags": ["asr_dropped"], "heard": "Run line", "wer": 0.4}) + "\n", encoding="utf-8")
-    put(run / "real.json", {"r2": [{"speaker": "Pasqal", "text": "x", "wav": "real/a.wav", "located": True}]})
+    put(run / "real.json", {"r2": [{"wav": "real/r2_1.wav", "speaker": "Pasqal", "event": "Ev_1", "text": "Said by Pasqal.", "located": True},
+                                   {"wav": "real/r2_2.wav", "speaker": "_unattributed", "event": "Ev_2", "text": "Narrated.", "located": False}]})
+    write_wav(run / "real/r2_1.wav", 1.0, SR)
     write_wav(cfg.render / "export/wav/r1.wav", 2.0, SR)       # an earlier render of r1
     return cfg
 
@@ -84,7 +86,11 @@ def test_run_clips_skip_failures_and_carry_asr_real_and_the_old_render(qcfg):
     assert set(by) == {"r1", "r2"}
     assert by["r1"]["wav"] == "data/render/runA/wav/r1.wav" and by["r1"]["old"] == "data/render/export/wav/r1.wav" and by["r2"]["old"] is None
     assert "asr_dropped" in by["r2"]["flags"] and by["r2"]["heard"] == "Run line" and by["r2"]["wer"] == 0.4
-    assert by["r2"]["real"] and by["r2"]["text"] == "Run line two {n}here{/n}."
+    assert by["r2"]["real"] == [
+        {"label": "Real: Pasqal", "path": "data/render/runA/real/r2_1.wav", "text": "Said by Pasqal.", "full_line": False},
+        {"label": "Real: _unattributed", "path": "data/render/runA/real/r2_2.wav", "text": "Narrated.", "full_line": True}]
+    assert qcfg.resolve_file(by["r2"]["real"][0]["path"]) is not None and by["r1"]["real"] == []
+    assert by["r2"]["text"] == "Run line two {n}here{/n}."
 
 
 @pytest.mark.parametrize("run", ["nope", "../etc", "runA/../x", ""])
@@ -144,7 +150,7 @@ def test_verdicts_set_clear_and_per_run_files(qcfg):
     p = qa.page(qcfg, "export", verdict="good")
     assert [i["guid"] for i in p["items"]] == ["q1"] and p["items"][0]["verdict"]["note"] == "nice"
     assert qa.page(qcfg, "export", verdict="unjudged")["total"] == 5
-    assert p["stats"] == {"good": 1, "bad": 0, "unjudged": 5}
+    assert {k: p["stats"][k] for k in ("good", "bad", "unjudged")} == {"good": 1, "bad": 0, "unjudged": 5}
     qa.set_verdict(qcfg, "export", {"guid": "q1", "verdict": None})
     assert read_json(qcfg.render / "audit/verdicts.json", {}) == {} and qa.page(qcfg, "export")["stats"]["good"] == 0
 
@@ -185,3 +191,20 @@ def test_the_export_cache_follows_the_jobs_files(qcfg):
     jobs.write_text(jobs.read_text(encoding="utf-8").replace("ordinary", "changed"), encoding="utf-8")
     os.utime(jobs, (1, 1_900_000_000))
     assert "changed" in next(c for c in qa.clips(qcfg, "export") if c["guid"] == "q1")["text"]
+
+
+def test_stats_tally_verdicts_per_reference(qcfg):
+    qa.set_verdict(qcfg, "export", {"guid": "q1", "verdict": "bad", "tags": [], "note": ""})
+    by_ref = qa.page(qcfg, "export")["stats"]["by_ref"]
+    assert by_ref["E1"] == {"good": 0, "bad": 1, "total": sum(1 for c in qa.clips(qcfg, "export") if c["ref"] == "E1")}
+    assert all(set(v) == {"good", "bad", "total"} for v in by_ref.values()) and "" not in by_ref
+
+
+def test_exclude_is_applied_before_slicing_and_random_order_survives_judging(qcfg):
+    every = [c["guid"] for c in qa.page(qcfg, "export", sort="random", seed=3, limit=200)["items"]]
+    rest = qa.page(qcfg, "export", sort="random", seed=3, exclude=",".join(every[:2]), limit=2)
+    assert [i["guid"] for i in rest["items"]] == every[2:4] and rest["total"] == len(every) - 2
+    qa.set_verdict(qcfg, "export", {"guid": every[2], "verdict": "bad", "tags": [], "note": ""})
+    unjudged = [i["guid"] for i in qa.page(qcfg, "export", sort="random", seed=3, verdict="unjudged", limit=200)["items"]]
+    assert unjudged == [g for g in every if g != every[2]]
+    assert qa.page(qcfg, "export", exclude=",".join(every))["items"] == []

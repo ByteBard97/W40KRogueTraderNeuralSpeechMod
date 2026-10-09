@@ -14,9 +14,20 @@ const FX_CHOICES: QaFx[] = ['mild', 'strong']
 const qa = useQaStore()
 const { play } = useAudioPlayer()
 const sel = ref(0)
-const fx = ref<QaFx | ''>('')
-let lastFx: QaFx = 'mild'
-watch(fx, (v) => { if (v) lastFx = v })
+const FX_KEY = 'studio.qa.fx'
+function savedFx(): QaFx | '' {
+  try {
+    const v = localStorage.getItem(FX_KEY)
+    return FX_CHOICES.includes(v as QaFx) ? (v as QaFx) : ''
+  } catch { return '' }
+}
+const fx = ref<QaFx | ''>(savedFx())
+let lastFx: QaFx = fx.value || 'mild'
+watch(fx, (v) => {
+  if (v) lastFx = v
+  try { localStorage.setItem(FX_KEY, v) } catch { /* private window: the choice just is not remembered */ }
+})
+const refTally = computed(() => Object.entries(qa.stats.by_ref ?? {}).map(([k, r]) => `${k}: ${r.good}g/${r.bad}b/${r.total}`).join('  '))
 
 const current = computed(() => qa.items[sel.value])
 const from = computed(() => (qa.total ? qa.offset + 1 : 0))
@@ -85,7 +96,7 @@ useQaKeys((a) => HANDLERS[a]())
     </div>
     <QaFilters :facets="qa.facets" :filter="qa.filter" @change="applyFilter" />
     <p class="dim" data-stats>
-      {{ qa.stats.good }} good · {{ qa.stats.bad }} bad · {{ qa.stats.unjudged }} unjudged · showing {{ from }}-{{ to }} of {{ qa.total }}
+      {{ qa.stats.good }} good · {{ qa.stats.bad }} bad · {{ qa.stats.unjudged }} unjudged · showing {{ from }}-{{ to }} of {{ qa.total }}<template v-if="refTally"> · <span data-ref-tally>{{ refTally }}</span></template>
     </p>
     <p v-if="qa.error" class="err">{{ qa.error }}</p>
     <EmptyState v-if="!qa.items.length && !qa.loading" message="No clips for these filters." />
@@ -101,8 +112,8 @@ useQaKeys((a) => HANDLERS[a]())
       @note="qa.setDetails(c.guid, c.verdict?.tags ?? [], $event)"
     />
     <div class="pager">
-      <button data-prev :disabled="!qa.canPrev" @click="prevPage">Previous</button>
-      <button data-next :disabled="!qa.hasNext" @click="nextPage">Next</button>
+      <button data-prev :disabled="!qa.canPrev || qa.loading" @click="prevPage">Previous</button>
+      <button data-next :disabled="!qa.hasNext || qa.loading" @click="nextPage">Next</button>
     </div>
   </div>
 </template>

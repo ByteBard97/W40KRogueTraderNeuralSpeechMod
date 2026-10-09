@@ -8,6 +8,7 @@ export interface SpeakerSummary {
   origin: 'real' | 'designed'
   line_count: number
   status: SpeakerStatus
+  has_pick: boolean
 }
 
 export interface RealClip {
@@ -33,12 +34,25 @@ export interface Candidate {
   gen: { seed?: number; cfg?: number; timesteps?: number; live?: boolean } | null
 }
 
+export interface CloneTest {
+  file: string
+  candidate: string | null
+  text: string
+  scores: { p_us: number; top?: string; p_top?: number } | null
+}
+
+export interface RegisterAllResult {
+  registered: string[]
+  skipped: { name: string; reason: string }[]
+}
+
 export interface DesignState {
   description: string
   text: string
   candidates: Candidate[]
   order: string[]
   pick: string | null
+  clones: CloneTest[]
 }
 
 export interface ModelOptions {
@@ -309,7 +323,7 @@ export interface QaClip {
   instruct: string
   ref_path: string
   ref: string
-  real: string[]
+  real: QaRealClip[]
   old: string | null
   heard: string
   wer: number | null
@@ -317,10 +331,24 @@ export interface QaClip {
   verdict: QaVerdict | null
 }
 
+export interface QaRealClip {
+  label: string
+  path: string
+  text: string
+  full_line: boolean
+}
+
+export interface QaRefTally {
+  good: number
+  bad: number
+  total: number
+}
+
 export interface QaStats {
   good: number
   bad: number
   unjudged: number
+  by_ref?: Record<string, QaRefTally>
 }
 
 export interface QaPage {

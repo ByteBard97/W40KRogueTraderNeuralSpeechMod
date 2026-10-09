@@ -4,6 +4,8 @@ import { useAudioPlayer } from '../../composables/useAudioPlayer'
 export interface ClipItem {
   key: string
   label: string
+  /** Hover text; defaults to the label. */
+  title?: string
   path: string | null
   /** Alternative audio URL (e.g. the compressed copy); it also names the clip while it plays. */
   src?: string
@@ -22,7 +24,7 @@ const start = (c: ClipItem) => (c.src ? play(c.src, c.src) : c.path && play(c.pa
       class="clip"
       :class="{ 'is-playing': id(c) !== null && playing === id(c) }"
       :disabled="!c.path"
-      :title="c.path ? c.label : 'no clip'"
+      :title="c.path ? (c.title ?? c.label) : 'no clip'"
       @click="start(c)"
     >
       {{ c.label }}

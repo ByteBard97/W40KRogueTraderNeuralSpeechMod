@@ -129,3 +129,51 @@ def test_keep_twice_with_the_same_take_does_not_make_a_duplicate(cfg):
     again = design.keep(cfg, "muaran", body)
     assert first == again
     assert read_json(cfg.voice_design / "design_manifest.json", {})["Muaran"]["candidates"].count(first["cand"]) == 1
+
+
+def _clone_fixture(cfg):
+    from conftest import put
+    put(cfg.voice_design / "clone_manifest.json", {
+        "muaran/c0_L0.wav": {"name": "Muaran", "candidate": "c0.wav", "text": "Real line one."},
+        "muaran/c1_L0.wav": {"name": "Muaran", "candidate": "c1.wav", "text": "Real line two."},
+        "other/c0_L0.wav": {"name": "Someone Else", "candidate": "c0.wav", "text": "Not ours."}})
+    write_wav(cfg.voice_design / "clones/muaran/c0_L0.wav")
+    put(cfg.voice_design / "scores.json", {"clones/muaran/c0_L0.wav": {"p_us": 0.8, "top": "england", "p_top": 0.5}})
+
+
+def test_design_payload_lists_this_speakers_clone_tests_with_scores(cfg):
+    from studio_server import speakers
+    _clone_fixture(cfg)
+    d = speakers.speaker_detail(cfg, "muaran")["design"]
+    assert [c["candidate"] for c in d["clones"]] == ["c0.wav", "c1.wav"]
+    first = d["clones"][0]
+    assert first["file"] == "data/voice_design/clones/muaran/c0_L0.wav" and first["text"] == "Real line one."
+    assert first["scores"]["p_us"] == 0.8 and d["clones"][1]["scores"] is None
+
+
+def test_design_payload_has_empty_clones_without_a_manifest(cfg):
+    from studio_server import speakers
+    assert speakers.speaker_detail(cfg, "muaran")["design"]["clones"] == []
+
+
+def test_list_flags_speakers_that_have_a_pick(cfg):
+    from studio_server import speakers
+    by = lambda: {s["name"]: s for s in speakers.list_speakers(cfg)}
+    assert by()["Muaran"]["has_pick"] is False and by()["Pasqal"]["has_pick"] is False
+    design.post_verdict(cfg, "muaran", {"cand": "c0.wav", "pick": True})
+    assert by()["Muaran"]["has_pick"] is True
+
+
+def test_register_all_registers_picks_and_reports_skips(cfg):
+    from conftest import put
+    design.post_verdict(cfg, "muaran", {"cand": "c0.wav", "pick": True})
+    r = design.register_all(cfg)
+    assert r == {"registered": ["Muaran"], "skipped": []}
+    assert (cfg.voices / "prompts/designed/muaran.wav").is_file()
+    put(cfg.voice_design / "audit.json", {"Muaran": {"pick": "c0.wav", "cands": {"c0.wav": {"reject": True}}}})
+    r2 = design.register_all(cfg)
+    assert r2["registered"] == [] and r2["skipped"][0]["name"] == "Muaran" and "rejected" in r2["skipped"][0]["reason"]
+
+
+def test_register_all_with_no_picks_is_empty(cfg):
+    assert design.register_all(cfg) == {"registered": [], "skipped": []}

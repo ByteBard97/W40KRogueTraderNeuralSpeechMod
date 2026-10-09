@@ -119,4 +119,35 @@ describe('QaView', () => {
     expect(w2.text()).toContain('boom')
     w2.unmount()
   })
+
+  it('shows the per-reference tally in the stats line', async () => {
+    const p = page(['a'])
+    ;(p.stats as Record<string, unknown>).by_ref = { abelard: { good: 2, bad: 1, total: 5 } }
+    const w = await mountView(p)
+    expect(w.find('[data-ref-tally]').text()).toBe('abelard: 2g/1b/5')
+    w.unmount()
+  })
+
+  it('remembers the compressor choice in localStorage', async () => {
+    localStorage.clear()
+    const w = await mountView()
+    await w.find('[data-fx]').setValue('strong')
+    expect(localStorage.getItem('studio.qa.fx')).toBe('strong')
+    w.unmount()
+    const again = await mountView()
+    expect((again.find('[data-fx]').element as HTMLSelectElement).value).toBe('strong')
+    again.unmount()
+    localStorage.clear()
+  })
+
+  it('disables paging while a page is loading', async () => {
+    const w = await mountView(page(['a'], 90))
+    let done!: (v: never) => void
+    vi.mocked(api.qaClips).mockImplementationOnce(() => new Promise<never>((r) => { done = r }))
+    await w.find('[data-next]').trigger('click')
+    expect(w.find('[data-next]').attributes('disabled')).toBeDefined()
+    done(page(['b'], 90, 40) as never)
+    await flushPromises()
+    w.unmount()
+  })
 })

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections import defaultdict
 
 from . import pools
@@ -12,6 +13,7 @@ SAMPLE_LINES = 3
 EVIDENCE_ITEMS = 3
 DEFAULT_LIMIT = 50
 MAX_PAGE = 200
+SAMPLE_CHARS = 600
 VALUES = ("", "accept", "reject")
 
 
@@ -29,9 +31,28 @@ def effective(row: dict, decided: dict) -> str:
     return stored or ("" if row["flagged"] else "accept")
 
 
+_TEXT: dict = {}     # not speakers._cached: pools._known already caches this file there under its own loader
+
+
+def _line_text(cfg: Config) -> dict[str, str]:
+    """text_key -> line text over every conversation line (the old match_review sampled all of them)."""
+    path = cfg.root / pools.CONVERSATIONS
+    if not path.exists():
+        return {}
+    stamp = path.stat().st_mtime_ns
+    hit = _TEXT.get(path)
+    if hit and hit[0] == stamp:
+        return hit[1]
+    convs = json.loads(path.read_text(encoding="utf-8"))
+    val = {ln["text_key"]: ln["text"] for cv in convs for ln in cv["lines"] if ln.get("text_key") and ln.get("text")}
+    _TEXT[path] = (stamp, val)
+    return val
+
+
 def rows(cfg: Config) -> list[dict]:
     roster, known = pools._roster(cfg), pools._known(cfg)
     text = {j["guid"]: j["text"] for j in pools._unnamed_jobs(cfg)}
+    text.update(_line_text(cfg))
     out = []
     for conv in roster:
         mine = defaultdict(list)
@@ -47,7 +68,7 @@ def rows(cfg: Config) -> list[dict]:
                 "id": entry_key(conv["conversation"], e["id"]), "conversation": conv["conversation"], "entry": e["id"],
                 "name": e.get("name"), "label": e.get("label"), "gender": e.get("gender"), "species": e.get("species"),
                 "role": e.get("role"), "evidence": (e.get("evidence") or [])[:EVIDENCE_ITEMS], "lines": len(keys),
-                "samples": [text.get(k, "") for k in keys[:SAMPLE_LINES]],
+                "samples": [text.get(k, "")[:SAMPLE_CHARS] for k in keys[:SAMPLE_LINES]],
                 "gaps": [pairs[i + 1][1] - pairs[i][1] > 1 for i in range(min(len(pairs), SAMPLE_LINES) - 1)],
                 "speaker": m["speaker"], "has_bank": bool(m["has_bank"]), "speaker_lines": m["lines"],
                 "game_gender": m["game_gender"], "warning": m.get("warning"), "ambiguous_with": m.get("ambiguous_with"),

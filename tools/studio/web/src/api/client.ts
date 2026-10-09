@@ -1,6 +1,6 @@
 import type {
   MatchFilter, MatchValue, QaFacets, QaFilter, QaPage, QaRun, QaVerdictBody, MatchesPage, FxLabels, FxPresetInfo, FxPreview, FxWritten, OverrideBody, PoolSummary, QueueEntry, RoutesPage, SpotSample,
-  CloneRequest, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
+  CloneRequest, RegisterAllResult, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
 } from './types'
 
 export class ApiRequestError extends Error {
@@ -37,6 +37,7 @@ export const api = {
   designOrder: (slug: string, order: string[]) => post<object>(`${S(slug)}/design/order`, { order }),
   designDescription: (slug: string, description: string) => post<object>(`${S(slug)}/design/description`, { description }),
   register: (slug: string) => post<{ registered: string[] }>(`${S(slug)}/register`),
+  registerAll: () => post<RegisterAllResult>('/api/speakers/register-all'),
   cloneGenerate: (slug: string, body: CloneRequest) => post<Take>(`${S(slug)}/clone/generate`, body),
   takeFx: (slug: string, id: string, presets: string[]) => post<Take>(`${S(slug)}/takes/${id}/fx`, { presets }),
   takeRate: (slug: string, id: string, body: { rating?: number; note?: string }) => post<Take>(`${S(slug)}/takes/${id}/rate`, body),
@@ -64,7 +65,7 @@ export const api = {
   matchDecision: (id: string, value: MatchValue) => post<{ pools_rebuilt: boolean; queue_entries?: number }>('/api/matches/decision', { id, value }),
   qaRuns: () => request<QaRun[]>('/api/qa/runs'),
   qaFacets: (run: string) => request<QaFacets>(`/api/qa/facets?run=${encodeURIComponent(run)}`),
-  qaClips: (run: string, f: QaFilter & { offset?: number; limit?: number }) => {
+  qaClips: (run: string, f: QaFilter & { offset?: number; limit?: number; exclude?: string }) => {
     const qs = Object.entries({ run, ...f }).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')
     return request<QaPage>(`/api/qa/clips?${qs}`)
   },

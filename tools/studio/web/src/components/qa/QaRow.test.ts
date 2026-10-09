@@ -7,7 +7,7 @@ import QaRow from './QaRow.vue'
 
 const clip = (over = {}) => ({
   guid: 'g1', wav: 'data/render/export/wav/g1.wav', text: 'For the Emperor.', context: '', speaker: 'Abelard', engine: 'voxcpm2', voice_source: 'clone',
-  dur: 2.5, cps: 6.4, emotion: 'stern', instruct: '', ref_path: 'data/voices/abelard.wav', ref: 'abelard', real: ['data/render/r/real/a.wav'], old: 'data/render/export/wav/g1.wav',
+  dur: 2.5, cps: 6.4, emotion: 'stern', instruct: '', ref_path: 'data/voices/abelard.wav', ref: 'abelard', real: [{ label: 'Real: Pasqal', path: 'data/render/r/real/a.wav', text: 'Said by Pasqal.', full_line: false }, { label: 'Real: _unattributed', path: 'data/render/r/real/b.wav', text: 'Narrated.', full_line: true }], old: 'data/render/export/wav/g1.wav',
   heard: 'for the emperor', wer: 0.1, flags: ['slow'], verdict: null, ...over,
 })
 const mountRow = (over = {}, fx: 'mild' | null = null) => mount(QaRow, { props: { clip: clip(over) as never, selected: false, fx } })
@@ -20,7 +20,7 @@ describe('QaRow', () => {
 
   it('offers clip, reference, earlier render and real VO to play', () => {
     const labels = mountRow().findAll('.clip').map((b) => b.text())
-    expect(labels).toEqual(['clip', 'reference', 'earlier render', 'game VO 1'])
+    expect(labels).toEqual(['clip', 'reference', 'earlier render', 'Real: Pasqal', 'Real: _unattributed (full line)'])
   })
 
   it('points clip and earlier render at the compressor when it is on, not the reference', () => {
@@ -37,8 +37,9 @@ describe('QaRow', () => {
     expect(judged.emitted('verdict')![0]).toEqual([null])
   })
 
-  it('hides tags and note until the clip is judged', () => {
-    expect(mountRow().find('[data-note]').exists()).toBe(false)
+  it('always shows tags and note, judged or not', () => {
+    expect(mountRow().findAll('[data-tag]').length).toBeGreaterThan(0)
+    expect(mountRow().find('[data-note]').exists()).toBe(true)
     expect(mountRow({ verdict: { verdict: 'good', tags: [], note: '' } }).find('[data-note]').exists()).toBe(true)
   })
 

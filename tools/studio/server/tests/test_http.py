@@ -108,3 +108,7 @@ def test_model_down_is_503_for_live_calls(cfg, tmp_path):
     finally:
         srv.shutdown()
         srv.server_close()
+
+
+def test_register_all_over_http(api):
+    assert api("POST", "/api/speakers/register-all", {}) == (200, {"registered": [], "skipped": []})

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { api } from '../api/client'
 import EmptyState from '../components/shared/EmptyState.vue'
 import SectionCard from '../components/shared/SectionCard.vue'
@@ -11,10 +11,22 @@ import { usePoolsStore } from '../stores/pools'
 
 const pools = usePoolsStore()
 onMounted(pools.load)
+const notice = ref('')
 
 async function rename(id: string, name: string) {
   try {
     await api.poolRename(id, name)
+    await pools.load()
+  } catch (e) {
+    pools.error = e instanceof Error ? e.message : String(e)
+  }
+}
+
+async function merge(id: string, into: string) {
+  notice.value = ''
+  try {
+    const r = await api.poolMerge(id, into)
+    notice.value = `Merged ${id} into ${into}: ${r.changed} ${r.changed === 1 ? 'line' : 'lines'} moved.`
     await pools.load()
   } catch (e) {
     pools.error = e instanceof Error ? e.message : String(e)
@@ -26,6 +38,7 @@ async function rename(id: string, name: string) {
   <div>
     <h1>Pools</h1>
     <p v-if="pools.error" class="err">{{ pools.error }}</p>
+    <p v-if="notice" data-notice class="dim">{{ notice }}</p>
     <template v-if="pools.notBuilt">
       <EmptyState message="The pools are not built yet. Building routes every unnamed line and registers the slots as designed speakers." />
       <button data-build class="primary" @click="pools.rebuild">Build pools</button>
@@ -35,7 +48,7 @@ async function rename(id: string, name: string) {
         <RoutingSummary :summary="pools.summary" />
         <button data-rebuild @click="pools.rebuild">Rebuild (keeps your decisions)</button>
       </SectionCard>
-      <SectionCard title="2. Slots"><SlotList :slots="pools.summary.slots" @rename="rename" /></SectionCard>
+      <SectionCard title="2. Slots"><SlotList :slots="pools.summary.slots" @rename="rename" @merge="merge" @recorded="pools.load" /></SectionCard>
       <SectionCard title="3. Needs review (by roster entry)">
         <QueuePanel :entries="pools.queue" :slots="pools.summary.slots" @accept="pools.accept" @move="pools.move" />
       </SectionCard>
@@ -48,5 +61,6 @@ async function rename(id: string, name: string) {
 <style scoped>
 h1 { font-size: 18px; margin: 0 0 8px; }
 .primary { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
+.dim { color: var(--dim); }
 .err { color: var(--bad); }
 </style>

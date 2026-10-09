@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import EmptyState from '../components/shared/EmptyState.vue'
 import ProfileBar from '../components/profile/ProfileBar.vue'
 import SourcePanel from '../components/source/SourcePanel.vue'
@@ -9,16 +9,22 @@ import OptionsPanel from '../components/options/OptionsPanel.vue'
 import FxPanel from '../components/fx/FxPanel.vue'
 import ResultsPanel from '../components/results/ResultsPanel.vue'
 import { provideSpeakerContext } from '../composables/useSpeakerContext'
+import SpeakerNav from '../components/speakers/SpeakerNav.vue'
 import { useSpeakerState } from '../composables/useSpeakerState'
+import { useSpeakersStore } from '../stores/speakers'
 
 const props = defineProps<{ slug: string }>()
 const ctx = useSpeakerState(props.slug)
 provideSpeakerContext(ctx)
+const speakers = useSpeakersStore()
 onMounted(ctx.load)
+// keep the list's pick marker and the "M picked" count in step with verdicts and reorders made here
+watch(() => ctx.detail.value?.design?.pick, (pick) => { if (pick !== undefined) speakers.setPick(props.slug, !!pick) })
 </script>
 
 <template>
   <div>
+    <SpeakerNav :slug="slug" />
     <p v-if="ctx.error.value" class="err">{{ ctx.error.value }}</p>
     <EmptyState v-else-if="!ctx.detail.value" message="Loading…" />
     <template v-else>

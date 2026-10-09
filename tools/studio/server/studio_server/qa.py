@@ -91,6 +91,18 @@ def _jobs(cfg: Config) -> dict[str, dict]:
     return hit
 
 
+def _real_clips(cfg: Config, d: Path, found: list[dict]) -> list[dict]:
+    """The game's own lines for a clip, with paths the file route can serve (the old /realvo/<file>)."""
+    out = []
+    for r in found:
+        wav = r.get("wav") or ""
+        if not wav:
+            continue
+        out.append({"label": f"Real: {r.get('speaker') or '?'}", "path": _repo_rel(cfg, d / wav), "text": r.get("text", ""),
+                    "full_line": not r.get("located", True)})
+    return out
+
+
 def _repo_rel(cfg: Config, p: Path) -> str:
     return str(p.relative_to(cfg.root))
 
@@ -151,7 +163,7 @@ def _run_clips(cfg: Config, d: Path) -> list[dict]:
             "engine": r.get("engine", ""), "voice_source": r.get("voice_source", ""), "dur": round(dur, 2),
             "cps": round(len(spoken) / dur, 1) if dur else 0, "emotion": "", "instruct": "",
             "ref_path": ref, "ref": Path(ref).stem if ref else "",
-            "real": real.get(guid.removeprefix("lexall-").replace("_", " "), []),
+            "real": _real_clips(cfg, d, real.get(guid.removeprefix("lexall-").replace("_", " "), [])),
             "old": _repo_rel(cfg, old) if old.is_file() else None, "heard": a.get("heard", ""), "wer": a.get("wer"),
             "flags": auto_flags(dur, len(spoken), r.get("flags", [])) + a.get("flags", []),
         })
@@ -212,16 +224,27 @@ def _sort_key(sort: str):
 
 
 def page(cfg: Config, run: str = EXPORT, *, speaker=None, ref=None, engine=None, flag=None, verdict=None, q=None,
-         sort="suspicious", seed=0, offset=0, limit=DEFAULT_LIMIT) -> dict:
+         sort="suspicious", seed=0, offset=0, limit=DEFAULT_LIMIT, exclude=None) -> dict:
     if sort not in SORTS:
         raise ApiError(400, f"sort must be one of {SORTS}")
     cs, judged = clips(cfg, run), get_verdicts(cfg, run)
     good = sum(1 for c in cs if judged.get(c["guid"], {}).get("verdict") == "good")
     bad = sum(1 for c in cs if judged.get(c["guid"], {}).get("verdict") == "bad")
+    by_ref: dict[str, dict] = {}
+    for c in cs:
+        if c["ref"]:
+            r = by_ref.setdefault(c["ref"], {"good": 0, "bad": 0, "total": 0})
+            r["total"] += 1
+            v = judged.get(c["guid"], {}).get("verdict")
+            if v in VERDICTS:
+                r[v] += 1
     want = (q or "").lower()
+    skip = set(exclude.split(",")) if isinstance(exclude, str) else set(exclude or ())    # clips the page already showed
 
     def keep(c: dict) -> bool:
         v = judged.get(c["guid"], {}).get("verdict")
+        if c["guid"] in skip:
+            return False
         if speaker and c["speaker"] != speaker or ref and c["ref"] != ref or engine and c["engine"] != engine:
             return False
         if want and want not in c["text"].lower():
@@ -230,16 +253,16 @@ def page(cfg: Config, run: str = EXPORT, *, speaker=None, ref=None, engine=None,
             return False
         return not verdict or (v is None if verdict == "unjudged" else v == verdict)
 
-    shown = [c for c in cs if keep(c)]
-    if sort == "random":
-        shown.sort(key=lambda c: c["guid"])
-        random.Random(int(seed)).shuffle(shown)
+    if sort == "random":                 # shuffle everything, then filter: judging a clip must not reorder the rest
+        ordered = sorted(cs, key=lambda c: c["guid"])
+        random.Random(int(seed)).shuffle(ordered)
+        shown = [c for c in ordered if keep(c)]
     else:
-        shown.sort(key=_sort_key(sort))
+        shown = sorted((c for c in cs if keep(c)), key=_sort_key(sort))
     limit, offset = max(1, min(int(limit), MAX_PAGE)), max(0, int(offset))
     items = [{**c, "verdict": judged.get(c["guid"])} for c in shown[offset:offset + limit]]
     return {"total": len(shown), "offset": offset, "limit": limit, "items": items,
-            "stats": {"good": good, "bad": bad, "unjudged": len(cs) - good - bad}}
+            "stats": {"good": good, "bad": bad, "unjudged": len(cs) - good - bad, "by_ref": dict(sorted(by_ref.items()))}}
 
 
 def set_verdict(cfg: Config, run: str, body: dict) -> dict:

@@ -10,6 +10,7 @@ def build_router() -> Router:
     S = "/api/speakers/{slug}"
     r.add("GET", "/api/model/health", lambda q: {"state": q.model.health()})
     r.add("GET", "/api/speakers", lambda q: speakers.list_speakers(q.cfg))
+    r.add("POST", "/api/speakers/register-all", lambda q: design.register_all(q.cfg))
     r.add("GET", S, lambda q: speakers.speaker_detail(q.cfg, q.params["slug"]))
     r.add("GET", S + "/lines", lambda q: speakers.speaker_lines(q.cfg, speakers.find_speaker(q.cfg, q.params["slug"])["name"]))
     def list_takes(q):
@@ -70,7 +71,7 @@ def build_router() -> Router:
     r.add("GET", "/api/qa/clips", lambda q: qa.page(
         q.cfg, run(q), speaker=q.query.get("speaker"), ref=q.query.get("ref"), engine=q.query.get("engine"),
         flag=q.query.get("flag"), verdict=q.query.get("verdict"), q=q.query.get("q"),
-        sort=q.query.get("sort", "suspicious"), seed=q.query.get("seed", 0),
+        sort=q.query.get("sort", "suspicious"), seed=q.query.get("seed", 0), exclude=q.query.get("exclude"),
         offset=q.query.get("offset", 0), limit=q.query.get("limit", qa.DEFAULT_LIMIT)))
     r.add("POST", "/api/qa/verdict", lambda q: qa.set_verdict(q.cfg, q.body.get("run") or qa.EXPORT, q.body))
     return r

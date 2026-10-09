@@ -102,7 +102,9 @@ def rebuild(cfg: Config, threshold: float | None = None, min_slot_lines: int | N
             if prev_slots.get(sid, {}).get("renamed"):
                 s["name"], s["renamed"] = prev_slots[sid]["name"], True
         for guid, old in (prev.get("routes") or {}).items():       # user decisions and spot-check marks survive a rebuild
-            if guid in routes and old.get("checked") and routes[guid]["source"] == "auto":
+            new = routes.get(guid)
+            if (new and old.get("checked") and new["source"] == "auto"
+                    and old["to"] == new["to"] and old.get("slot") == new.get("slot")):
                 routes[guid]["checked"] = True
                 if "spot-check failed" in old.get("reasons", []):
                     routes[guid]["reasons"] = sorted(set(routes[guid]["reasons"]) | {"spot-check failed"})
@@ -118,7 +120,7 @@ def rebuild(cfg: Config, threshold: float | None = None, min_slot_lines: int | N
                 continue
             for r in routes.values():
                 if r["to"] == "slot" and r.get("slot") == src:
-                    r.update(slot=dst, source="override", reasons=[])
+                    r["slot"] = dst                       # a rename only: source and reasons stay
             slots.pop(src, None)
         _count_lines(routes, slots)
         write_json_atomic(pools_path(cfg), {
@@ -253,7 +255,7 @@ def merge_slot(cfg: Config, src: str, dst: str) -> dict:
             raise ApiError(400, "merge needs two different existing slots")
         guids = [g for g, r in st["routes"].items() if r["to"] == "slot" and r.get("slot") == src]
         for g in guids:
-            st["routes"][g].update(slot=dst, source="override", reasons=[])
+            st["routes"][g]["slot"] = dst
         merged = st.setdefault("merged", {})
         for k, v in merged.items():
             if v == src:

@@ -5,7 +5,7 @@ import sys
 from .config import Config
 from .errors import ApiError
 from .jsonio import STATE_LOCK, read_json, write_json_atomic
-from .speakers import find_speaker
+from .speakers import find_speaker, list_speakers
 
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[4] / "tools/voice_design"))
 from audit_server import apply_order, apply_verdict, keep_candidate  # noqa: E402  (pure helpers, already tested)
@@ -99,6 +99,19 @@ def register_pick(cfg: Config, slug: str) -> dict:
             raise ApiError(409, f"the picked clip for '{name}' is missing, nothing was registered")
         write_json_atomic(pj, prompts)
     return {"registered": done}
+
+
+def register_all(cfg: Config) -> dict:
+    """Register every designed speaker's pick, one at a time with the per-speaker checks; failures are reported, not fatal."""
+    registered, skipped = [], []
+    for s in list_speakers(cfg):
+        if s["origin"] != "designed" or not s["has_pick"]:
+            continue
+        try:
+            registered.extend(register_pick(cfg, s["slug"])["registered"])
+        except ApiError as e:
+            skipped.append({"name": s["name"], "reason": e.message})
+    return {"registered": registered, "skipped": skipped}
 
 
 def generate(cfg: Config, model, slug: str, body: dict) -> dict:

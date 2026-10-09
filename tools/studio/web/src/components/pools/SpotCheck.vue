@@ -5,6 +5,7 @@ import type { SpotSample } from '../../api/types'
 import EmptyState from '../shared/EmptyState.vue'
 
 const props = defineProps<{ slotId: string }>()
+const emit = defineEmits<{ recorded: [] }>()
 const sample = ref<SpotSample | null>(null)
 const verdicts = reactive<Record<string, boolean>>({})
 const result = ref('')
@@ -25,6 +26,7 @@ async function submit() {
   try {
     const r = await api.poolSpotRecord(props.slotId, { ...verdicts })
     result.value = `${r.checked} checked, ${r.wrong} wrong`
+    emit('recorded')
     await load()
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
@@ -42,7 +44,7 @@ onMounted(load)
       <button data-ok :class="{ on: verdicts[i.guid] === true }" @click="verdicts[i.guid] = true">✓</button>
       <button data-wrong :class="{ on: verdicts[i.guid] === false }" @click="verdicts[i.guid] = false">✗</button>
     </div>
-    <button v-if="sample?.items.length" data-submit :disabled="!complete" @click="submit">Submit {{ sample.items.length }} checks</button>
+    <button v-if="sample?.items.length" data-submit :disabled="!complete" @click="submit">Submit {{ sample.items.length }} {{ sample.items.length === 1 ? 'check' : 'checks' }}</button>
     <span class="dim">{{ result }}</span>
   </div>
 </template>

@@ -70,13 +70,12 @@ describe('qa store', () => {
     expect(vi.mocked(api.qaVerdict).mock.calls[0][0]).toMatchObject({ verdict: null })
   })
 
-  it('saves tags and note with the existing verdict, and skips unjudged clips', async () => {
+  it('saves tags and note with the existing verdict', async () => {
     vi.mocked(api.qaClips).mockResolvedValue(page([clip('a', { verdict: 'bad', tags: [], note: '' }), clip('b')]) as never)
     vi.mocked(api.qaVerdict).mockResolvedValue({})
     const s = useQaStore()
     await s.loadPage(0)
     await s.setDetails('a', ['garbled'], 'hm')
-    await s.setDetails('b', ['garbled'], '')
     expect(api.qaVerdict).toHaveBeenCalledTimes(1)
     expect(vi.mocked(api.qaVerdict).mock.calls[0][0]).toEqual({ run: 'export', guid: 'a', verdict: 'bad', tags: ['garbled'], note: 'hm' })
   })
@@ -88,10 +87,10 @@ describe('qa store', () => {
     vi.mocked(api.qaVerdict).mockResolvedValue({})
     await s.setVerdict('a', 'good')
     // the server now lists only b and c; a left the filtered set
-    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('b'), clip('c')]), total: 2 } as never)
+    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('c')]), total: 1 } as never)    // the server skips a and b
     await s.nextPage()
     const args = vi.mocked(api.qaClips).mock.calls.at(-1)![1]
-    expect(args).toMatchObject({ offset: 0, limit: 42 })
+    expect(args).toMatchObject({ offset: 0, limit: 40, exclude: 'a,b' })
     expect(s.items.map((c) => c.guid)).toEqual(['c'])
     expect(s.hasNext).toBe(false)
     vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('b'), clip('c')]), total: 2 } as never)
@@ -155,5 +154,80 @@ describe('qa store', () => {
     done(page([]) as never)
     await p
     expect(s.loading).toBe(false)
+  })
+
+  it('pages through 500 filtered clips by exclusion without empty pages and ends with hasNext false', async () => {
+    const all = Array.from({ length: 500 }, (_, i) => `g${i}`)
+    vi.mocked(api.qaClips).mockImplementation((async (_run: string, f: { exclude?: string; limit?: number }) => {
+      const skip = new Set((f.exclude ?? '').split(',').filter(Boolean))
+      const left = all.filter((g) => !skip.has(g))
+      return { ...page(left.slice(0, f.limit).map((g) => clip(g))), total: left.length }
+    }) as never)
+    const s = useQaStore()
+    await s.setFilter({ verdict: 'bad' })
+    const sizes = [s.items.length]
+    while (s.hasNext) { await s.nextPage(); sizes.push(s.items.length) }
+    expect(sizes.reduce((a, b) => a + b)).toBe(500)
+    expect(sizes.every((n) => n > 0)).toBe(true)
+    expect(s.total).toBe(500)
+  })
+
+  it('hasNext is false on an empty page', async () => {
+    vi.mocked(api.qaClips).mockResolvedValue({ ...page([]), total: 7 } as never)
+    const s = useQaStore()
+    await s.setFilter({ verdict: 'bad' })
+    expect(s.hasNext).toBe(false)
+  })
+
+  it('pushes the trail only when the page response is applied, and ignores nextPage while loading', async () => {
+    const s = useQaStore()
+    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('a')]), total: 3 } as never)
+    await s.setFilter({ verdict: 'bad' })
+    let done!: (v: never) => void
+    vi.mocked(api.qaClips).mockImplementationOnce(() => new Promise<never>((r) => { done = r }))
+    const first = s.nextPage()
+    const second = s.nextPage()                    // a double click
+    expect(api.qaClips).toHaveBeenCalledTimes(2)
+    done({ ...page([clip('b')]), total: 2 } as never)
+    await Promise.all([first, second])
+    expect(s.canPrev).toBe(true)
+    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('a')]), total: 3 } as never)
+    await s.prevPage()
+    expect(s.canPrev).toBe(false)
+  })
+
+  it('a failed page fetch leaves the trail alone', async () => {
+    const s = useQaStore()
+    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('a')]), total: 3 } as never)
+    await s.setFilter({ verdict: 'bad' })
+    vi.mocked(api.qaClips).mockRejectedValueOnce(new Error('down'))
+    await s.nextPage()
+    expect(s.canPrev).toBe(false)
+    expect(s.items.map((c) => c.guid)).toEqual(['a'])
+  })
+
+  it('tagging an unjudged clip marks it bad', async () => {
+    vi.mocked(api.qaClips).mockResolvedValue(page([clip('b')]) as never)
+    vi.mocked(api.qaVerdict).mockResolvedValue({})
+    const s = useQaStore()
+    await s.loadPage(0)
+    await s.setDetails('b', ['garbled'], '')
+    expect(vi.mocked(api.qaVerdict).mock.calls[0][0]).toEqual({ run: 'export', guid: 'b', verdict: 'bad', tags: ['garbled'], note: '' })
+  })
+
+  it('a save that fails after the run changed does not touch the new run', async () => {
+    vi.mocked(api.qaClips).mockResolvedValueOnce(page([clip('a')]) as never)
+    let fail!: (e: Error) => void
+    vi.mocked(api.qaVerdict).mockImplementationOnce(() => new Promise((_, rej) => { fail = rej }))
+    const s = useQaStore()
+    await s.loadPage(0)
+    const p = s.setVerdict('a', 'bad')
+    vi.mocked(api.qaFacets).mockResolvedValue({ speakers: [], refs: [], engines: [], flags: [] })
+    vi.mocked(api.qaClips).mockResolvedValueOnce(page([clip('a', { verdict: 'good', tags: [], note: '' })]) as never)
+    await s.setRun('other')
+    fail(new Error('late'))
+    await p
+    expect(s.items[0].verdict?.verdict).toBe('good')
+    expect(s.stats).toEqual({ good: 1, bad: 0, unjudged: 2 })
   })
 })

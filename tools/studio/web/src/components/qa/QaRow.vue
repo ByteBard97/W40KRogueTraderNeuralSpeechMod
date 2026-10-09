@@ -14,7 +14,6 @@ const emit = defineEmits<{
 }>()
 
 const tags = computed(() => props.clip.verdict?.tags ?? [])
-const judged = computed(() => props.clip.verdict !== null)
 
 const item = (key: string, label: string, path: string | null, compress: boolean): ClipItem => ({
   key, label, path, src: path && compress && props.fx ? fxUrl(path, props.fx) : undefined,
@@ -23,7 +22,7 @@ const clips = computed<ClipItem[]>(() => [
   item('clip', props.fx ? `clip (${props.fx})` : 'clip', props.clip.wav, true),
   item('ref', 'reference', props.clip.ref_path || null, false),
   item('old', 'earlier render', props.clip.old, true),
-  ...props.clip.real.map((p, i) => item(`real${i}`, `game VO ${i + 1}`, p, false)),
+  ...props.clip.real.map((r, i) => ({ ...item(`real${i}`, r.full_line ? `${r.label} (full line)` : r.label, r.path, false), title: r.text })),
 ])
 
 const toggleTag = (t: string) => emit('tags', tags.value.includes(t) ? tags.value.filter((x) => x !== t) : [...tags.value, t])
@@ -52,7 +51,7 @@ const toggleVerdict = (v: QaVerdictValue) => emit('verdict', props.clip.verdict?
       <button class="v good" :class="{ on: clip.verdict?.verdict === 'good' }" data-good @click.stop="toggleVerdict('good')">Good</button>
       <button class="v bad" :class="{ on: clip.verdict?.verdict === 'bad' }" data-bad @click.stop="toggleVerdict('bad')">Bad</button>
     </div>
-    <div v-if="judged" class="judging" @click.stop>
+    <div class="judging" @click.stop>
       <button v-for="t in QA_TAGS" :key="t" class="tag" :class="{ on: tags.includes(t) }" data-tag @click="toggleTag(t)">{{ t }}</button>
       <input class="note" data-note :value="clip.verdict?.note" placeholder="note" @change="emit('note', ($event.target as HTMLInputElement).value)" />
     </div>

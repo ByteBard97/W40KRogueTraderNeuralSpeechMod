@@ -91,7 +91,8 @@ def list_speakers(cfg: Config) -> list[dict]:
             status = "source"
         else:
             status = "needs_voice"
-        out.append({"slug": slug, "name": name, "origin": origin, "line_count": counts.get(name, 0), "status": status})
+        out.append({"slug": slug, "name": name, "origin": origin, "line_count": counts.get(name, 0), "status": status,
+                    "has_pick": bool((audit.get(name) or {}).get("pick"))})
     return out
 
 
@@ -122,6 +123,14 @@ def _clips(cfg: Config, name: str) -> list[dict]:
     return out
 
 
+def _clones(cfg: Config, name: str, scores: dict) -> list[dict]:
+    """Real-line test renders made by tools/voice_design/clone_test.py, one entry per rendered line."""
+    manifest = read_json(cfg.voice_design / "clone_manifest.json", {})
+    return [{"file": f"data/voice_design/clones/{key}", "candidate": x.get("candidate"), "text": x.get("text", ""),
+             "scores": scores.get(f"clones/{key}")}
+            for key, x in sorted(manifest.items()) if x.get("name") == name]
+
+
 def _design(cfg: Config, name: str) -> dict | None:
     m = _designed(cfg).get(name)
     if not m:
@@ -135,7 +144,8 @@ def _design(cfg: Config, name: str) -> dict | None:
     order = [c for c in a.get("order", []) if c in m["candidates"]]
     cands.sort(key=lambda c: (c["id"] not in order, order.index(c["id"]) if c["id"] in order else 0))
     desc = read_json(cfg.voice_design / "overrides.json", {}).get(name, m["description"])
-    return {"description": desc, "text": m["text"], "candidates": cands, "order": order, "pick": a.get("pick")}
+    return {"description": desc, "text": m["text"], "candidates": cands, "order": order, "pick": a.get("pick"),
+            "clones": _clones(cfg, name, scores)}
 
 
 def speaker_detail(cfg: Config, slug: str) -> dict:

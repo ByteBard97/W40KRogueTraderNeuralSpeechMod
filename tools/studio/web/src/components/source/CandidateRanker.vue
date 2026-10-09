@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, inject, ref } from 'vue'
-import type { Candidate, Verdict } from '../../api/types'
+import type { Candidate, CloneTest, Verdict } from '../../api/types'
 import { useAudioPlayer } from '../../composables/useAudioPlayer'
 import { SPEAKER_CTX_KEY } from '../../composables/useSpeakerContext'
 import { moveItem } from '../../utils/order'
@@ -8,7 +8,7 @@ import EmptyState from '../shared/EmptyState.vue'
 import StarRating from '../shared/StarRating.vue'
 
 const ACCENTS = ['british', 'american', 'other'] as const
-const props = defineProps<{ candidates: Candidate[]; order: string[] }>()
+const props = withDefaults(defineProps<{ candidates: Candidate[]; order: string[]; clones?: CloneTest[] }>(), { clones: () => [] })
 const emit = defineEmits<{ reorder: [order: string[]]; verdict: [v: { cand: string } & Verdict] }>()
 const { play } = useAudioPlayer()
 const ctx = inject(SPEAKER_CTX_KEY, null)   // absent when the ranker is mounted on its own (tests)
@@ -26,6 +26,7 @@ const rows = computed(() => {
   const byId = new Map(props.candidates.map((c) => [c.id, c]))
   return [...ranked.map((id) => byId.get(id)!), ...props.candidates.filter((c) => !ranked.includes(c.id))]
 })
+const clonesFor = (id: string) => props.clones.filter((c) => c.candidate === id)
 const ids = computed(() => rows.value.map((c) => c.id))
 const dragFrom = ref<number | null>(null)
 
@@ -56,7 +57,11 @@ function drop(to: number) {
     <b class="rank">{{ i + 1 }}.</b>
     <button class="play" @click="play(c.file)">▶</button>
     <span>{{ c.id.replace('.wav', '') }}</span>
-    <span v-if="c.scores" class="chip" :class="c.scores.p_us > 0.5 ? 'us' : 'good'">p_us {{ c.scores.p_us.toFixed(2) }}</span>
+    <template v-if="c.scores">
+      <span class="chip" :class="c.scores.p_us > 0.5 ? 'us' : 'good'">p_us {{ c.scores.p_us.toFixed(2) }}</span>
+      <span class="chip">{{ c.scores.top }} {{ c.scores.p_top.toFixed(2) }}</span>
+    </template>
+    <span v-else class="chip" data-unscored>unscored</span>
     <span v-if="c.gen?.seed !== undefined" class="chip">seed {{ c.gen.seed }}</span>
     <span v-else class="chip warn" data-no-seed title="made before seeds were recorded; the WAV is the only copy">no recorded seed</span>
     <span class="grow" />
@@ -65,6 +70,11 @@ function drop(to: number) {
     <button data-reject :class="{ on: c.verdict.reject }" @click="emit('verdict', { cand: c.id, reject: !c.verdict.reject })">reject</button>
     <button data-move="up" :disabled="i === 0" aria-label="move up" @click="move(i, i - 1)">↑</button>
     <button data-move="down" :disabled="i === rows.length - 1" aria-label="move down" @click="move(i, i + 1)">↓</button>
+    <div v-for="k in clonesFor(c.id)" :key="k.file" class="clone" data-clone>
+      <button class="play" @click="play(k.file)">▶</button>
+      <span v-if="k.scores" class="chip" :class="k.scores.p_us > 0.5 ? 'us' : 'good'">p_us {{ k.scores.p_us.toFixed(2) }}</span>
+      <span class="dim">real line: {{ k.text }}</span>
+    </div>
   </div>
 </template>
 
@@ -73,6 +83,8 @@ function drop(to: number) {
 .cand.picked:first-of-type { outline: 2px solid var(--ok); outline-offset: -2px; }
 .grip { cursor: grab; color: var(--dim); }
 .rank { color: var(--acc); }
+.clone { width: 100%; display: flex; gap: 8px; align-items: center; padding-left: 28px; }
+.dim { color: var(--dim); font-size: 12px; }
 .grow { flex: 1; }
 .play { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
 .chip { border: 1px solid var(--line); border-radius: 10px; padding: 0 7px; font-size: 11px; color: var(--dim); }

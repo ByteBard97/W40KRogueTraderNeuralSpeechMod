@@ -2,7 +2,8 @@ import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('../../composables/useAudioPlayer', () => ({ useAudioPlayer: () => ({ play: vi.fn(), playing: null }) }))
+const play = vi.hoisted(() => vi.fn())
+vi.mock('../../composables/useAudioPlayer', () => ({ useAudioPlayer: () => ({ play, playing: null }) }))
 
 import CandidateRanker from './CandidateRanker.vue'
 import { SPEAKER_CTX_KEY } from '../../composables/useSpeakerContext'
@@ -73,5 +74,32 @@ describe('CandidateRanker', () => {
     expect(rows[0].find('[data-no-seed]').exists()).toBe(true)
     expect(rows[1].find('[data-no-seed]').exists()).toBe(false)
     expect(rows[1].text()).toContain('seed 7')
+  })
+
+  it('shows p_us, the top label with its probability, and unscored when there are no scores', () => {
+    const unscored = { ...cands[0], id: 'c8.wav', scores: null }
+    const w = mount(CandidateRanker, { props: { candidates: [cands[1], unscored], order: [] } })
+    const rows = w.findAll('.cand')
+    expect(rows[0].text()).toContain('p_us 0.20')
+    expect(rows[0].text()).toContain('england 0.80')
+    expect(rows[0].text()).not.toContain('unscored')
+    expect(rows[1].text()).toContain('unscored')
+  })
+
+  it('lists clone tests under their own candidate only, with text and p_us, and plays them', async () => {
+    const clones = [
+      { file: 'data/vd/clones/m/c1_L0.wav', candidate: 'c1.wav', text: 'Real line one.', scores: { p_us: 0.75, top: 'england', p_top: 0.5 } },
+      { file: 'data/vd/clones/m/c1_L1.wav', candidate: 'c1.wav', text: 'Real line two.', scores: null },
+    ]
+    const w = mount(CandidateRanker, { props: { candidates: cands, order: [], clones } })
+    const rows = w.findAll('.cand')
+    expect(rows[0].findAll('[data-clone]')).toHaveLength(0)
+    const mine = rows[1].findAll('[data-clone]')
+    expect(mine).toHaveLength(2)
+    expect(mine[0].text()).toContain('p_us 0.75')
+    expect(mine[0].text()).toContain('Real line one.')
+    expect(mine[1].text()).not.toContain('p_us')
+    await mine[0].find('button').trigger('click')
+    expect(play).toHaveBeenCalledWith('data/vd/clones/m/c1_L0.wav')
   })
 })

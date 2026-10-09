@@ -23,6 +23,9 @@ export const useMatchesStore = defineStore('matches', () => {
   const notice = ref('')
   const pending = ref(0)
   const loading = computed(() => pending.value > 0)
+  const saving = ref(0)
+  /** Show more waits for the list to load and for saves to land, or its offset would be off. */
+  const busy = computed(() => loading.value || saving.value > 0)
   let loadSeq = 0
   const enqueue = createKeyedQueue()
   const confirmed = new Map<string, RowState>()
@@ -36,19 +39,27 @@ export const useMatchesStore = defineStore('matches', () => {
     if (page.value && was !== now) page.value.total += now ? 1 : -1
   }
 
-  /** Rows decided since they loaded may no longer match the state filter, so they no longer count towards the server's offset. */
+  /** Rows decided since they loaded may no longer match the state filter, so they no longer count towards the server's offset.
+   *  The count comes from confirmed decisions only: an unsaved or failed one has not moved the server's list. */
+  const serverCount = () => items.value.filter((r) => inState({ ...r, ...confirmed.get(r.id) }, filter.value.state)).length
   const matching = computed(() => items.value.filter((r) => inState(r, filter.value.state)).length)
   const remaining = computed(() => (page.value ? Math.max(0, page.value.total - matching.value) : 0))
 
   async function load(more = false) {
+    if (more && busy.value) return
     const seq = ++loadSeq
     pending.value++
     error.value = null
     try {
-      const p = await api.matches({ ...filter.value, offset: more ? matching.value : 0, limit: PAGE })
+      const p = await api.matches({ ...filter.value, offset: more ? serverCount() : 0, limit: PAGE })
       if (seq !== loadSeq) return
       page.value = p
-      items.value = more ? [...items.value, ...p.items] : p.items
+      if (more) {
+        const have = new Set(items.value.map((r) => r.id))
+        items.value = [...items.value, ...p.items.filter((r) => !have.has(r.id))]
+      } else {
+        items.value = p.items
+      }
       if (!more) { confirmed.clear() }
     } catch (e) {
       if (seq === loadSeq) error.value = msg(e)
@@ -70,6 +81,7 @@ export const useMatchesStore = defineStore('matches', () => {
     versions.set(id, version)
     const after = { decision: value, effective: value || (row.flagged ? '' : 'accept') } as RowState
     applyState(row, after)
+    saving.value++
     try {
       const r = await enqueue(id, () => api.matchDecision(id, value))
       confirmed.set(id, after)
@@ -79,7 +91,9 @@ export const useMatchesStore = defineStore('matches', () => {
       if (versions.get(id) !== version) return
       const back = confirmed.get(id)
       if (back && items.value.find((r) => r.id === id) === row) applyState(row, back)
+    } finally {
+      saving.value--
     }
   }
-  return { page, items, filter, error, notice, loading, remaining, load, setFilter, decide }
+  return { page, items, filter, error, notice, loading, busy, remaining, load, setFilter, decide }
 })

@@ -6,14 +6,15 @@ import { api } from '../../api/client'
 import { useModelStore } from '../../stores/model'
 import { SPEAKER_CTX_KEY } from '../../composables/useSpeakerContext'
 
-vi.mock('../../composables/useAudioPlayer', () => ({ useAudioPlayer: () => ({ play: vi.fn(), playing: null }) }))
+const play = vi.hoisted(() => vi.fn())
+vi.mock('../../composables/useAudioPlayer', () => ({ useAudioPlayer: () => ({ play, playing: null }) }))
 vi.mock('../../api/client', () => ({
   api: { designGenerate: vi.fn(), designKeep: vi.fn(), designVerdict: vi.fn(), designOrder: vi.fn(), designDescription: vi.fn() },
 }))
 
 import DesignPanel from './DesignPanel.vue'
 
-const design = { description: 'A calm woman.', text: 'Sample.', order: [], pick: null, candidates: [] }
+const design = { description: 'A calm woman.', text: 'Sample.', order: [], pick: null, candidates: [], clones: [] }
 function mountPanel() {
   const ctx = { slug: 'muaran', detail: ref({ design }), load: vi.fn(), refreshDetail: vi.fn() }
   return { ctx, w: mount(DesignPanel, { global: { provide: { [SPEAKER_CTX_KEY as symbol]: ctx } } }) }
@@ -90,5 +91,26 @@ describe('DesignPanel', () => {
     await w.find('[data-keep]').trigger('click')
     await new Promise((r) => setTimeout(r, 40))
     expect(api.designKeep).toHaveBeenCalledTimes(1)
+  })
+
+  it('plays a new take as soon as it is generated', async () => {
+    useModelStore().state = 'ready'
+    play.mockClear()
+    vi.mocked(api.designGenerate).mockResolvedValue({ file: 'live_tmp/t5.wav', seed: 5, cfg: 2, timesteps: 10, seconds: 1, description: 'd', text: 't' })
+    const { w } = mountPanel()
+    await w.find('[data-generate]').trigger('click')
+    await flushPromises()
+    expect(play).toHaveBeenCalledWith('data/voice_design/live_tmp/t5.wav')
+  })
+
+  it('keeps unkept takes when the panel is remounted for the same speaker (navigating away and back)', async () => {
+    useModelStore().state = 'ready'
+    vi.mocked(api.designGenerate).mockResolvedValue({ file: 'live_tmp/t6.wav', seed: 6666, cfg: 2, timesteps: 10, seconds: 1, description: 'd', text: 't' })
+    const first = mountPanel()
+    await first.w.find('[data-generate]').trigger('click')
+    await flushPromises()
+    first.w.unmount()
+    const again = mountPanel()
+    expect(again.w.text()).toContain('6666')
   })
 })

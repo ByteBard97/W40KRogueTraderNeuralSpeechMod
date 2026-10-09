@@ -188,3 +188,31 @@ def test_an_old_pools_file_without_merged_still_loads(pcfg):
     st.pop("merged", None)
     pools.pools_path(pcfg).write_text(json.dumps(st), encoding="utf-8")
     assert built(pcfg)["total"] == 15
+
+
+def test_a_merge_is_a_rename_so_matches_decisions_still_apply_afterwards(pcfg):
+    built(pcfg)
+    pools.merge_slot(pcfg, "male_human", "female_human")
+    dec = pcfg.data / "npc_profile/match_decisions.json"
+    put(dec, {"C1|a": "reject"})
+    built(pcfg)
+    st = state(pcfg)
+    assert all(r["source"] == "auto" for r in st["routes"].values() if r["to"] == "slot")
+    assert pools.summary(pcfg)["destinations"]["speaker_bank"] == 0
+    put(dec, {})
+    built(pcfg)
+    assert pools.summary(pcfg)["destinations"]["speaker_bank"] > 0
+    assert "male_human" not in state(pcfg)["slots"]
+
+
+def test_spot_check_marks_are_not_copied_onto_a_line_that_changed_destination(pcfg, monkeypatch):
+    monkeypatch.setattr(pools, "SPOT_CHECK_LINES", 2)
+    built(pcfg)
+    g = pools.spot_check_sample(pcfg, "male_human", seed=1)["items"][0]["guid"]
+    pools.record_spot_check(pcfg, "male_human", {g: False})
+    st = state(pcfg)
+    st["routes"][g]["slot"] = "elsewhere"           # as if the rebuild now lands it in another slot
+    pools.pools_path(pcfg).write_text(json.dumps(st), encoding="utf-8")
+    built(pcfg)
+    r = state(pcfg)["routes"][g]
+    assert r["slot"] == "male_human" and not r.get("checked") and "spot-check failed" not in r["reasons"]

@@ -78,3 +78,15 @@ def test_missing_roster_is_a_clear_404(pcfg):
     with pytest.raises(ApiError) as e:
         matches.rows(pcfg)
     assert e.value.status == 404
+
+
+def test_samples_come_from_all_conversation_lines_cut_at_600(pcfg):
+    conv = json.loads((pcfg.data / "conversations.enGB.json").read_text(encoding="utf-8"))
+    conv[0]["lines"][0].update(text_key="u1", text="x" * 700)
+    conv[0]["lines"][1].update(text_key="not_unnamed", text="A named-speaker line.")
+    put(pcfg.data / "conversations.enGB.json", conv)
+    roster = json.loads((pcfg.data / "npc_profile/roster_35b_all.json").read_text(encoding="utf-8"))
+    roster[0]["lines"].append({"n": 20, "key": "not_unnamed", "speaker": "a", "conf": {"speaker": 1.0}})
+    put(pcfg.data / "npc_profile/roster_35b_all.json", roster)
+    a = next(r for r in matches.rows(pcfg) if r["id"] == "C1|a")
+    assert a["samples"][0] == "x" * matches.SAMPLE_CHARS and "A named-speaker line." in a["samples"]

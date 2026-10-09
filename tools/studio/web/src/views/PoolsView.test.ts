@@ -6,7 +6,7 @@ import { ApiRequestError, api } from '../api/client'
 
 vi.mock('../api/client', async (orig) => ({
   ...(await orig<typeof import('../api/client')>()),
-  api: { pools: vi.fn(), poolQueue: vi.fn(), poolsRebuild: vi.fn(), poolOverride: vi.fn(), poolRename: vi.fn(), poolSpot: vi.fn() },
+  api: { pools: vi.fn(), poolQueue: vi.fn(), poolsRebuild: vi.fn(), poolOverride: vi.fn(), poolRename: vi.fn(), poolMerge: vi.fn(), poolSpot: vi.fn() },
 }))
 
 import PoolsView from './PoolsView.vue'
@@ -57,5 +57,32 @@ describe('PoolsView', () => {
     w.findComponent({ name: 'SlotList' }).vm.$emit('rename', 'male_human', 'New')
     await flushPromises()
     expect(w.text()).toContain('rename refused')
+  })
+
+  const two = { ...summary, slots: [...summary.slots, { ...summary.slots[0], id: 'female_human', name: 'Female human', lines: 4 }] }
+  async function mergeFlow() {
+    vi.mocked(api.pools).mockResolvedValue(two as never)
+    vi.mocked(api.poolQueue).mockResolvedValue([])
+    const w = mount(PoolsView, { global: { plugins: [router] } })
+    await flushPromises()
+    await w.find('[data-merge]').trigger('click')
+    await w.find('[data-merge-target]').setValue('female_human')
+    await w.find('[data-merge-confirm]').trigger('click')
+    await flushPromises()
+    return w
+  }
+
+  it('merges a slot, shows how many lines moved and reloads', async () => {
+    vi.mocked(api.poolMerge).mockResolvedValue({ changed: 1 })
+    const w = await mergeFlow()
+    expect(api.poolMerge).toHaveBeenCalledWith('male_human', 'female_human')
+    expect(w.find('[data-notice]').text()).toContain('1 line moved')
+    expect(api.pools).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows a failed merge as an error', async () => {
+    vi.mocked(api.poolMerge).mockRejectedValue(new Error('merge needs two different existing slots'))
+    const w = await mergeFlow()
+    expect(w.text()).toContain('merge needs two different existing slots')
   })
 })

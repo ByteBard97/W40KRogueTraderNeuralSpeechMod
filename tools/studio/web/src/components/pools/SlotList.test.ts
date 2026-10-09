@@ -1,5 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../../api/client'
 
 vi.mock('../../api/client', () => ({ api: { poolSpot: vi.fn().mockResolvedValue({ slot: 'male_human', size: 10, remaining: 1, items: [{ guid: 'u1', text: 'Sampled line.', entry: null }] }), poolSpotRecord: vi.fn() } }))
@@ -10,6 +10,8 @@ const slots = [{ id: 'male_human', name: 'Male human', speaker_key: 'pool_male_h
 const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/speakers/:slug', component: { template: '<i/>' } }] })
 
 describe('SlotList', () => {
+  beforeEach(() => vi.clearAllMocks())
+
   it('lists slots with counts, spot-check progress and a link to the slot page', () => {
     const w = mount(SlotList, { props: { slots }, global: { plugins: [router] } })
     expect(w.text()).toContain('Male human')
@@ -30,6 +32,17 @@ describe('SlotList', () => {
     expect(mount(SlotList, { props: { slots: [] }, global: { plugins: [router] } }).text()).toMatch(/no slots/i)
   })
 
+  it('tells its parent when a spot check was recorded, so the counts can refresh', async () => {
+    vi.mocked(api.poolSpotRecord).mockResolvedValue({ checked: 1, wrong: 0 })
+    const w = mount(SlotList, { props: { slots }, global: { plugins: [router] } })
+    await w.find('[data-spot]').trigger('click')
+    await flushPromises()
+    await w.find('[data-ok]').trigger('click')
+    await w.find('[data-submit]').trigger('click')
+    await flushPromises()
+    expect(w.emitted('recorded')).toHaveLength(1)
+  })
+
   it('opens a spot check for a slot on demand', async () => {
     const w = mount(SlotList, { props: { slots }, global: { plugins: [router] } })
     expect(api.poolSpot).not.toHaveBeenCalled()
@@ -39,5 +52,21 @@ describe('SlotList', () => {
     expect(w.text()).toContain('Sampled line.')
     await w.find('[data-spot]').trigger('click')
     expect(w.text()).not.toContain('Sampled line.')
+  })
+
+  it('merges a slot into another after showing how many lines move', async () => {
+    const two = [...slots, { ...slots[0], id: 'female_human', name: 'Female human', lines: 50 }]
+    const w = mount(SlotList, { props: { slots: two }, global: { plugins: [router] } })
+    await w.find('[data-merge]').trigger('click')
+    expect(w.find('[data-merge-confirm]').exists()).toBe(false)
+    await w.find('[data-merge-target]').setValue('female_human')
+    expect(w.find('[data-merge-note]').text()).toBe('Move 1300 lines from Male human into Female human?')
+    await w.find('[data-merge-confirm]').trigger('click')
+    expect(w.emitted('merge')![0]).toEqual(['male_human', 'female_human'])
+    expect(w.find('[data-merge-target]').exists()).toBe(false)
+  })
+
+  it('offers no merge with a single slot', () => {
+    expect(mount(SlotList, { props: { slots }, global: { plugins: [router] } }).find('[data-merge]').exists()).toBe(false)
   })
 })

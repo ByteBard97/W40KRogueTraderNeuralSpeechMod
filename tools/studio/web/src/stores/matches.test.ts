@@ -100,4 +100,33 @@ describe('matches store', () => {
     expect(s.items.map((r) => r.id)).toEqual(['new'])
     expect(s.loading).toBe(false)
   })
+
+  it('show more ignores an unconfirmed decision, de-dupes rows and waits for saves', async () => {
+    vi.mocked(api.matches).mockResolvedValueOnce(page([row('a', { flagged: true, effective: '' }), row('b', { flagged: true, effective: '' })], 4) as never)
+    let landed!: (v: { pools_rebuilt: boolean }) => void
+    vi.mocked(api.matchDecision).mockImplementationOnce(() => new Promise((r) => { landed = r }))
+    const s = useMatchesStore()
+    await s.setFilter({ state: 'undecided' })
+    const saving = s.decide('a', 'accept')
+    expect(s.busy).toBe(true)
+    await s.load(true)                                    // refused while the save is in flight
+    expect(api.matches).toHaveBeenCalledTimes(1)
+    landed({ pools_rebuilt: false })
+    await saving
+    vi.mocked(api.matches).mockResolvedValueOnce(page([row('b', { flagged: true, effective: '' }), row('c', { flagged: true, effective: '' })], 3) as never)
+    await s.load(true)
+    expect(vi.mocked(api.matches).mock.calls.at(-1)![0]).toMatchObject({ offset: 1 })
+    expect(s.items.map((r) => r.id)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('after a failed save the offset still counts the row the server still lists', async () => {
+    vi.mocked(api.matches).mockResolvedValueOnce(page([row('a', { flagged: true, effective: '' })], 3) as never)
+    vi.mocked(api.matchDecision).mockRejectedValueOnce(new Error('no'))
+    const s = useMatchesStore()
+    await s.setFilter({ state: 'undecided' })
+    await s.decide('a', 'accept')
+    vi.mocked(api.matches).mockResolvedValueOnce(page([row('b', { flagged: true, effective: '' })], 3) as never)
+    await s.load(true)
+    expect(vi.mocked(api.matches).mock.calls.at(-1)![0]).toMatchObject({ offset: 1 })
+  })
 })

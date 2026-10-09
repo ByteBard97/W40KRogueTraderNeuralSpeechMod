@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import EmptyState from '../components/shared/EmptyState.vue'
 import type { SpeakerStatus } from '../api/types'
+import RegisterAllButton from '../components/speakers/RegisterAllButton.vue'
 import { useSpeakersStore } from '../stores/speakers'
 
 const store = useSpeakersStore()
@@ -25,7 +26,11 @@ const visible = computed(() => {
 
 <template>
   <div>
-    <input v-model="filter" placeholder="filter speakers" />
+    <div class="bar">
+      <input v-model="filter" placeholder="filter speakers" />
+      <span class="dim" data-progress>{{ store.list.length }} speakers, {{ store.pickedCount }} picked</span>
+      <RegisterAllButton />
+    </div>
     <p v-if="store.error" class="err">{{ store.error }}</p>
     <EmptyState v-else-if="!store.list.length && !store.loading" message="No speakers yet." />
     <EmptyState v-else-if="!visible.length" message="No speakers match the filter." />
@@ -35,12 +40,15 @@ const visible = computed(() => {
         <b>{{ s.name }}</b>
         <span class="chip">{{ s.origin }}</span>
         <span class="dim">{{ s.line_count }} lines</span>
+        <span v-if="s.has_pick" class="pick" data-pick title="has a pick">✓ picked</span>
       </RouterLink>
     </section>
   </div>
 </template>
 
 <style scoped>
+.bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.pick { margin-left: auto; color: var(--ok); font-size: 12px; }
 h2 { font-size: 14px; margin: 16px 0 4px; }
 .row { display: flex; gap: 10px; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--fg); }
 .row:hover { background: var(--card); }

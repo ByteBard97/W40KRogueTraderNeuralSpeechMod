@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { api } from '../../api/client'
 import type { LiveTake } from '../../api/types'
 import { useAudioPlayer } from '../../composables/useAudioPlayer'
 import { useSpeakerContext } from '../../composables/useSpeakerContext'
+import { useLiveTakesStore } from '../../stores/liveTakes'
 import { useModelStore } from '../../stores/model'
 import CandidateRanker from './CandidateRanker.vue'
 
+const takeUrl = (t: LiveTake) => `data/voice_design/${t.file}`
 const DEFAULT_CFG = 2
 const DEFAULT_STEPS = 10
 const ctx = useSpeakerContext()
@@ -21,13 +23,16 @@ const cfg = ref(DEFAULT_CFG)
 const steps = ref(DEFAULT_STEPS)
 const busy = ref(false)
 const error = ref('')
-const takes = ref<LiveTake[]>([])
+const liveTakes = useLiveTakesStore()
+const takes = computed(() => liveTakes.forSlug(ctx.slug))   // kept in a store so they survive moving to another speaker
 
 async function generate() {
   busy.value = true
   error.value = ''
   try {
-    takes.value.unshift(await api.designGenerate(ctx.slug, { description: description.value, seed: seed.value.trim(), cfg: cfg.value, timesteps: steps.value }))
+    const t = await api.designGenerate(ctx.slug, { description: description.value, seed: seed.value.trim(), cfg: cfg.value, timesteps: steps.value })
+    liveTakes.add(ctx.slug, t)
+    play(takeUrl(t))
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
@@ -50,7 +55,7 @@ const keep = async (t: LiveTake) => {
   keeping.add(t)
   await act(async () => {
     await api.designKeep(ctx.slug, t)
-    takes.value = takes.value.filter((x) => x !== t)
+    liveTakes.remove(ctx.slug, t)
   })
   keeping.delete(t)
 }
@@ -76,13 +81,13 @@ function saveDescription() {
       <span v-if="!model.ready" class="dim">{{ model.reason }}</span>
       <span v-if="error" class="err">{{ error }}</span>
       <div v-for="t in takes" :key="t.file" class="take">
-        <button class="play" @click="play(`data/voice_design/${t.file}`)">▶</button>
+        <button class="play" @click="play(takeUrl(t))">▶</button>
         <button data-seed-chip class="chip" title="reuse this seed" @click="seed = String(t.seed)">seed {{ t.seed }}</button>
         <span class="dim">cfg {{ t.cfg }} · {{ t.timesteps }} steps · {{ t.seconds }}s</span>
         <button data-keep @click="keep(t)">Keep</button>
       </div>
     </div>
-    <CandidateRanker :candidates="ctx.detail.value.design.candidates" :order="ctx.detail.value.design.order" @reorder="reorder" @verdict="verdict" />
+    <CandidateRanker :candidates="ctx.detail.value.design.candidates" :order="ctx.detail.value.design.order" :clones="ctx.detail.value.design.clones" @reorder="reorder" @verdict="verdict" />
   </div>
 </template>
 

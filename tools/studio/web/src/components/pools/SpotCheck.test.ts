@@ -21,6 +21,7 @@ describe('SpotCheck', () => {
     await flushPromises()
     expect(api.poolSpotRecord).toHaveBeenCalledWith('male_human', { u1: true, u2: false })
     expect(w.text()).toContain('1 wrong')
+    expect(w.emitted('recorded')).toHaveLength(1)
   })
 
   it('does not submit until every line has a verdict', async () => {
@@ -35,5 +36,16 @@ describe('SpotCheck', () => {
     const w = mount(SpotCheck, { props: { slotId: 's' } })
     await flushPromises()
     expect(w.text()).toMatch(/nothing left/i)
+  })
+
+  it('pluralizes the submit button', async () => {
+    vi.mocked(api.poolSpot).mockResolvedValue({ slot: 's', size: 1, remaining: 1, items: [{ guid: 'u1', text: 'One.', entry: null }] })
+    const one = mount(SpotCheck, { props: { slotId: 's' } })
+    await flushPromises()
+    expect(one.find('[data-submit]').text()).toBe('Submit 1 check')
+    vi.mocked(api.poolSpot).mockResolvedValue({ slot: 's', size: 2, remaining: 2, items: [{ guid: 'u1', text: 'One.', entry: null }, { guid: 'u2', text: 'Two.', entry: null }] })
+    const two = mount(SpotCheck, { props: { slotId: 's' } })
+    await flushPromises()
+    expect(two.find('[data-submit]').text()).toBe('Submit 2 checks')
   })
 })
