@@ -14,7 +14,7 @@ onUnmounted(model.stop)
 </template>
 
 <style scoped>
-.status { font-size: 12px; color: var(--dim); display: inline-flex; align-items: center; gap: 6px; }
+.status { white-space: nowrap; font-size: 12px; color: var(--dim); display: inline-flex; align-items: center; gap: 6px; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--bad); display: inline-block; }
 .dot.ready { background: var(--ok); }
 .dot.busy { background: var(--warn); }

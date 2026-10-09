@@ -31,9 +31,9 @@ function toggle(id: string, on: boolean) {
 </template>
 
 <style scoped>
-.clip { display: grid; grid-template-columns: 22px 30px 1fr; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); align-items: start; }
+.clip { display: grid; grid-template-columns: 22px 30px minmax(0, 1fr); gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); align-items: start; }
 .play { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
-.chip { border: 1px solid var(--line); border-radius: 10px; padding: 0 7px; font-size: 11px; color: var(--dim); margin-right: 4px; }
+.chip { border: 1px solid var(--line); border-radius: 10px; padding: 0 7px; font-size: 11px; color: var(--dim); margin-right: 4px; overflow-wrap: anywhere; }
 .chip.on { border-color: var(--acc); color: var(--acc); }
-.dim { color: var(--dim); font-size: 12px; }
+.dim { color: var(--dim); font-size: 12px; overflow-wrap: anywhere; }
 </style>

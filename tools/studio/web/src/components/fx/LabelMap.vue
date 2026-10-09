@@ -53,6 +53,7 @@ function move(label: string, i: number, to: number) {
 <style scoped>
 .label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 4px 0; border-top: 1px solid var(--line); }
 .name { min-width: 110px; }
+select[data-add] { max-width: 100%; }
 .chain { border: 1px solid var(--line); border-radius: 6px; padding: 1px 4px; font-size: 12px; }
 .primary { background: var(--acc); color: var(--on-acc); border-color: var(--acc); margin-top: 6px; }
 </style>

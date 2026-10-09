@@ -23,9 +23,9 @@ a { color: var(--acc); }
 </style>
 
 <style scoped>
-.bar { position: sticky; top: 0; z-index: 5; display: flex; gap: 14px; align-items: center; padding: 8px 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.bar { position: sticky; top: 0; z-index: 5; display: flex; gap: 14px; align-items: center; padding: 8px 16px; flex-wrap: wrap; background: var(--bg); border-bottom: 1px solid var(--line); }
 h1 { font-size: 16px; margin: 0; }
 .spacer { flex: 1; }
-.nav { display: flex; gap: 14px; }
+.nav { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .main { padding: 12px 16px; }
 </style>
