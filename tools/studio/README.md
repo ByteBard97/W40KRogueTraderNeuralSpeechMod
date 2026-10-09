@@ -83,6 +83,15 @@ render and the game's own line. Verdicts go to the same `data/render/audit/verdi
 A/B (`x`) needs numpy and scipy. Keys: j/k move, space plays, g good, b bad, u clear, n next unjudged. Use this page or
 the old one, not both at once.
 
+## Carried over from the old pages
+
+The old audit page's conveniences live in Speakers: previous/next speaker with an "N / total, M picked" count, a picked
+marker in the list, clone-test renders and score chips on each candidate, live design takes kept per speaker for the
+session, new takes autoplaying, and "Register all picks" (asks first, lists any it had to skip). Render QA shows a
+per-reference good/bad tally and the game's own line as "Real: <speaker>". Pools can merge two slots (a merge is a
+rename, so Matches decisions still apply afterwards). Not carried over: the old page's in-browser FX sliders (the FX Lab
+replaces them) and the `--only guids.txt` run subset.
+
 ## Still around
 
 Nothing is left to replace. `tools/_old_pages/` holds the retired pages until they are approved for trashing.
