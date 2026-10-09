@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       '/api': `http://127.0.0.1:${API_PORT}`,
       '/file': `http://127.0.0.1:${API_PORT}`,
+      '/fx-file': `http://127.0.0.1:${API_PORT}`,
     },
   },
   test: { environment: 'happy-dom', globals: true },

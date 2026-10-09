@@ -6,3 +6,8 @@ describe('fileUrl', () => {
   it('turns a ?v= cache buster into a query param', () =>
     expect(fileUrl('data/studio/p/fx/t1.wav?v=77')).toBe('/file?p=data%2Fstudio%2Fp%2Ffx%2Ft1.wav&v=77'))
 })
+
+import { fxUrl } from './fileUrl'
+describe('fxUrl', () => {
+  it('builds the compressor route url', () => expect(fxUrl('data/a b.wav', 'mild')).toBe('/fx-file?p=data%2Fa%20b.wav&fx=mild'))
+})

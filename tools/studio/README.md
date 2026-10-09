@@ -74,9 +74,18 @@ added to `tools/fx_lab/index.html`.
 match. Decisions save to the same `data/npc_profile/match_decisions.json`, and a save rebuilds the Pools routes when they
 exist. Use this page or the old one, not both at once (last write wins).
 
+## Render QA
+
+`/qa` replaces `tools/render_corpus/audit_server.py`: listen to rendered clips from the merged export
+(`data/render/export/index.json`, about 11,000 clips) or one render run, filter by speaker, reference, engine, flag and
+verdict, and mark each good or bad with tags and a note. Clips are compared against their clone reference, the earlier
+render and the game's own line. Verdicts go to the same `data/render/audit/verdicts[_<run>].json` files. The compressor
+A/B (`x`) needs numpy and scipy. Keys: j/k move, space plays, g good, b bad, u clear, n next unjudged. Use this page or
+the old one, not both at once.
+
 ## Still around
 
-Render QA (:8951) is not replaced yet.
+Nothing is left to replace. `tools/_old_pages/` holds the retired pages until they are approved for trashing.
 
 ## Verified on the model
 

@@ -5,9 +5,13 @@ export interface ClipItem {
   key: string
   label: string
   path: string | null
+  /** Alternative audio URL (e.g. the compressed copy); it also names the clip while it plays. */
+  src?: string
 }
 defineProps<{ clips: ClipItem[] }>()
 const { play, playing } = useAudioPlayer()
+const id = (c: ClipItem) => c.src ?? c.path
+const start = (c: ClipItem) => (c.src ? play(c.src, c.src) : c.path && play(c.path))
 </script>
 
 <template>
@@ -16,10 +20,10 @@ const { play, playing } = useAudioPlayer()
       v-for="c in clips"
       :key="c.key"
       class="clip"
-      :class="{ 'is-playing': c.path !== null && playing === c.path }"
+      :class="{ 'is-playing': id(c) !== null && playing === id(c) }"
       :disabled="!c.path"
       :title="c.path ? c.label : 'no clip'"
-      @click="c.path && play(c.path)"
+      @click="start(c)"
     >
       {{ c.label }}
     </button>

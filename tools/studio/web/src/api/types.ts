@@ -273,3 +273,82 @@ export interface MatchFilter {
   state?: string
   q?: string
 }
+
+export type QaVerdictValue = 'good' | 'bad'
+
+export interface QaVerdict {
+  verdict: QaVerdictValue
+  tags: string[]
+  note: string
+}
+
+export interface QaRun {
+  id: string
+  label: string
+  clips: number
+}
+
+export interface QaFacets {
+  speakers: string[]
+  refs: string[]
+  engines: string[]
+  flags: string[]
+}
+
+export interface QaClip {
+  guid: string
+  wav: string
+  text: string
+  context: string
+  speaker: string
+  engine: string
+  voice_source: string
+  dur: number
+  cps: number
+  emotion: string
+  instruct: string
+  ref_path: string
+  ref: string
+  real: string[]
+  old: string | null
+  heard: string
+  wer: number | null
+  flags: string[]
+  verdict: QaVerdict | null
+}
+
+export interface QaStats {
+  good: number
+  bad: number
+  unjudged: number
+}
+
+export interface QaPage {
+  total: number
+  offset: number
+  limit: number
+  items: QaClip[]
+  stats: QaStats
+}
+
+export type QaSort = 'suspicious' | 'slowest' | 'fastest' | 'longest' | 'shortest' | 'random'
+export type QaFx = 'mild' | 'strong'
+
+export interface QaFilter {
+  speaker?: string
+  ref?: string
+  engine?: string
+  flag?: string
+  verdict?: string
+  q?: string
+  sort?: QaSort
+  seed?: number
+}
+
+export interface QaVerdictBody {
+  run: string
+  guid: string
+  verdict: QaVerdictValue | null
+  tags: string[]
+  note: string
+}

@@ -17,12 +17,13 @@ export function useAudioPlayer() {
     if (el) el.pause()
     playing.value = null
   }
-  function play(path: string) {
-    if (playing.value === path) return stop()
+  /** `id` names what is playing; `url` overrides where the audio comes from (default: /file for a repo path). */
+  function play(id: string, url?: string) {
+    if (playing.value === id) return stop()
     const a = element()
-    a.src = fileUrl(path)
+    a.src = url ?? fileUrl(id)
     void a.play().catch(() => (playing.value = null))
-    playing.value = path
+    playing.value = id
   }
   return { playing, play, stop }
 }

@@ -1,5 +1,5 @@
 import type {
-  MatchFilter, MatchValue, MatchesPage, FxLabels, FxPresetInfo, FxPreview, FxWritten, OverrideBody, PoolSummary, QueueEntry, RoutesPage, SpotSample,
+  MatchFilter, MatchValue, QaFacets, QaFilter, QaPage, QaRun, QaVerdictBody, MatchesPage, FxLabels, FxPresetInfo, FxPreview, FxWritten, OverrideBody, PoolSummary, QueueEntry, RoutesPage, SpotSample,
   CloneRequest, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
 } from './types'
 
@@ -62,4 +62,11 @@ export const api = {
     return request<MatchesPage>(`/api/matches${qs ? `?${qs}` : ''}`)
   },
   matchDecision: (id: string, value: MatchValue) => post<{ pools_rebuilt: boolean; queue_entries?: number }>('/api/matches/decision', { id, value }),
+  qaRuns: () => request<QaRun[]>('/api/qa/runs'),
+  qaFacets: (run: string) => request<QaFacets>(`/api/qa/facets?run=${encodeURIComponent(run)}`),
+  qaClips: (run: string, f: QaFilter & { offset?: number; limit?: number }) => {
+    const qs = Object.entries({ run, ...f }).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')
+    return request<QaPage>(`/api/qa/clips?${qs}`)
+  },
+  qaVerdict: (body: QaVerdictBody) => post<object>('/api/qa/verdict', body),
 }
