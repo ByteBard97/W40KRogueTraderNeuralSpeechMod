@@ -27,7 +27,9 @@ async function sendRequestedClip() {
   const clip = route.query.clip
   if (typeof clip !== 'string' || !clip) return
   try {
-    sendClip(clip.split('/').pop() ?? clip, await (await fetch(fileUrl(clip))).arrayBuffer())
+    const res = await fetch(fileUrl(clip))
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    sendClip(clip.split('/').pop() ?? clip, await res.arrayBuffer())
   } catch {
     notice.value = 'Could not load that clip into the FX Lab.'
   }

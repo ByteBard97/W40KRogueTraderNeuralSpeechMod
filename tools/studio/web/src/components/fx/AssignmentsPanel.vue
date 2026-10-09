@@ -20,8 +20,8 @@ const emit = defineEmits<{ preview: []; write: [] }>()
 </template>
 
 <style scoped>
-.primary { background: var(--acc); color: #0b1220; border-color: var(--acc); }
+.primary { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
 .dim { color: var(--dim); font-size: 12px; }
-.warn { color: #f0b400; font-size: 13px; }
+.warn { color: var(--warn); font-size: 13px; }
 .ok { color: var(--ok); }
 </style>

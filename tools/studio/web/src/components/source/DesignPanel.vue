@@ -93,7 +93,7 @@ textarea { width: 100%; }
 .take { width: 100%; display: flex; gap: 8px; align-items: center; }
 .play { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
 .chip { border-radius: 10px; padding: 0 8px; font-size: 12px; color: var(--acc); cursor: pointer; }
-.primary { background: var(--acc); color: #0b1220; border-color: var(--acc); }
+.primary { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
 .dim { color: var(--dim); font-size: 12px; }
 .err { color: var(--bad); font-size: 13px; }
 </style>

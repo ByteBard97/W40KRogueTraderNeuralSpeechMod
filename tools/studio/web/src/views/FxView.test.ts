@@ -26,7 +26,7 @@ describe('FxView', () => {
     vi.clearAllMocks()
     vi.mocked(api.fxLibrary).mockResolvedValue([{ name: 'Clean', source: 'scenario', dsp: 'chain.dsp', notes: '' }])
     vi.mocked(api.fxLabels).mockResolvedValue({})
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ arrayBuffer: async () => new ArrayBuffer(8) }))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) }))
   })
 
   it('shows the library and embeds the FX Lab', async () => {
@@ -65,5 +65,14 @@ describe('FxView', () => {
     await flushPromises()
     expect(w.text()).toContain('Saved preset “Servitor”')
     expect(w.text()).toContain('Servitor')
+  })
+
+  it('does not post a clip the server refused', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404, arrayBuffer: async () => new ArrayBuffer(8) }))
+    const w = await mountAt('/fx?clip=data/missing.wav')
+    await w.find('iframe').trigger('load')
+    await flushPromises()
+    expect(bridge.sendClip).not.toHaveBeenCalled()
+    expect(w.text()).toContain('Could not load that clip')
   })
 })

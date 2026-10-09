@@ -50,7 +50,7 @@ onMounted(load)
 <style scoped>
 .line { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
 .text { flex: 1; }
-button.on { background: var(--acc); color: #0b1220; border-color: var(--acc); }
+button.on { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
 .err { color: var(--bad); }
 .dim { color: var(--dim); font-size: 12px; margin-left: 8px; }
 </style>

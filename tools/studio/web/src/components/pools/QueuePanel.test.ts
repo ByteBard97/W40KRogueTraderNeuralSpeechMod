@@ -44,4 +44,12 @@ describe('QueuePanel', () => {
     expect(w.findAll('.entry')).toHaveLength(40)
     expect(w.find('[data-more]').exists()).toBe(false)
   })
+
+  it('shows and moves a speaker-routed entry as that speaker, not the narrator', async () => {
+    const e = [{ ...entries[0], to: 'speaker', slot: null, speaker: 'Abelard' }]
+    const w = mount(QueuePanel, { props: { entries: e as never, slots: slots as never } })
+    expect((w.find('select').element as HTMLSelectElement).value).toBe('speaker:Abelard')
+    await w.find('[data-move]').trigger('click')
+    expect(w.emitted('move')![0]).toEqual(['C|q', { to: 'speaker', speaker: 'Abelard' }])
+  })
 })

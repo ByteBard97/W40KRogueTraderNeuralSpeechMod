@@ -13,7 +13,7 @@ import ModelStatus from './ModelStatus.vue'
 </template>
 
 <style>
-:root { --bg: #14161a; --card: #1e2430; --line: #2c3444; --fg: #e8e8e8; --dim: #98a2b3; --ok: #3fb68b; --bad: #e5645b; --acc: #6aa5ff; color-scheme: dark; }
+:root { --bg: #14161a; --card: #1e2430; --line: #2c3444; --fg: #e8e8e8; --dim: #98a2b3; --ok: #3fb68b; --bad: #e5645b; --acc: #6aa5ff; --warn: #f0b400; --on-acc: #0b1220; color-scheme: dark; }
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px system-ui, sans-serif; background: var(--bg); color: var(--fg); }
 button, input, select, textarea { font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; }

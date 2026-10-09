@@ -28,6 +28,6 @@ function toggle(name: string) {
 
 <style scoped>
 .presets { display: flex; gap: 6px; flex-wrap: wrap; }
-.on { background: var(--acc); color: #0b1220; border-color: var(--acc); }
+.on { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
 .dim { color: var(--dim); font-size: 12px; }
 </style>

@@ -33,7 +33,7 @@ const emit = defineEmits<{ decide: [value: MatchValue] }>()
 
 <style scoped>
 .row { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 6px 0; background: var(--card); }
-.row.flag { border-color: #f0b400; }
+.row.flag { border-color: var(--warn); }
 .head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .sp { color: var(--acc); }
 .chip { border-radius: 10px; padding: 0 7px; font-size: 11px; border: 1px solid var(--line); }
@@ -41,5 +41,5 @@ const emit = defineEmits<{ decide: [value: MatchValue] }>()
 .chip.nobank { color: var(--dim); }
 .sample { margin: 2px 0 0 12px; color: var(--dim); font-size: 13px; }
 .dim { color: var(--dim); font-size: 12px; }
-.warn { color: #f0b400; font-size: 13px; }
+.warn { color: var(--warn); font-size: 13px; }
 </style>

@@ -78,6 +78,6 @@ function drop(to: number) {
 .chip { border: 1px solid var(--line); border-radius: 10px; padding: 0 7px; font-size: 11px; color: var(--dim); }
 .chip.us { border-color: var(--bad); color: var(--bad); }
 .chip.good { border-color: var(--ok); color: var(--ok); }
-.chip.warn { border-color: #f0b400; color: #f0b400; }
-button.on { background: var(--acc); color: #0b1220; border-color: var(--acc); }
+.chip.warn { border-color: var(--warn); color: var(--warn); }
+button.on { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
 </style>

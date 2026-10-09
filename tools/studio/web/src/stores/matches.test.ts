@@ -57,4 +57,47 @@ describe('matches store', () => {
     await s.decide('b', '')
     expect(s.items.map((r) => r.effective)).toEqual(['accept', ''])
   })
+
+  it('with a state filter, show-more asks from the rows that still match', async () => {
+    vi.mocked(api.matches).mockResolvedValueOnce(page([row('a', { flagged: true, effective: '' }), row('b', { flagged: true, effective: '' })], 4) as never)
+    vi.mocked(api.matchDecision).mockResolvedValue({ pools_rebuilt: false })
+    const s = useMatchesStore()
+    await s.setFilter({ state: 'undecided' })
+    await s.decide('a', 'accept')
+    expect(s.remaining).toBe(2)
+    vi.mocked(api.matches).mockResolvedValueOnce(page([row('c', { flagged: true, effective: '' })], 3) as never)
+    await s.load(true)
+    expect(vi.mocked(api.matches).mock.calls.at(-1)![0]).toMatchObject({ offset: 1 })
+  })
+
+  it('serialises saves per row and keeps a newer click when an older save fails', async () => {
+    vi.mocked(api.matches).mockResolvedValue(page([row('a')]) as never)
+    const order: string[] = []
+    let failFirst!: (e: Error) => void
+    vi.mocked(api.matchDecision)
+      .mockImplementationOnce(() => new Promise((_, rej) => { order.push('1'); failFirst = rej }))
+      .mockImplementationOnce(async () => { order.push('2'); return { pools_rebuilt: false } })
+    const s = useMatchesStore()
+    await s.load()
+    const p1 = s.decide('a', 'reject')
+    const p2 = s.decide('a', 'accept')
+    await Promise.resolve()
+    expect(order).toEqual(['1'])
+    failFirst(new Error('x'))
+    await Promise.all([p1, p2])
+    expect(order).toEqual(['1', '2'])
+    expect(s.items[0].decision).toBe('accept')
+  })
+
+  it('drops a slow earlier load', async () => {
+    let old!: (v: never) => void
+    vi.mocked(api.matches).mockImplementationOnce(() => new Promise<never>((r) => { old = r })).mockResolvedValueOnce(page([row('new')]) as never)
+    const s = useMatchesStore()
+    const p = s.load()
+    await s.setFilter({ group: 'bank' })
+    old(page([row('old')]) as never)
+    await p
+    expect(s.items.map((r) => r.id)).toEqual(['new'])
+    expect(s.loading).toBe(false)
+  })
 })

@@ -47,4 +47,15 @@ describe('PoolsView', () => {
     await flushPromises()
     expect(w.text()).toContain('boom')
   })
+
+  it('reports a failed rename instead of throwing', async () => {
+    vi.mocked(api.pools).mockResolvedValue(summary as never)
+    vi.mocked(api.poolQueue).mockResolvedValue([])
+    vi.mocked(api.poolRename).mockRejectedValue(new Error('rename refused'))
+    const w = mount(PoolsView, { global: { plugins: [router] } })
+    await flushPromises()
+    w.findComponent({ name: 'SlotList' }).vm.$emit('rename', 'male_human', 'New')
+    await flushPromises()
+    expect(w.text()).toContain('rename refused')
+  })
 })

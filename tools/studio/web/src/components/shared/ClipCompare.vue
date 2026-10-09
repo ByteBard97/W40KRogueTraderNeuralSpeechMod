@@ -34,5 +34,5 @@ const start = (c: ClipItem) => (c.src ? play(c.src, c.src) : c.path && play(c.pa
 .compare { display: flex; gap: 6px; flex-wrap: wrap; }
 .clip { padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--fg); cursor: pointer; }
 .clip:disabled { opacity: 0.45; cursor: default; }
-.is-playing { background: var(--acc); color: #0b1220; border-color: var(--acc); }
+.is-playing { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
 </style>

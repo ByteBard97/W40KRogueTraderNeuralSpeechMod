@@ -4,18 +4,27 @@ import type { OverrideBody, PoolSlot, QueueEntry } from '../../api/types'
 import EmptyState from '../shared/EmptyState.vue'
 
 const NARRATOR = 'narrator'
+const SLOT = 'slot:'
+const SPEAKER = 'speaker:'
 const PAGE = 15
 const props = defineProps<{ entries: QueueEntry[]; slots: Pick<PoolSlot, 'id' | 'name'>[] }>()
-const emit = defineEmits<{ accept: [entry: string]; move: [entry: string, target: Pick<OverrideBody, 'to' | 'slot'>] }>()
+const emit = defineEmits<{ accept: [entry: string]; move: [entry: string, target: Pick<OverrideBody, 'to' | 'slot' | 'speaker'>] }>()
 const choice = reactive<Record<string, string>>({})
 const shown = ref(PAGE)
 const visible = computed(() => props.entries.slice(0, shown.value))
 
-const current = (e: QueueEntry) => choice[e.key] ?? (e.slot ? `slot:${e.slot}` : NARRATOR)
+function routed(e: QueueEntry): string {
+  if (e.slot) return `${SLOT}${e.slot}`
+  if (e.to === 'speaker' && e.speaker) return `${SPEAKER}${e.speaker}`
+  return NARRATOR
+}
+const current = (e: QueueEntry) => choice[e.key] ?? routed(e)
 function move(e: QueueEntry) {
   if (!e.entry) return
   const v = current(e)
-  emit('move', e.entry, v === NARRATOR ? { to: 'narrator' } : { to: 'slot', slot: v.slice('slot:'.length) })
+  if (v.startsWith(SLOT)) emit('move', e.entry, { to: 'slot', slot: v.slice(SLOT.length) })
+  else if (v.startsWith(SPEAKER)) emit('move', e.entry, { to: 'speaker', speaker: v.slice(SPEAKER.length) })
+  else emit('move', e.entry, { to: 'narrator' })
 }
 </script>
 
@@ -31,9 +40,10 @@ function move(e: QueueEntry) {
     <p v-for="s in e.samples" :key="s" class="sample">“{{ s }}”</p>
     <p v-if="e.evidence.length" class="dim">evidence: {{ e.evidence.join(' · ') }}</p>
     <div class="acts">
-      <button data-accept :disabled="!e.entry" @click="e.entry && emit('accept', e.entry)">Accept {{ e.slot ?? e.to }}</button>
+      <button data-accept :disabled="!e.entry" @click="e.entry && emit('accept', e.entry)">Accept {{ e.slot ?? e.speaker ?? e.to }}</button>
       <select :value="current(e)" @change="choice[e.key] = ($event.target as HTMLSelectElement).value">
-        <option v-for="s in props.slots" :key="s.id" :value="`slot:${s.id}`">{{ s.name }}</option>
+        <option v-for="s in props.slots" :key="s.id" :value="`${SLOT}${s.id}`">{{ s.name }}</option>
+        <option v-if="e.speaker" :value="`${SPEAKER}${e.speaker}`">{{ e.speaker }} (game voice)</option>
         <option :value="NARRATOR">narrator</option>
       </select>
       <button data-move :disabled="!e.entry" @click="move(e)">Move</button>
@@ -45,7 +55,7 @@ function move(e: QueueEntry) {
 <style scoped>
 .entry { border-top: 1px solid var(--line); padding: 8px 0; }
 .head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.chip { border: 1px solid #f0b400; color: #f0b400; border-radius: 10px; padding: 0 7px; font-size: 11px; }
+.chip { border: 1px solid var(--warn); color: var(--warn); border-radius: 10px; padding: 0 7px; font-size: 11px; }
 .sample { margin: 3px 0; }
 .acts { display: flex; gap: 8px; margin-top: 4px; }
 .dim { color: var(--dim); font-size: 12px; }

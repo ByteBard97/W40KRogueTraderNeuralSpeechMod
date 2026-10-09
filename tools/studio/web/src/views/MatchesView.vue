@@ -26,8 +26,8 @@ onMounted(() => matches.load())
     <MatchFilters @change="matches.setFilter" />
     <EmptyState v-if="!matches.items.length && !matches.loading" message="No matches for these filters." />
     <MatchRow v-for="r in matches.items" :key="r.id" :row="r" @decide="matches.decide(r.id, $event)" />
-    <button v-if="matches.page && matches.items.length < matches.page.total" data-more @click="matches.load(true)">
-      Show more ({{ matches.page.total - matches.items.length }} left)
+    <button v-if="matches.remaining > 0" data-more @click="matches.load(true)">
+      Show more ({{ matches.remaining }} left)
     </button>
   </div>
 </template>

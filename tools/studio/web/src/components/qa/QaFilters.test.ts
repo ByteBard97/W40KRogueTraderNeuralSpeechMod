@@ -22,4 +22,11 @@ describe('QaFilters', () => {
     const last = w.emitted('change')!.at(-1)![0]
     expect(last).toMatchObject({ flag: 'slow', sort: 'random', q: 'emperor', speaker: '' })
   })
+
+  it('follows the filter prop when the store resets it', async () => {
+    const w = mount(QaFilters, { props: { facets, filter: { speaker: 'Abelard', sort: 'slowest' as const } } })
+    expect((w.find('[data-speaker]').element as HTMLSelectElement).value).toBe('Abelard')
+    await w.setProps({ filter: { sort: 'slowest' as const } })
+    expect((w.find('[data-speaker]').element as HTMLSelectElement).value).toBe('')
+  })
 })

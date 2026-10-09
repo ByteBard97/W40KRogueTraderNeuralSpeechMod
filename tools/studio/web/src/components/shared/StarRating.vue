@@ -13,5 +13,5 @@ const click = (n: number) => emit('update:modelValue', props.modelValue === n ? 
 
 <style scoped>
 .star { background: none; border: 0; padding: 0 1px; color: var(--dim); font-size: 16px; cursor: pointer; }
-.star.on { color: #f0b400; }
+.star.on { color: var(--warn); }
 </style>

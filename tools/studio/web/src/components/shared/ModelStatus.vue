@@ -17,5 +17,5 @@ onUnmounted(model.stop)
 .status { font-size: 12px; color: var(--dim); display: inline-flex; align-items: center; gap: 6px; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--bad); display: inline-block; }
 .dot.ready { background: var(--ok); }
-.dot.busy { background: #f0b400; }
+.dot.busy { background: var(--warn); }
 </style>

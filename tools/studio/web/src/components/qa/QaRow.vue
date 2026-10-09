@@ -71,10 +71,10 @@ const toggleVerdict = (v: QaVerdictValue) => emit('verdict', props.clip.verdict?
 .flags { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0; }
 .flag { border: 1px solid var(--bad); color: var(--bad); border-radius: 10px; padding: 0 7px; font-size: 11px; }
 .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
-.v.good.on { background: var(--ok); color: #0b1220; border-color: var(--ok); }
-.v.bad.on { background: var(--bad); color: #0b1220; border-color: var(--bad); }
+.v.good.on { background: var(--ok); color: var(--on-acc); border-color: var(--ok); }
+.v.bad.on { background: var(--bad); color: var(--on-acc); border-color: var(--bad); }
 .judging { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .tag { padding: 1px 8px; border-radius: 10px; font-size: 12px; }
-.tag.on { background: var(--acc); color: #0b1220; border-color: var(--acc); }
+.tag.on { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
 .note { flex: 1; min-width: 160px; }
 </style>

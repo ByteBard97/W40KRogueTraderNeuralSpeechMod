@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, watch } from 'vue'
 import type { QaFacets, QaFilter, QaSort } from '../../api/types'
 
-defineProps<{ facets: QaFacets }>()
+const props = defineProps<{ facets: QaFacets; filter?: QaFilter }>()
 const emit = defineEmits<{ change: [filter: QaFilter] }>()
 
 const SORTS: QaSort[] = ['suspicious', 'slowest', 'fastest', 'longest', 'shortest', 'random']
 const f = reactive({ speaker: '', ref: '', engine: '', flag: '', verdict: '', q: '', sort: 'suspicious' as QaSort })
+/** The store owns the filter: whenever it changes (a run switch resets it) the controls follow. */
+watch(
+  () => props.filter,
+  (v) => { if (v) Object.assign(f, { speaker: '', ref: '', engine: '', flag: '', verdict: '', q: '', sort: 'suspicious' }, v) },
+  { immediate: true, deep: true },
+)
 const fire = () => emit('change', { ...f })
 </script>
 

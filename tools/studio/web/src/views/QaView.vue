@@ -5,7 +5,7 @@ import QaRow from '../components/qa/QaRow.vue'
 import EmptyState from '../components/shared/EmptyState.vue'
 import { useAudioPlayer } from '../composables/useAudioPlayer'
 import { useQaKeys } from '../composables/useQaKeys'
-import { QA_PAGE, useQaStore } from '../stores/qa'
+import { useQaStore } from '../stores/qa'
 import type { QaFilter, QaFx, QaVerdictValue } from '../api/types'
 import { fxUrl } from '../utils/fileUrl'
 import type { QaAction } from '../utils/qaKeys'
@@ -30,8 +30,9 @@ onMounted(init)
 
 const reload = async (load: () => Promise<void>) => { sel.value = 0; await load() }
 const pickRun = (id: string) => reload(() => qa.setRun(id))
+const nextPage = () => reload(qa.nextPage)
+const prevPage = () => reload(qa.prevPage)
 const applyFilter = (f: QaFilter) => reload(() => qa.setFilter(f))
-const goto = (at: number) => reload(() => qa.loadPage(Math.max(0, at)))
 
 const move = (by: number) => { sel.value = Math.min(Math.max(sel.value + by, 0), Math.max(qa.items.length - 1, 0)) }
 function nextUnjudged() {
@@ -82,7 +83,7 @@ useQaKeys((a) => HANDLERS[a]())
         </select>
       </label>
     </div>
-    <QaFilters :facets="qa.facets" @change="applyFilter" />
+    <QaFilters :facets="qa.facets" :filter="qa.filter" @change="applyFilter" />
     <p class="dim" data-stats>
       {{ qa.stats.good }} good · {{ qa.stats.bad }} bad · {{ qa.stats.unjudged }} unjudged · showing {{ from }}-{{ to }} of {{ qa.total }}
     </p>
@@ -100,8 +101,8 @@ useQaKeys((a) => HANDLERS[a]())
       @note="qa.setDetails(c.guid, c.verdict?.tags ?? [], $event)"
     />
     <div class="pager">
-      <button data-prev :disabled="qa.offset === 0" @click="goto(qa.offset - QA_PAGE)">Previous</button>
-      <button data-next :disabled="to >= qa.total" @click="goto(qa.offset + QA_PAGE)">Next</button>
+      <button data-prev :disabled="!qa.canPrev" @click="prevPage">Previous</button>
+      <button data-next :disabled="!qa.hasNext" @click="nextPage">Next</button>
     </div>
   </div>
 </template>

@@ -29,4 +29,18 @@ describe('LabelMap', () => {
     await w.find('[data-add]').setValue('Clean')
     expect(w.findAll('.chain')).toHaveLength(1)
   })
+
+  it('keeps unsaved edits when the saved labels reload unchanged', async () => {
+    const w = mount(LabelMap, { props: { labels: { machine: ['Clean'] }, presets } })
+    await w.find('[data-add]').setValue('Mine')
+    expect(w.findAll('.chain')).toHaveLength(2)
+    await w.setProps({ labels: { machine: ['Clean'] } })
+    expect(w.findAll('.chain')).toHaveLength(2)
+  })
+
+  it('reseeds when there are no edits', async () => {
+    const w = mount(LabelMap, { props: { labels: { machine: ['Clean'] }, presets } })
+    await w.setProps({ labels: { machine: ['Mine'] } })
+    expect(w.find('.chain').text()).toContain('Mine')
+  })
 })

@@ -7,7 +7,20 @@ const props = defineProps<{ labels: FxLabels; presets: string[] }>()
 const emit = defineEmits<{ save: [labels: FxLabels] }>()
 const draft = reactive<FxLabels>({})
 
-watch(() => props.labels, (l) => { for (const k of LABELS) draft[k] = [...(l[k] ?? [])] }, { immediate: true, deep: true })
+const snapshot = (src: FxLabels) => JSON.stringify(LABELS.map((k) => src[k] ?? []))
+let seeded = ''
+
+/** Reseed from the saved labels only when the draft has no unsaved edits (or already equals them). */
+watch(
+  () => props.labels,
+  (l) => {
+    const incoming = snapshot(l)
+    if (seeded && snapshot(draft) !== seeded && snapshot(draft) !== incoming) return
+    for (const k of LABELS) draft[k] = [...(l[k] ?? [])]
+    seeded = incoming
+  },
+  { immediate: true, deep: true },
+)
 
 const add = (label: string, name: string) => name && !draft[label].includes(name) && draft[label].push(name)
 const remove = (label: string, i: number) => draft[label].splice(i, 1)
@@ -41,5 +54,5 @@ function move(label: string, i: number, to: number) {
 .label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 4px 0; border-top: 1px solid var(--line); }
 .name { min-width: 110px; }
 .chain { border: 1px solid var(--line); border-radius: 6px; padding: 1px 4px; font-size: 12px; }
-.primary { background: var(--acc); color: #0b1220; border-color: var(--acc); margin-top: 6px; }
+.primary { background: var(--acc); color: var(--on-acc); border-color: var(--acc); margin-top: 6px; }
 </style>

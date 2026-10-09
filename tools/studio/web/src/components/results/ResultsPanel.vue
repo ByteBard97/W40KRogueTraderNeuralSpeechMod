@@ -85,7 +85,7 @@ async function generate() {
 
 <style scoped>
 .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
-.primary { background: var(--acc); color: #0b1220; border-color: var(--acc); }
+.primary { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
 .group { border-top: 1px solid var(--line); padding: 8px 0; }
 .text { margin-bottom: 4px; }
 .dim { color: var(--dim); font-size: 12px; }

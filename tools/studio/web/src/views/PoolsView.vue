@@ -13,8 +13,12 @@ const pools = usePoolsStore()
 onMounted(pools.load)
 
 async function rename(id: string, name: string) {
-  await api.poolRename(id, name)
-  await pools.load()
+  try {
+    await api.poolRename(id, name)
+    await pools.load()
+  } catch (e) {
+    pools.error = e instanceof Error ? e.message : String(e)
+  }
 }
 </script>
 
@@ -43,6 +47,6 @@ async function rename(id: string, name: string) {
 
 <style scoped>
 h1 { font-size: 18px; margin: 0 0 8px; }
-.primary { background: var(--acc); color: #0b1220; border-color: var(--acc); }
+.primary { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
 .err { color: var(--bad); }
 </style>

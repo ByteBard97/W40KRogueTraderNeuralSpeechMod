@@ -54,7 +54,7 @@ const clear = () => (ctx.selectedLines.value = new Set())
 
 <style scoped>
 .tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
-.tools .on { background: var(--acc); color: #0b1220; border-color: var(--acc); }
+.tools .on { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
 .line { display: grid; grid-template-columns: 22px 30px 1fr; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); align-items: start; }
 .play { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
 .chip { border: 1px solid var(--line); border-radius: 10px; padding: 0 7px; font-size: 11px; color: var(--dim); margin-right: 4px; }
