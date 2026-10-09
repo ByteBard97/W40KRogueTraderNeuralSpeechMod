@@ -65,3 +65,47 @@ def make_repo(root: Path) -> Config:
 @pytest.fixture
 def cfg(tmp_path) -> Config:
     return make_repo(tmp_path)
+
+
+def make_pool_repo(root: Path) -> Config:
+    """make_repo plus unnamed lines, a harness roster, known speakers and a Heinrix prompt bank.
+
+    Unnamed (default_speaker, priority 3) guids: u1,u2 Heinrix (has a bank); u3 Tervantias (no bank); u4 narrator;
+    u5-u9 male human; u10-u12 female human; u13,u14 gender unknown (queued); u15 has no roster entry (queued).
+    """
+    cfg = make_repo(root)
+    d = root / "data"
+    extra = []
+    for i in range(1, 16):
+        extra.append({"guid": f"u{i}", "speaker": "default_speaker", "speaker_kind": "default_speaker",
+                      "text": f"Unnamed line {i}.", "annotation": None, "priority": 3, "voice_source": "fallback"})
+    with open(d / "render/jobs.jsonl", "a", encoding="utf-8") as f:
+        for j in extra:
+            f.write(json.dumps(j) + "\n")
+
+    def ent(rid, name=None, gender="male", species="human", age="unknown"):
+        return {"id": rid, "name": name, "label": rid.title(), "gender": gender, "species": species, "age": age,
+                "conf": {"gender": 0.95, "species": 0.95, "age": 0.9}, "evidence": [f"{rid} said something"]}
+
+    def ln(n, key, speaker, conf=1.0):
+        return {"n": n, "key": key, "speaker": speaker, "conf": {"speaker": conf}}
+
+    roster = [
+        {"conversation": "C1", "roster": [ent("a", "Heinrix"), ent("b", "Tervantias")],
+         "lines": [ln(0, "u1", "a"), ln(1, "u2", "a"), ln(2, "u3", "b"), ln(3, "u4", "NARRATOR")]},
+        {"conversation": " C2", "roster": [ent("m"), ent("f", gender="female"), ent("q", gender="unknown")],
+         "lines": ([ln(i, f"u{5 + i}", "m") for i in range(5)] + [ln(5 + i, f"u{10 + i}", "f") for i in range(3)]
+                   + [ln(8, "u13", "q"), ln(9, "u14", "q"), ln(10, "u15", "ghost")])},
+    ]
+    put(d / "npc_profile/roster_35b_all.json", roster)
+    unit = lambda name: {"speaker": {"kind": "unit", "name": name, "gender": "Male"}}
+    put(d / "conversations.enGB.json", [{"lines": [unit("Heinrix")] * 5 + [unit("Tervantias the Archmachinator")] * 5}])
+    prompts = json.loads((d / "voices/prompts/prompts.json").read_text(encoding="utf-8"))
+    prompts["Heinrix"] = []
+    put(d / "voices/prompts/prompts.json", prompts)
+    return cfg
+
+
+@pytest.fixture
+def pcfg(tmp_path) -> Config:
+    return make_pool_repo(tmp_path)

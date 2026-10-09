@@ -36,8 +36,12 @@ All numbers come from `data/render/jobs.jsonl` joined to `data/npc_profile/roste
 - `match_decisions.json` holds only 25 decisions (17 accept, 8 reject) and **nothing reads it** except the review page
   (`match_review.py`). The routing above uses `known.match` directly; the saved decisions must override it.
 - Mixed `{n}` lines stay dropped (project memory); the assignment view excludes them.
-- Review need at threshold 0.8, queuing only on the voice-defining axes (see decision 3): about 560 lines from 92 roster
-  entries, of which 134 are the no-roster-entry lines.
+- Review need at threshold 0.8, queuing only the lines routed to slots on the voice-defining axes (see decision 3):
+  built on the real data, 61 roster entries covering 249 lines (an earlier estimate of 92 entries and about 560 lines
+  also counted lines already matched to known speakers, which do not need a gender review).
+- Real-data build (2026-10-09): total 6,717; known speaker with a bank 1,834; without a bank 2,841; narrator 130;
+  slot 1,912, in 8 slots (male human 1,106; female human 281; male human old 156; male machine 110; male human young
+  101; other 55; male eldar 55; female human old 48).
 
 ## 3. Decisions
 
@@ -118,7 +122,7 @@ Slot voice endpoints reuse the speaker routes with `slug = pool_<slot_id>`.
   known speaker), and the routes, on the fake-repo fixture.
 - Vitest on the new views and composables.
 - Real-data pass with the model off: the routing summary must reproduce the section 2 counts within the stated tolerance
-  and the queue must be about 92 entries.
+  and the queue must be about 61 entries.
 - Safety: back up `data/studio/pools.json`, `prompts.json`, `match_decisions.json` and the render jobs before any write
   test.
 

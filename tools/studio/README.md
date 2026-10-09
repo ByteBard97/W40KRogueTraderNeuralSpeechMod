@@ -49,6 +49,16 @@ that need no GPU and no real data.
 
 Rankings and verdicts write to the real `audit.json`. "Register pick" writes to the prompt bank.
 
+## Pools
+
+`/pools` routes every unnamed priority-3 line (`default_speaker`) to a voice: a known speaker's real bank, a named NPC
+without a bank, the narrator, or a shared **slot** (`pool_<id>`, registered as a designed speaker so the Speakers page
+designs, ranks and registers its voice). Routes and slots live in `data/studio/pools.json`. Rebuild re-derives the
+automatic routes and keeps your overrides, renamed slots and spot-check marks. The review queue is grouped by roster
+entry; `match_decisions.json` (written by the match review page) overrides the matcher. `tools/render_corpus/plan.py`
+reads `pools.json`; re-running `plan.py` is what makes the routes take effect in `jobs.jsonl`, and that run is the
+owner's call (it rewrites the job list).
+
 ## Still around
 
 The FX Lab (:8908), match review (:8920) and render QA (:8951) are not replaced yet.

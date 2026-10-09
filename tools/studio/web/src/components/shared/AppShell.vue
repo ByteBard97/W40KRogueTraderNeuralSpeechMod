@@ -5,7 +5,7 @@ import ModelStatus from './ModelStatus.vue'
 <template>
   <header class="bar">
     <h1>Voice Studio</h1>
-    <nav><RouterLink to="/speakers">Speakers</RouterLink></nav>
+    <nav class="nav"><RouterLink to="/speakers">Speakers</RouterLink><RouterLink to="/pools">Pools</RouterLink></nav>
     <span class="spacer" />
     <ModelStatus />
   </header>
@@ -26,5 +26,6 @@ a { color: var(--acc); }
 .bar { position: sticky; top: 0; z-index: 5; display: flex; gap: 14px; align-items: center; padding: 8px 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
 h1 { font-size: 16px; margin: 0; }
 .spacer { flex: 1; }
+.nav { display: flex; gap: 14px; }
 .main { padding: 12px 16px; }
 </style>

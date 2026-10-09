@@ -1,4 +1,5 @@
 import type {
+  OverrideBody, PoolSummary, QueueEntry, RoutesPage, SpotSample,
   CloneRequest, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
 } from './types'
 
@@ -39,4 +40,16 @@ export const api = {
   cloneGenerate: (slug: string, body: CloneRequest) => post<Take>(`${S(slug)}/clone/generate`, body),
   takeFx: (slug: string, id: string, presets: string[]) => post<Take>(`${S(slug)}/takes/${id}/fx`, { presets }),
   takeRate: (slug: string, id: string, body: { rating?: number; note?: string }) => post<Take>(`${S(slug)}/takes/${id}/rate`, body),
+  pools: () => request<PoolSummary>('/api/pools'),
+  poolsRebuild: (body: { threshold?: number } = {}) => post<PoolSummary>('/api/pools/rebuild', body),
+  poolRoutes: (params: Record<string, string | number | boolean | undefined>) => {
+    const qs = Object.entries(params).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')
+    return request<RoutesPage>(`/api/pools/routes${qs ? `?${qs}` : ''}`)
+  },
+  poolQueue: () => request<QueueEntry[]>('/api/pools/queue'),
+  poolOverride: (body: OverrideBody) => post<{ changed: number }>('/api/pools/routes', body),
+  poolRename: (slot: string, name: string) => post<object>(`/api/pools/slots/${encodeURIComponent(slot)}/rename`, { name }),
+  poolMerge: (slot: string, into: string) => post<{ changed: number }>(`/api/pools/slots/${encodeURIComponent(slot)}/merge`, { into }),
+  poolSpot: (slot: string, seed?: number) => request<SpotSample>(`/api/pools/spot-check/${encodeURIComponent(slot)}${seed === undefined ? '' : `?seed=${seed}`}`),
+  poolSpotRecord: (slot: string, results: Record<string, boolean>) => post<{ checked: number; wrong: number }>(`/api/pools/spot-check/${encodeURIComponent(slot)}`, { results }),
 }

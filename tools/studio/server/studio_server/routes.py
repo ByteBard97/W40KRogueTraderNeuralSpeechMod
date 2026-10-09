@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import clone, design, fx, speakers, store
+from . import clone, design, fx, pools, speakers, store
 from .errors import ApiError
 from .router import Router
 
@@ -39,4 +39,20 @@ def build_router() -> Router:
           lambda q: fx.apply_to_take(q.cfg, q.params["slug"], q.params["id"], q.body.get("presets", [])))
     r.add("POST", S + "/takes/{id}/rate", lambda q: clone.rate_take(q.cfg, q.params["slug"], q.params["id"], q.body))
     r.add("GET", "/api/fx/presets", lambda q: fx.list_presets(q.cfg))
+    def flag(v):                      # "1"/"0" in a query string; None when absent
+        return None if v is None else v not in ("", "0", "false")
+
+    r.add("GET", "/api/pools", lambda q: pools.summary(q.cfg))
+    r.add("POST", "/api/pools/rebuild",
+          lambda q: pools.rebuild(q.cfg, q.body.get("threshold"), q.body.get("min_slot_lines")))
+    r.add("GET", "/api/pools/routes", lambda q: pools.routes_page(
+        q.cfg, to=q.query.get("to"), slot=q.query.get("slot"), speaker=q.query.get("speaker"),
+        queued=flag(q.query.get("queued")), offset=q.query.get("offset", 0), limit=q.query.get("limit", 100)))
+    r.add("GET", "/api/pools/queue", lambda q: pools.queue(q.cfg))
+    r.add("POST", "/api/pools/routes", lambda q: pools.override(q.cfg, q.body))
+    r.add("POST", "/api/pools/slots/{slot}/rename", lambda q: pools.rename_slot(q.cfg, q.params["slot"], q.body.get("name", "")))
+    r.add("POST", "/api/pools/slots/{slot}/merge", lambda q: pools.merge_slot(q.cfg, q.params["slot"], q.body.get("into", "")))
+    r.add("GET", "/api/pools/spot-check/{slot}", lambda q: pools.spot_check_sample(q.cfg, q.params["slot"], q.query.get("seed")))
+    r.add("POST", "/api/pools/spot-check/{slot}",
+          lambda q: pools.record_spot_check(q.cfg, q.params["slot"], q.body.get("results", {})))
     return r

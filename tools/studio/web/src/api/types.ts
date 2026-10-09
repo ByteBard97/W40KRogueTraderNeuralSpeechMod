@@ -135,3 +135,78 @@ export interface SourceClip {
   text: string
   origin: Origin
 }
+
+export type PoolTarget = 'speaker' | 'narrator' | 'slot'
+
+export interface PoolSlot {
+  id: string
+  name: string
+  speaker_key: string
+  slug: string
+  gender: string
+  species: string
+  age: string | null
+  lines: number
+  spot: { checked: number; wrong: number }
+}
+
+export interface PoolSummary {
+  threshold: number
+  built: string
+  total: number
+  destinations: { narrator: number; speaker_bank: number; speaker_nobank: number; slot: number }
+  slots: PoolSlot[]
+  queue_lines: number
+  queue_entries: number
+}
+
+export interface QueueEntry {
+  key: string
+  entry: string | null
+  conversation: string | null
+  label: string
+  name: string | null
+  attr: { gender: string; species: string; age: string } | null
+  reasons: string[]
+  lines: number
+  samples: string[]
+  to: PoolTarget
+  slot?: string | null
+  speaker?: string | null
+  evidence: string[]
+}
+
+export interface PoolRoute {
+  guid: string
+  text: string
+  to: PoolTarget
+  speaker?: string
+  has_bank?: boolean
+  slot?: string
+  entry: string | null
+  confidence: number | null
+  reasons: string[]
+  source: 'auto' | 'override'
+}
+
+export interface RoutesPage {
+  total: number
+  offset: number
+  limit: number
+  items: PoolRoute[]
+}
+
+export interface SpotSample {
+  slot: string
+  size: number
+  remaining: number
+  items: { guid: string; text: string; entry: string | null }[]
+}
+
+export interface OverrideBody {
+  entry?: string
+  guids?: string[]
+  to?: PoolTarget
+  slot?: string
+  speaker?: string
+}
