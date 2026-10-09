@@ -68,9 +68,15 @@ previous file as `assignments.json.bak`. "open in FX Lab" on a take sends its au
 preset there shows up in the studio. The bridge is `postMessage` pinned to the two local origins; it needed one listener
 added to `tools/fx_lab/index.html`.
 
+## Matches
+
+`/matches` replaces `tools/npc_profile/match_review.py`: confirm or overrule each proposed roster-entry-to-known-speaker
+match. Decisions save to the same `data/npc_profile/match_decisions.json`, and a save rebuilds the Pools routes when they
+exist. Use this page or the old one, not both at once (last write wins).
+
 ## Still around
 
-Match review (:8920) and render QA (:8951) are not replaced yet.
+Render QA (:8951) is not replaced yet.
 
 ## Verified on the model
 

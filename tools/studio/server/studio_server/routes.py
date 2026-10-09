@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import clone, design, fx, fx_library, pools, speakers, store
+from . import clone, design, fx, fx_library, matches, pools, speakers, store
 from .errors import ApiError
 from .router import Router
 
@@ -60,4 +60,8 @@ def build_router() -> Router:
     r.add("POST", "/api/fx/labels", lambda q: fx_library.save_labels(q.cfg, q.body))
     r.add("GET", "/api/fx/assignments/preview", lambda q: fx_library.preview(q.cfg))
     r.add("POST", "/api/fx/assignments", lambda q: fx_library.write(q.cfg))
+    r.add("GET", "/api/matches", lambda q: matches.page(
+        q.cfg, group=q.query.get("group"), speaker=q.query.get("speaker"), state=q.query.get("state"), q=q.query.get("q"),
+        offset=q.query.get("offset", 0), limit=q.query.get("limit", matches.DEFAULT_LIMIT)))
+    r.add("POST", "/api/matches/decision", lambda q: matches.save(q.cfg, q.body.get("id", ""), q.body.get("value", "")))
     return r

@@ -5,7 +5,7 @@ import ModelStatus from './ModelStatus.vue'
 <template>
   <header class="bar">
     <h1>Voice Studio</h1>
-    <nav class="nav"><RouterLink to="/speakers">Speakers</RouterLink><RouterLink to="/pools">Pools</RouterLink><RouterLink to="/fx">FX</RouterLink></nav>
+    <nav class="nav"><RouterLink to="/speakers">Speakers</RouterLink><RouterLink to="/pools">Pools</RouterLink><RouterLink to="/fx">FX</RouterLink><RouterLink to="/matches">Matches</RouterLink></nav>
     <span class="spacer" />
     <ModelStatus />
   </header>

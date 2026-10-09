@@ -1,5 +1,5 @@
 import type {
-  FxLabels, FxPresetInfo, FxPreview, FxWritten, OverrideBody, PoolSummary, QueueEntry, RoutesPage, SpotSample,
+  MatchFilter, MatchValue, MatchesPage, FxLabels, FxPresetInfo, FxPreview, FxWritten, OverrideBody, PoolSummary, QueueEntry, RoutesPage, SpotSample,
   CloneRequest, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
 } from './types'
 
@@ -57,4 +57,9 @@ export const api = {
   fxSaveLabels: (labels: FxLabels) => post<FxLabels>('/api/fx/labels', labels),
   fxPreview: () => request<FxPreview>('/api/fx/assignments/preview'),
   fxWrite: () => post<FxWritten>('/api/fx/assignments'),
+  matches: (f: MatchFilter & { offset?: number; limit?: number }) => {
+    const qs = Object.entries(f).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')
+    return request<MatchesPage>(`/api/matches${qs ? `?${qs}` : ''}`)
+  },
+  matchDecision: (id: string, value: MatchValue) => post<{ pools_rebuilt: boolean; queue_entries?: number }>('/api/matches/decision', { id, value }),
 }

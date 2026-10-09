@@ -3,6 +3,7 @@ import SpeakersView from './views/SpeakersView.vue'
 import SpeakerView from './views/SpeakerView.vue'
 import PoolsView from './views/PoolsView.vue'
 import FxView from './views/FxView.vue'
+import MatchesView from './views/MatchesView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -12,5 +13,6 @@ export const router = createRouter({
     { path: '/speakers/:slug', component: SpeakerView, props: true },
     { path: '/pools', component: PoolsView },
     { path: '/fx', component: FxView },
+    { path: '/matches', component: MatchesView },
   ],
 })

@@ -232,3 +232,44 @@ export interface FxWritten {
   lines: number
   speakers: number
 }
+
+export type MatchValue = '' | 'accept' | 'reject'
+
+export interface MatchRowData {
+  id: string
+  conversation: string
+  entry: string
+  name: string | null
+  label: string | null
+  gender: string | null
+  species: string | null
+  role: string | null
+  evidence: string[]
+  lines: number
+  samples: string[]
+  gaps: boolean[]
+  speaker: string
+  has_bank: boolean
+  speaker_lines: number
+  game_gender: string | null
+  warning: string | null
+  ambiguous_with: string[] | null
+  flagged: boolean
+  decision: MatchValue
+  effective: MatchValue
+}
+
+export interface MatchesPage {
+  total: number
+  offset: number
+  limit: number
+  counts: { flagged: number; bank: number; nobank: number; undecided: number }
+  items: MatchRowData[]
+}
+
+export interface MatchFilter {
+  group?: string
+  speaker?: string
+  state?: string
+  q?: string
+}
