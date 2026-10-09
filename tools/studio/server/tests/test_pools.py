@@ -160,3 +160,31 @@ def test_rebuild_keeps_spot_checked_marks(pcfg, monkeypatch):
     built(pcfg)
     again = pools.spot_check_sample(pcfg, "male_human", seed=2)
     assert not ({i["guid"] for i in a["items"]} & {i["guid"] for i in again["items"]})
+
+
+def test_rebuild_keeps_the_spot_check_failed_mark_and_queue_entry(pcfg, monkeypatch):
+    monkeypatch.setattr(pools, "SPOT_CHECK_LINES", 2)
+    built(pcfg)
+    g = pools.spot_check_sample(pcfg, "male_human", seed=1)["items"][0]["guid"]
+    pools.record_spot_check(pcfg, "male_human", {g: False})
+    built(pcfg)
+    r = state(pcfg)["routes"][g]
+    assert r["checked"] and "spot-check failed" in r["reasons"]
+
+
+def test_rebuild_keeps_a_merge(pcfg):
+    built(pcfg)
+    pools.merge_slot(pcfg, "female_human", "male_human")
+    assert state(pcfg)["merged"] == {"female_human": "male_human"}
+    built(pcfg)
+    st = state(pcfg)
+    assert "female_human" not in st["slots"] and st["slots"]["male_human"]["lines"] == 11
+    assert all(r.get("slot") != "female_human" for r in st["routes"].values())
+
+
+def test_an_old_pools_file_without_merged_still_loads(pcfg):
+    built(pcfg)
+    st = state(pcfg)
+    st.pop("merged", None)
+    pools.pools_path(pcfg).write_text(json.dumps(st), encoding="utf-8")
+    assert built(pcfg)["total"] == 15

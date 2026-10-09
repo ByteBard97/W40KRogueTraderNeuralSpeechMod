@@ -177,3 +177,11 @@ def test_compressed_audio_is_cached_and_validates_the_preset(qcfg):
     with pytest.raises(ApiError) as e:
         qa.compressed(p, "nuclear")
     assert e.value.status == 400
+
+
+def test_the_export_cache_follows_the_jobs_files(qcfg):
+    assert qa.clips(qcfg, "export")[0]["text"] == "A perfectly ordinary line of text."
+    jobs = qcfg.render / "jobs.jsonl"
+    jobs.write_text(jobs.read_text(encoding="utf-8").replace("ordinary", "changed"), encoding="utf-8")
+    os.utime(jobs, (1, 1_900_000_000))
+    assert "changed" in next(c for c in qa.clips(qcfg, "export") if c["guid"] == "q1")["text"]

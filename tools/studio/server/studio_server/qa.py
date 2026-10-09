@@ -69,10 +69,16 @@ def _duration(path: Path) -> float | None:
         return None
 
 
-def _jobs(cfg: Config) -> dict[str, dict]:
+def _jobs_stamp(cfg: Config) -> tuple:
     files = sorted(glob.glob(str(cfg.render / "jobs*.jsonl")))
-    stamp = tuple((f, Path(f).stat().st_mtime_ns) for f in files)
-    if stamp not in _JOBS:
+    return tuple((f, Path(f).stat().st_mtime_ns) for f in files)
+
+
+def _jobs(cfg: Config) -> dict[str, dict]:
+    stamp = _jobs_stamp(cfg)
+    files = [f for f, _ in stamp]
+    hit = _JOBS.get(stamp)
+    if hit is None:
         jobs: dict[str, dict] = {}
         for f in files:
             for ln in open(f, encoding="utf-8"):
@@ -81,7 +87,8 @@ def _jobs(cfg: Config) -> dict[str, dict]:
                     jobs[j["guid"]] = j
         _JOBS.clear()
         _JOBS[stamp] = jobs
-    return _JOBS[stamp]
+        return jobs
+    return hit
 
 
 def _repo_rel(cfg: Config, p: Path) -> str:
@@ -151,14 +158,15 @@ def _run_clips(cfg: Config, d: Path) -> list[dict]:
     return out
 
 
-def _stamp(d: Path, run: str) -> tuple:
+def _stamp(cfg: Config, d: Path, run: str) -> tuple:
     names = ("index.json",) if run == EXPORT else ("manifest.jsonl", "asr.jsonl", "real.json")
-    return tuple((d / n).stat().st_mtime_ns if (d / n).exists() else 0 for n in names)
+    own = tuple((d / n).stat().st_mtime_ns if (d / n).exists() else 0 for n in names)
+    return own + _jobs_stamp(cfg) if run == EXPORT else own       # export fields come from the jobs files too
 
 
 def clips(cfg: Config, run: str = EXPORT) -> list[dict]:
     d = _run_dir(cfg, run)
-    key, stamp = (str(cfg.root), run), _stamp(d, run)
+    key, stamp = (str(cfg.root), run), _stamp(cfg, d, run)
     hit = _CLIPS.get(key)
     if hit and hit[0] == stamp:
         return hit[1]
@@ -269,8 +277,9 @@ def compressed(path: Path, fx: str) -> bytes:
     if fx not in PRESETS:
         raise ApiError(400, f"fx must be one of {sorted(PRESETS)}")
     key = (str(path), fx, path.stat().st_mtime_ns)
-    if key in _FX:
-        return _FX[key]
+    hit = _FX.get(key)
+    if hit is not None:
+        return hit
     with wave.open(str(path)) as w:
         ch, sr = w.getnchannels(), w.getframerate()
         x = np.frombuffer(w.readframes(w.getnframes()), dtype="<i2").astype(np.float32) / 32768
@@ -285,5 +294,6 @@ def compressed(path: Path, fx: str) -> bytes:
         w.writeframes((y * 32767).astype("<i2").tobytes())
     if len(_FX) >= FX_CACHE_MAX:
         _FX.clear()
-    _FX[key] = out.getvalue()
-    return _FX[key]
+    data = out.getvalue()
+    _FX[key] = data
+    return data

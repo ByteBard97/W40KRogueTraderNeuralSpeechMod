@@ -104,14 +104,26 @@ def rebuild(cfg: Config, threshold: float | None = None, min_slot_lines: int | N
         for guid, old in (prev.get("routes") or {}).items():       # user decisions and spot-check marks survive a rebuild
             if guid in routes and old.get("checked") and routes[guid]["source"] == "auto":
                 routes[guid]["checked"] = True
+                if "spot-check failed" in old.get("reasons", []):
+                    routes[guid]["reasons"] = sorted(set(routes[guid]["reasons"]) | {"spot-check failed"})
             if old.get("source") == "override" and guid in routes:
                 routes[guid] = old
                 if old["to"] == "slot" and old["slot"] not in slots and old["slot"] in prev_slots:
                     slots[old["slot"]] = prev_slots[old["slot"]]
+        merged = dict(prev.get("merged") or {})
+        for src, dst in merged.items():                            # a user merge is an override: apply it after slot assignment
+            if dst not in slots and dst in prev_slots:
+                slots[dst] = prev_slots[dst]
+            if dst not in slots:
+                continue
+            for r in routes.values():
+                if r["to"] == "slot" and r.get("slot") == src:
+                    r.update(slot=dst, source="override", reasons=[])
+            slots.pop(src, None)
         _count_lines(routes, slots)
         write_json_atomic(pools_path(cfg), {
             "threshold": threshold, "min_slot_lines": min_lines, "built": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "slots": slots, "routes": routes, "spot": prev.get("spot", {})})
+            "slots": slots, "routes": routes, "spot": prev.get("spot", {}), "merged": merged})
         ensure_slot_speakers(cfg, slots)
     return summary(cfg)
 
@@ -242,6 +254,11 @@ def merge_slot(cfg: Config, src: str, dst: str) -> dict:
         guids = [g for g, r in st["routes"].items() if r["to"] == "slot" and r.get("slot") == src]
         for g in guids:
             st["routes"][g].update(slot=dst, source="override", reasons=[])
+        merged = st.setdefault("merged", {})
+        for k, v in merged.items():
+            if v == src:
+                merged[k] = dst
+        merged[src] = dst
         del st["slots"][src]                        # its manifest entry stays: the studio never deletes
         _count_lines(st["routes"], st["slots"])
         write_json_atomic(pools_path(cfg), st)

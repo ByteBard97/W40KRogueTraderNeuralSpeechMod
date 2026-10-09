@@ -62,3 +62,14 @@ def test_fx_file_returns_compressed_wav(api, qcfg):
     write_wav(qcfg.render / "export/wav/hi.wav", 0.5, 24000)       # the other fixtures use a 1 kHz toy rate
     st, body = api("GET", "/fx-file?p=data/render/export/wav/hi.wav&fx=mild", raw=True)
     assert st == 200 and body[:4] == b"RIFF"
+
+
+def test_fx_file_unexpected_error_is_a_500_not_a_dropped_connection(api, qcfg, monkeypatch):
+    from studio_server import qa
+    write_wav(qcfg.render / "export/wav/hi.wav", 0.1, 24000)
+
+    def boom(path, fx):
+        raise RuntimeError("only 16-bit wavs")
+    monkeypatch.setattr(qa, "compressed", boom)
+    st, body = api("GET", "/fx-file?p=data/render/export/wav/hi.wav&fx=mild", raw=True)
+    assert st == 500 and b"only 16-bit" in body

@@ -42,7 +42,10 @@ def make_server(cfg: Config, model: ModelClient, port: int = DEFAULT_PORT, web_d
                 p = cfg.resolve_file(parse_qs(u.query).get("p", [""])[0])
                 if p is None:
                     return self._send(404, b"not found", "text/plain")
-                return self._send(200, p.read_bytes(), mimetypes.guess_type(p.name)[0] or "application/octet-stream")
+                try:
+                    return self._send(200, p.read_bytes(), mimetypes.guess_type(p.name)[0] or "application/octet-stream")
+                except Exception as e:
+                    return self._send(500, f"{type(e).__name__}: {e}".encode(), "text/plain")
             if u.path == "/fx-file":
                 args = {k: v[0] for k, v in parse_qs(u.query).items()}
                 p = cfg.resolve_file(args.get("p", ""))
@@ -52,6 +55,8 @@ def make_server(cfg: Config, model: ModelClient, port: int = DEFAULT_PORT, web_d
                     return self._send(200, qa.compressed(p, args.get("fx", "")), "audio/wav")
                 except ApiError as e:
                     return self._send(e.status, e.message.encode(), "text/plain")
+                except Exception as e:
+                    return self._send(500, f"{type(e).__name__}: {e}".encode(), "text/plain")
             rel = u.path.lstrip("/")
             f = (dist / rel).resolve() if rel else None
             if f and f.is_file() and dist.resolve() in f.parents:
