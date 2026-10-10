@@ -1,0 +1,346 @@
+<!-- Speaker workbench -->
+<style>
+
+body{margin:0}
+.subbar{position:sticky;top:var(--topbar-h);z-index:15;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 24px;background:rgba(13,14,16,.96);border-bottom:1px solid var(--line)}
+.cand{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:var(--r-md);border:1px solid transparent;border-top-color:var(--line)}
+.cand.sel{background:var(--selected);border-color:var(--selected-line)}
+.cand.rej{opacity:.55}
+.cand.rej .cid{text-decoration:line-through}
+.cand-l1,.cand-l2{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.cand-l2{padding-left:78px}
+.grip{color:var(--text-3);cursor:grab;display:inline-flex}
+.rank{font-family:var(--font-mono);font-size:12px;color:var(--text-3);width:16px;text-align:right}
+.cid{font-family:var(--font-mono);font-weight:500;font-size:14px;color:var(--text);width:28px}
+.lbl-s{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em}
+.mini-play{display:inline-flex;align-items:center;gap:6px;min-height:28px;max-width:260px;padding:0 10px 0 6px;border-radius:999px;border:1px solid var(--line-strong);background:var(--raised);color:var(--text-2);font-size:12px;cursor:pointer}
+.mini-play span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-play:hover{border-color:var(--accent);color:var(--text)}
+.stars.sm button{width:20px;height:24px}
+.tl{display:grid;grid-template-columns:20px 32px minmax(0,1fr);gap:4px 10px;align-items:start;padding:8px 6px;border-top:1px solid var(--line)}
+.tl .txt{font-size:14px;line-height:1.45}
+.tl .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:2px}
+.tl .sty{font-size:12px;color:var(--text-3)}
+.res{display:flex;flex-direction:column;gap:8px;padding:10px 0;border-top:1px solid var(--line)}
+.res-ab{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.res-ab button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:44px;padding:6px 8px;border-radius:var(--r-md);border:1px solid var(--line-strong);background:var(--raised);color:var(--text-2);font-size:12px;cursor:pointer;text-align:left}
+.res-ab button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-tint);color:var(--text)}
+.res-ab button:disabled{border-style:dashed;opacity:.55;cursor:not-allowed}
+@media (max-width:640px){.subbar{padding:8px 12px}.cand-l2{padding-left:0}.res-ab{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+</style>
+
+<x-dc>
+<div class="app">
+<header class="topbar">
+  <div class="brand"><svg width="18" height="20" sc-camel-view-box="0 0 18 20" aria-hidden="true"><path d="M2 19V8a7 7 0 0 1 14 0v11" fill="none" stroke="currentColor" stroke-width="1.6"></path><path d="M6 15v-4M9 16V8M12 15v-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>Voice Studio</div>
+  <nav class="nav" aria-label="Sections">
+    <a href="Speakers.dc.html" aria-current="page">Speakers <span class="count">20 left</span></a>
+    <a href="Pools.dc.html">Pools <span class="count">61</span></a>
+    <a href="FX.dc.html">FX</a>
+    <a href="Matches.dc.html">Matches <span class="count">277</span></a>
+    <a href="QA.dc.html">Render QA <span class="count">11,051</span></a>
+  </nav>
+  <div class="topbar-right">
+    <span class="pill busy" role="status"><span class="led"></span>Designing c6<span class="meter"><i style="width: 60%"></i></span><span class="num">0:04</span></span>
+    <button class="btn btn-ghost btn-icon" aria-label="Keyboard shortcuts"><span class="kbd">?</span></button>
+  </div>
+</header>
+
+<div class="subbar">
+  <a class="btn btn-ghost btn-sm" href="Speakers.dc.html"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>Prev <span class="kbd">[</span></a>
+  <div style="display: flex; flex-direction: column; min-width: 0">
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap"><h1 class="page-title" style="font-size: 20px">Governor Ruoldo</h1><span class="tag designed">designed</span><span class="muted num" style="font-size: 12px">79 lines</span></div>
+  </div>
+  <a class="btn btn-ghost btn-sm" href="Workbench.dc.html">Next <span class="kbd">]</span><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+  <div class="progress hide-sm" style="min-width: 160px; flex: 0 1 200px; gap: 4px">
+    <div class="label"><span>Speaker 8 / 43</span><span>1 picked</span></div>
+    <div class="bar"><i class="a" style="width: 18.6%"></i></div>
+  </div>
+  <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-left: auto">
+    <span class="muted" style="font-size: 12px">No profile saved</span>
+    <button class="btn btn-sm">Save profile <span class="kbd">S</span></button>
+    <button class="btn btn-sm" disabled="">Set active</button>
+    <button class="btn btn-sm btn-primary" disabled="{{noPick}}">Register {{pickLabel}} <span class="kbd">P</span></button>
+  </div>
+</div>
+
+<main class="page">
+<div class="split">
+<div class="main">
+
+  <section class="section" aria-labelledby="src-h">
+    <div class="section-head">
+      <span class="section-title" id="src-h"><span class="step">1</span>Source · designed voice</span>
+      <span class="section-summary">6 candidates · {{rankedCount}} / 6 scored · {{pickSummary}}</span>
+      <div class="section-actions"><div class="seg" role="group" aria-label="Source type"><button aria-pressed="true">Designed</button><button aria-pressed="false">Catalogue clips</button><button aria-pressed="false">Supplied wav</button></div></div>
+    </div>
+    <div class="section-body">
+      <div style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap">
+        <div style="flex: 1 1 400px; min-width: 0">
+          <div class="lbl-s" style="margin-bottom: 4px">Description</div>
+          <div style="font-size: 15px; line-height: 1.5; color: var(--text)">A man in his fifties, British English accent, bright and eager voice, fawning and obsequious, anxious to please.</div>
+        </div>
+        <button class="btn btn-sm btn-ghost">Edit <span class="kbd">E</span></button>
+      </div>
+
+      <div class="ab" aria-label="Compare candidates">
+        <div class="ab-head"><b style="color: var(--text)">Compare on</b>
+          <div class="seg" role="group" aria-label="Compare line"><button aria-pressed="{{lineDesc}}" sc-camel-on-click="{{setLine0}}">Design sample</button><button aria-pressed="{{lineT1}}" sc-camel-on-click="{{setLine1}}">Test 1: alcedont</button><button aria-pressed="{{lineT2}}" sc-camel-on-click="{{setLine2}}">Test 2: tipsy</button></div>
+          <span style="margin-left: auto">Keys <span class="kbd">1</span>–<span class="kbd">6</span> switch, playhead kept</span>
+        </div>
+        <div class="ab-slots" role="group" aria-label="Candidates">
+          <sc-for list="{{abSlots}}" as="s" hint-placeholder-count="6">
+            <button class="ab-slot" aria-pressed="{{s.pressed}}" sc-camel-on-click="{{s.listen}}" style="flex-basis: 96px"><span class="kbd k">{{s.key}}</span><span class="lbl"><b>{{s.id}}</b><span>{{s.top}}</span></span></button>
+          </sc-for>
+        </div>
+        <div class="ab-track"><button class="play on" aria-label="Pause"><svg width="12" height="12" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"></path></svg></button><span class="num muted" style="font-size: 12px">0:02.1</span><div class="track"><div class="fill" style="width: 44%"></div><div class="knob" style="left: 44%"></div></div><span class="num muted" style="font-size: 12px">0:04.8</span><button class="btn btn-sm btn-ghost" aria-pressed="true">Loop <span class="kbd">L</span></button></div>
+      </div>
+
+      <div>
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; padding: 0 4px 6px">
+          <b style="font-size: 14px">Ranking</b><span class="muted" style="font-size: 12px">Drag the handle or Alt+↑↓ · B / A / O accent · Shift+1–5 accent score · 1–5 fit · P pick · R reject</span>
+        </div>
+        <div role="listbox" aria-label="Candidates in rank order">
+          <sc-for list="{{cands}}" as="c" hint-placeholder-count="6">
+            <div class="cand {{c.cls}}" role="option" aria-selected="{{c.isPick}}">
+              <div class="cand-l1">
+                <span class="grip" aria-hidden="true"><svg width="10" height="16" sc-camel-view-box="0 0 10 16"><circle cx="3" cy="3" r="1.3" fill="currentColor"></circle><circle cx="7" cy="3" r="1.3" fill="currentColor"></circle><circle cx="3" cy="8" r="1.3" fill="currentColor"></circle><circle cx="7" cy="8" r="1.3" fill="currentColor"></circle><circle cx="3" cy="13" r="1.3" fill="currentColor"></circle><circle cx="7" cy="13" r="1.3" fill="currentColor"></circle></svg></span>
+                <span class="rank">{{c.rank}}</span>
+                <button class="play {{c.playCls}}" aria-label="Play {{c.id}}" sc-camel-on-click="{{c.listen}}"><svg width="12" height="12" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"></path></svg></button>
+                <span class="cid">{{c.id}}</span>
+                <span class="score {{c.pusCls}}">p_us {{c.pus}}</span>
+                <span class="score">{{c.top}}</span>
+                <span class="flag" title="Seed was not recorded; this candidate cannot be regenerated">no seed</span>
+                <span style="margin-left: auto; display: flex; gap: 4px; align-items: center">
+                  <button class="btn btn-ghost btn-icon btn-sm" aria-label="Move {{c.id}} up" sc-camel-on-click="{{c.up}}"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+                  <button class="btn btn-ghost btn-icon btn-sm" aria-label="Move {{c.id}} down" sc-camel-on-click="{{c.down}}"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+                  <button class="btn btn-sm btn-ghost" sc-camel-on-click="{{c.reject}}">{{c.rejLabel}}</button>
+                  <button class="btn btn-sm {{c.pickCls}}" sc-camel-on-click="{{c.pick}}">{{c.pickLabel}}</button>
+                </span>
+              </div>
+              <div class="cand-l2">
+                <span class="lbl-s">Accent</span>
+                <div class="seg accent" role="group" aria-label="Accent of {{c.id}}"><button aria-pressed="{{c.accB}}" sc-camel-on-click="{{c.setB}}">British</button><button aria-pressed="{{c.accA}}" sc-camel-on-click="{{c.setA}}">American</button><button aria-pressed="{{c.accO}}" sc-camel-on-click="{{c.setO}}">Other</button></div>
+                <div class="stars sm" role="group" aria-label="Accent score">
+                  <sc-for list="{{c.aStars}}" as="s" hint-placeholder-count="5"><button class="{{s.cls}}" aria-label="Accent {{s.n}}" sc-camel-on-click="{{s.set}}"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 1.5l2 4.2 4.5.6-3.3 3.1.8 4.5L8 11.7l-4 2.2.8-4.5L1.5 6.3 6 5.7z" fill="currentColor"></path></svg></button></sc-for>
+                </div>
+                <span class="lbl-s" style="margin-left: 6px">Fit</span>
+                <div class="stars sm" role="group" aria-label="Fit score">
+                  <sc-for list="{{c.fStars}}" as="s" hint-placeholder-count="5"><button class="{{s.cls}}" aria-label="Fit {{s.n}}" sc-camel-on-click="{{s.set}}"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 1.5l2 4.2 4.5.6-3.3 3.1.8 4.5L8 11.7l-4 2.2.8-4.5L1.5 6.3 6 5.7z" fill="currentColor"></path></svg></button></sc-for>
+                </div>
+                <sc-if value="{{c.hasTests}}" hint-placeholder-val="{{ true }}">
+                  <span class="lbl-s" style="margin-left: 6px">Clone tests</span>
+                  <button class="mini-play"><svg width="10" height="10" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"></path></svg><span>She almost ripped off my finger…</span></button>
+                  <button class="mini-play"><svg width="10" height="10" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"></path></svg><span>I am a bit tipsy…</span></button>
+                </sc-if>
+                <sc-if value="{{c.noTests}}" hint-placeholder-val="{{ false }}">
+                  <button class="btn btn-sm btn-ghost">Render 2 clone tests</button>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+          <div class="cand" style="opacity: .9">
+            <div class="cand-l1"><span class="grip" aria-hidden="true" style="visibility: hidden"><svg width="10" height="16" sc-camel-view-box="0 0 10 16"></svg></span><span class="rank">·</span><span class="spinner" style="margin: 0 8px"></span><span class="cid">c6</span><span class="muted" style="font-size: 13px">Designing from the description · seed 4821 · cfg 2 · 10 steps · 0:04 elapsed</span><span style="margin-left: auto"><button class="btn btn-sm btn-ghost">Cancel</button></span></div>
+            <div class="cand-l2"><div class="skeleton" style="width: 40%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <details class="section" style="background: var(--raised)">
+        <summary><svg class="chev" width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="section-title" style="font-size: 14px">Live design</span><span class="section-summary">Generate another candidate from the description · seed random · cfg 2 · 10 steps</span></summary>
+        <div class="section-body" style="flex-direction: row; flex-wrap: wrap; align-items: center">
+          <label class="field" style="width: 150px"><span class="lbl">Seed</span><input placeholder="random"></label>
+          <label class="field" style="width: 100px"><span class="lbl">cfg</span><input value="2"></label>
+          <label class="field" style="width: 110px"><span class="lbl">Steps</span><input value="10"></label>
+          <button class="btn btn-primary">Generate <span class="kbd">G</span></button>
+          <button class="btn" disabled="">Keep as c7</button>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="tl-h">
+    <div class="section-head">
+      <span class="section-title" id="tl-h"><span class="step">2</span>Test lines</span>
+      <span class="section-summary">6 of 79 ticked · neutral 2, amused 2, surprised 1, sad 1</span>
+      <div class="section-actions"><button class="btn btn-sm">Pick 6 spread across emotions</button><button class="btn btn-sm btn-ghost">Clear</button></div>
+    </div>
+    <div class="section-body">
+      <div class="filterbar" style="padding: 6px">
+        <label class="field grow"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg><span class="vh">Search lines</span><input placeholder="Search 79 lines"></label>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px">
+          <button class="chip" aria-pressed="true">all <span class="n">79</span></button><button class="chip" aria-pressed="false">neutral <span class="n">41</span></button><button class="chip" aria-pressed="false">amused <span class="n">9</span></button><button class="chip" aria-pressed="false">dramatic <span class="n">6</span></button><button class="chip" aria-pressed="false">sad <span class="n">5</span></button><button class="chip" aria-pressed="false">surprised <span class="n">5</span></button><button class="chip" aria-pressed="false">fear <span class="n">4</span></button><button class="chip" aria-pressed="false">happy <span class="n">4</span></button><button class="chip" aria-pressed="false">+4</button>
+        </div>
+      </div>
+      <div>
+        <sc-for list="{{lines}}" as="l" hint-placeholder-count="8">
+          <div class="tl">
+            <input type="checkbox" checked="{{l.on}}" aria-label="Use this line" style="margin-top: 8px; width: 16px; height: 16px; accent-color: #c9a35c">
+            <button class="play" aria-label="Play bank render"><svg width="12" height="12" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"></path></svg></button>
+            <div><div class="meta"><span class="tag">{{l.emo}}</span><span class="tag">{{l.pace}}</span><span class="num muted" style="font-size: 11px">{{l.dur}}</span></div><div class="txt">{{l.text}}</div><div class="sty">{{l.style}}</div></div>
+          </div>
+        </sc-for>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-top: 1px solid var(--line)"><span class="muted" style="font-size: 12px">Showing 1–8 of 79</span><div class="bar" style="flex: 1 1 auto; max-width: 240px"><i class="n" style="width: 10%"></i></div><button class="btn btn-sm">Show all 79</button></div>
+      </div>
+    </div>
+  </section>
+
+  <details class="section">
+    <summary><svg class="chev" width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="section-title"><span class="step">3</span>Options</span><span class="section-summary">cfg 2 · 10 steps · new seed per line · style prefix off · retry off · normalise off · continuation off</span></summary>
+    <div class="section-body">
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <label class="field" style="width: 110px"><span class="lbl">cfg</span><input value="2"></label>
+        <label class="field" style="width: 130px"><span class="lbl">Timesteps</span><input value="10"></label>
+        <div class="seg" role="group" aria-label="Seed policy"><button aria-pressed="true">New seed per line</button><button aria-pressed="false">One seed for all</button><button aria-pressed="false">Fixed…</button></div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 8px">
+        <label style="display: flex; gap: 8px; align-items: center"><input type="checkbox" style="accent-color: #c9a35c">Use the line's style annotation as a prefix</label>
+        <label style="display: flex; gap: 8px; align-items: center"><input type="checkbox" style="accent-color: #c9a35c">Retry bad takes</label>
+        <label style="display: flex; gap: 8px; align-items: center"><input type="checkbox" style="accent-color: #c9a35c">Normalise text</label>
+      </div>
+      <details><summary class="muted" style="cursor: pointer; font-size: 13px">Advanced</summary><label style="display: flex; gap: 8px; align-items: center; padding-top: 8px"><input type="checkbox" style="accent-color: #c9a35c">Continuation: also pass the transcript as a prompt <span class="muted" style="font-size: 12px">· can echo the reference audio at the start; the bank was rendered with it off</span></label></details>
+    </div>
+  </details>
+
+  <section class="section" aria-labelledby="pp-h">
+    <div class="section-head">
+      <span class="section-title" id="pp-h"><span class="step">4</span>Post-processing</span>
+      <span class="section-summary">Runs in this order on the raw clone</span>
+      <div class="section-actions"><a class="btn btn-sm btn-ghost" href="FX.dc.html">Open in FX Lab ↗</a></div>
+    </div>
+    <div class="section-body">
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center">
+        <span class="chip" aria-pressed="true"><span class="num">1</span> Clean <span aria-hidden="true">×</span></span>
+        <span class="chip" aria-pressed="true"><span class="num">2</span> Cavernous: vast hall <span aria-hidden="true">×</span></span>
+        <label class="field" style="min-width: 240px"><span class="lbl">Add</span><sc-raw-select><option>Search 40 presets…</option><optgroup label="Machine"><option>Machine: servitor</option></optgroup></sc-raw-select></label>
+      </div>
+      <span class="muted" style="font-size: 12px">Real clips are often already processed; FX on a clone from one may be applied twice.</span>
+    </div>
+  </section>
+</div>
+
+<aside class="side sticky" style="flex-basis: 380px">
+  <section class="section" aria-labelledby="res-h">
+    <div class="section-head">
+      <span class="section-title" id="res-h"><span class="step">5</span>Results</span>
+      <span class="section-summary">source {{pickId}} · 6 lines · 2 FX</span>
+    </div>
+    <div class="section-body" style="gap: 6px">
+      <button class="btn btn-primary btn-lg" style="width: 100%">Generate 6 takes <span class="kbd">⌘↵</span></button>
+      <div class="muted" style="font-size: 12px">~45 s on the current model · runs in the background; keep ranking</div>
+      <div class="res">
+        <div style="display: flex; gap: 8px; align-items: baseline"><span class="tag">neutral 0.2</span><span style="font-size: 13px">I, well, I do have certain suppositions,</span></div>
+        <div class="res-ab" role="group" aria-label="Compare versions">
+          <button disabled=""><b>Real</b><span class="muted">none</span></button>
+          <button aria-pressed="false"><b>Bank</b><span class="muted num">2.9 s</span></button>
+          <button aria-pressed="true"><b>Clone</b><span class="muted num">3.1 s</span></button>
+          <button aria-pressed="false"><b>+ FX</b><span class="muted num">3.4 s</span></button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px"><div class="stars sm" aria-label="Take rating 4 of 5"><button class="on" aria-label="1"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 1.5l2 4.2 4.5.6-3.3 3.1.8 4.5L8 11.7l-4 2.2.8-4.5L1.5 6.3 6 5.7z" fill="currentColor"></path></svg></button><button class="on" aria-label="2"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 1.5l2 4.2 4.5.6-3.3 3.1.8 4.5L8 11.7l-4 2.2.8-4.5L1.5 6.3 6 5.7z" fill="currentColor"></path></svg></button><button class="on" aria-label="3"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 1.5l2 4.2 4.5.6-3.3 3.1.8 4.5L8 11.7l-4 2.2.8-4.5L1.5 6.3 6 5.7z" fill="currentColor"></path></svg></button><button class="on" aria-label="4"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 1.5l2 4.2 4.5.6-3.3 3.1.8 4.5L8 11.7l-4 2.2.8-4.5L1.5 6.3 6 5.7z" fill="currentColor"></path></svg></button><button aria-label="5"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 1.5l2 4.2 4.5.6-3.3 3.1.8 4.5L8 11.7l-4 2.2.8-4.5L1.5 6.3 6 5.7z" fill="currentColor"></path></svg></button></div><span class="saved" style="margin-left: auto">Saved</span></div>
+      </div>
+      <div class="res">
+        <div style="display: flex; gap: 8px; align-items: baseline"><span class="tag">amused 0.3</span><span style="font-size: 13px">Most assuredly, Your Celestial Highness! I shall proclaim…</span></div>
+        <div class="res-ab" role="group" aria-label="Compare versions">
+          <button disabled=""><b>Real</b><span class="muted">none</span></button>
+          <button aria-pressed="true"><b>Bank</b><span class="muted num">3.6 s</span></button>
+          <button aria-pressed="false"><b>Clone</b><span class="muted num">3.3 s</span></button>
+          <button aria-pressed="false"><b>+ FX</b><span class="muted num">3.7 s</span></button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px"><span class="muted" style="font-size: 12px">Not rated · 1–5</span></div>
+      </div>
+      <div class="res">
+        <div style="display: flex; gap: 8px; align-items: center"><span class="spinner"></span><span style="font-size: 13px">Take 3 of 6 · Oh! Yes! Yes, of course, this very day…</span><span class="num muted" style="margin-left: auto; font-size: 12px">0:06</span></div>
+        <div class="bar"><i class="a" style="width: 55%"></i></div>
+      </div>
+      <div class="res"><span class="muted" style="font-size: 13px">3 more queued · Cancel all</span></div>
+    </div>
+  </section>
+</aside>
+</div>
+</main>
+
+<div class="player" role="region" aria-label="Audio player">
+  <div class="np"><span class="t">Governor Ruoldo · {{playingId}} · {{lineName}}</span><span class="s">ruoldo/{{playingId}}/design_sample.wav</span></div>
+  <div class="ctl">
+    <button class="btn btn-ghost btn-icon" aria-label="Previous clip"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 3v10M13 3L6 8l7 5z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg></button>
+    <button class="play lg on" aria-label="Pause (Space)"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"></path></svg></button>
+    <button class="btn btn-ghost btn-icon" aria-label="Next clip"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M12 3v10M3 3l7 5-7 5z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg></button>
+  </div>
+  <div class="seek"><span class="time">0:02.1</span><div class="track"><div class="fill" style="width: 44%"></div><div class="knob" style="left: 44%"></div></div><span class="time">0:04.8</span></div>
+  <div class="opts">
+    <div class="seg" role="group" aria-label="Speed"><button aria-pressed="false">0.75×</button><button aria-pressed="true">1×</button><button aria-pressed="false">1.25×</button></div>
+    <button class="btn btn-ghost btn-sm" aria-pressed="true">Loop <span class="kbd">L</span></button>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:2300}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      order: ['c2','c1','c0','c4','c5','c3'],
+      playing: 'c2', line: 0, pick: null,
+      acc: { c0: 'O', c1: 'O', c2: 'B', c3: 'A', c4: 'O', c5: 'O' },
+      aS: { c2: 4, c1: 2 }, fS: { c2: 4, c1: 3 },
+      rej: {}
+    };
+  }
+  renderVals() {
+    const S = this.state;
+    const base = {
+      c0: { pus: '0.00', top: 'australia 0.98', tests: true },
+      c1: { pus: '0.00', top: 'australia 1.00', tests: true },
+      c2: { pus: '0.00', top: 'australia 1.00', tests: true },
+      c3: { pus: '0.96', top: 'us 0.96', tests: false },
+      c4: { pus: '0.00', top: 'wales 0.65', tests: false },
+      c5: { pus: '0.00', top: 'wales 0.77', tests: false }
+    };
+    const move = (id, d) => { const o = S.order.slice(); const i = o.indexOf(id); const j = i + d; if (j < 0 || j >= o.length) return; o[i] = o[j]; o[j] = id; this.setState({ order: o }); };
+    const stars = (id, key) => [1,2,3,4,5].map((n) => ({ n, cls: (S[key][id] || 0) >= n ? 'on' : '', set: () => this.setState({ [key]: { ...S[key], [id]: n } }) }));
+    const cands = S.order.map((id, i) => {
+      const b = base[id]; const a = S.acc[id]; const isPick = S.pick === id; const rej = !!S.rej[id];
+      return {
+        id, rank: i + 1, pus: b.pus, top: b.top, pusCls: b.pus === '0.00' ? 'ok' : 'hot',
+        hasTests: b.tests, noTests: !b.tests,
+        cls: (isPick ? 'sel ' : '') + (rej ? 'rej' : ''), isPick: isPick ? 'true' : 'false',
+        playCls: S.playing === id ? 'on' : '',
+        listen: () => this.setState({ playing: id }),
+        up: () => move(id, -1), down: () => move(id, 1),
+        reject: () => this.setState({ rej: { ...S.rej, [id]: !rej }, pick: isPick ? null : S.pick }),
+        rejLabel: rej ? 'Undo reject' : 'Reject',
+        pick: () => this.setState({ pick: isPick ? null : id }),
+        pickLabel: isPick ? 'Picked' : 'Pick', pickCls: isPick ? 'btn-primary' : '',
+        accB: a === 'B' ? 'true' : 'false', accA: a === 'A' ? 'true' : 'false', accO: a === 'O' ? 'true' : 'false',
+        setB: () => this.setState({ acc: { ...S.acc, [id]: 'B' } }), setA: () => this.setState({ acc: { ...S.acc, [id]: 'A' } }), setO: () => this.setState({ acc: { ...S.acc, [id]: 'O' } }),
+        aStars: stars(id, 'aS'), fStars: stars(id, 'fS')
+      };
+    });
+    const abSlots = S.order.map((id, i) => ({ id, key: String(i + 1), top: base[id].top, pressed: S.playing === id ? 'true' : 'false', listen: () => this.setState({ playing: id }) }));
+    const rankedCount = Object.keys(S.fS).length;
+    const lines = [
+      ['dramatic 0.6','normal','7.9 s',false,'Celestial guests, there is no higher honour for us than to extend our hospitality to such noble eminences! His Celestial Highness the Rogue Trader, and an illustrious judicator of the Imperium!','Deliver with grandeur and theatrical flair, emphasizing the honor and formality of the greeting.'],
+      ['neutral 0.3','normal','6.2 s',true,'But of course, Your Celestial Highness! It would be my pleasure to discuss whatever topic you have in mind.','Speak with a warm and hospitable tone, showing genuine interest in the player’s concerns.'],
+      ['amused 0.3','normal','11.4 s',true,'Ah, this is a fine tradition that I myself brought to this world! You see, there is a way to tame the merciless passage of time…','Deliver with a tone of exaggerated pride and self-satisfaction.'],
+      ['amused 0.3','normal','3.6 s',true,'Most assuredly, Your Celestial Highness! I shall proclaim this decree this very day…','Deliver with a tone of exaggerated enthusiasm and pride.'],
+      ['surprised 0.4','normal','2.4 s',true,'Oh! Yes! Yes, of course, this very day…','Speak with a tone of mild confusion and quick realization.'],
+      ['neutral 0.2','normal','2.9 s',true,'I, well, I do have certain suppositions,','Speak with a slightly hesitant and confused tone, as if unsure of what is coming next.'],
+      ['neutral 0.25','normal','9.8 s',false,'I am most flattered by your attention, esteemed judicator, and by this opportunity to serve the Imperium with even greater dedication than before.','Delivered with a tone of polite formality.'],
+      ['sad 0.5','slow','14.2 s',true,'Though at most only once in a generation, even Thassera receives visits from time to time, Your Celestial Highness.','Speak with a somber, regretful tone, as if mourning the decline of the once-great servitors.']
+    ].map(([emo, pace, dur, on, text, style]) => ({ emo, pace, dur, on, text, style: 'style: ' + style }));
+    const lineNames = ['design sample', 'test 1', 'test 2'];
+    return {
+      cands, abSlots, lines, rankedCount,
+      pickSummary: S.pick ? 'picked ' + S.pick : 'no pick yet',
+      pickLabel: S.pick ? S.pick : 'pick', noPick: !S.pick, pickId: S.pick || 'c2',
+      playingId: S.playing, lineName: lineNames[S.line],
+      lineDesc: S.line === 0 ? 'true' : 'false', lineT1: S.line === 1 ? 'true' : 'false', lineT2: S.line === 2 ? 'true' : 'false',
+      setLine0: () => this.setState({ line: 0 }), setLine1: () => this.setState({ line: 1 }), setLine2: () => this.setState({ line: 2 })
+    };
+  }
+}
+</script>
+
+
+</body></html>

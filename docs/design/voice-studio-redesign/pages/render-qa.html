@@ -1,0 +1,213 @@
+<!-- Render QA -->
+<style>
+
+body{margin:0}
+.qa-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg)}
+.qa-bar .bar{height:8px;flex:1 1 300px}
+.clip{display:flex;flex-direction:column;gap:16px;padding:20px 22px;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-lg)}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:13px;color:var(--text-2)}
+.meta b{color:var(--accent-hi);font-weight:600;font-size:15px}
+.meta .sep{color:var(--n-6)}
+.cliptext{font-size:19px;line-height:1.45;color:var(--text);margin:0;text-wrap:pretty;overflow-wrap:anywhere}
+.sentas{font-size:13px;color:var(--text-3);border-left:0;padding:8px 12px;background:var(--n-1);border-radius:var(--r-md);overflow-wrap:anywhere}
+.flagrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.flagrow .why{font-size:12px;color:var(--text-3)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags .chip .kbd{min-width:16px;height:16px}
+.qrow{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:2px 10px;align-items:center;width:100%;padding:8px 10px;border:0;border-top:1px solid var(--line);background:transparent;color:inherit;text-align:left;cursor:pointer}
+.qrow:hover{background:var(--hover)}
+.qrow.sel{background:var(--selected);box-shadow:inset 0 0 0 1px var(--selected-line);border-radius:var(--r-md);border-top-color:transparent}
+.qrow .t{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.qrow .m{grid-column:2 / 4;display:flex;gap:8px;font-size:11px;color:var(--text-3);font-family:var(--font-mono);white-space:nowrap;overflow:hidden}
+.qrow .m .w{color:var(--warn)}
+@media (max-width:640px){.clip{padding:14px}.cliptext{font-size:17px}}
+
+</style>
+
+<x-dc>
+<div class="app" sc-camel-tab-index="0" sc-camel-on-key-down="{{onKey}}" style="outline: none">
+<header class="topbar">
+  <div class="brand"><svg width="18" height="20" sc-camel-view-box="0 0 18 20" aria-hidden="true"><path d="M2 19V8a7 7 0 0 1 14 0v11" fill="none" stroke="currentColor" stroke-width="1.6"></path><path d="M6 15v-4M9 16V8M12 15v-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>Voice Studio</div>
+  <nav class="nav" aria-label="Sections">
+    <a href="Speakers.dc.html">Speakers <span class="count">20 left</span></a>
+    <a href="Pools.dc.html">Pools <span class="count">61</span></a>
+    <a href="FX.dc.html">FX</a>
+    <a href="Matches.dc.html">Matches <span class="count">277</span></a>
+    <a href="QA.dc.html" aria-current="page">Render QA <span class="count">{{unjudgedFmt}}</span></a>
+  </nav>
+  <div class="topbar-right">
+    <span class="pill ready" role="status"><span class="led"></span>Model ready</span>
+    <button class="btn btn-ghost" aria-label="Keyboard shortcuts"><span class="kbd">?</span><span class="hide-sm" style="font-size: 12px">Shortcuts</span></button>
+  </div>
+</header>
+
+<main class="page" style="gap: 12px">
+  <div class="filterbar">
+    <label class="field"><span class="lbl">Run</span><sc-raw-select><option>Merged export (11,051)</option></sc-raw-select></label>
+    <label class="field grow"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg><span class="vh">Search line text</span><input placeholder="Search line text"><span class="kbd">/</span></label>
+    <label class="field"><span class="lbl">Sort</span><sc-raw-select><option>Suspicious first</option><option>Slowest</option><option>Fastest</option><option>Longest</option><option>Shortest</option><option>Random</option></sc-raw-select></label>
+    <details style="position: relative"><summary class="btn" style="list-style: none">Filters <span class="num muted" style="font-size: 12px">0 active</span></summary>
+      <div class="card" style="position: absolute; z-index: 25; top: 40px; left: 0; padding: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; width: min(560px, 90vw); box-shadow: var(--e-2)">
+        <label class="field"><span class="lbl">Speaker</span><sc-raw-select><option>All</option></sc-raw-select></label>
+        <label class="field"><span class="lbl">Reference</span><sc-raw-select><option>All</option></sc-raw-select></label>
+        <label class="field"><span class="lbl">Engine</span><sc-raw-select><option>All</option><option>voxcpm2</option><option>qwen3_tts</option></sc-raw-select></label>
+        <label class="field"><span class="lbl">Flag</span><sc-raw-select><option>Any</option></sc-raw-select></label>
+        <label class="field"><span class="lbl">Verdict</span><sc-raw-select><option>Any</option><option>Unjudged</option></sc-raw-select></label>
+      </div>
+    </details>
+    <div style="display: flex; align-items: center; gap: 8px; margin-left: auto"><span class="muted" style="font-size: 12px">Compressor <span class="kbd">X</span></span><div class="seg" role="group" aria-label="Compressor"><button aria-pressed="{{compOff}}" sc-camel-on-click="{{setOff}}">Off</button><button aria-pressed="{{compMild}}" sc-camel-on-click="{{setMild}}">Mild</button><button aria-pressed="{{compStrong}}" sc-camel-on-click="{{setStrong}}">Strong</button></div></div>
+  </div>
+
+  <div class="qa-bar" aria-label="Progress">
+    <span class="num" style="font-size: 13px"><b style="color: var(--good)">{{good}}</b> good · <b style="color: var(--bad)">{{bad}}</b> bad · <b>{{unjudgedFmt}}</b> unjudged</span>
+    <span class="muted" style="font-size: 12px">this view</span>
+    <div class="bar" role="img" aria-label="Current view: {{good}} good, {{bad}} bad"><i class="g" style="width: {{goodPct}}"></i><i class="b" style="width: {{badPct}}"></i></div>
+    <span class="muted" style="font-size: 12px">this session {{session}} judged</span>
+    <details><summary class="btn btn-sm btn-ghost" style="list-style: none">Per reference ▾</summary>
+      <div class="mono muted" style="padding: 8px 0; line-height: 1.8; font-size: 11px">01_BNTRS_AreaStressful_Cassia_96 0g/0b/429 · 01_BNTRS_Chapter3_Argenta_36 0g/0b/371 · 01_BNTRS_Chapter4_Idira_160 0g/0b/345 · 01_BNTRS_DLC2_Marazhai_226 0g/0b/351 · 01_BNTRS_DLC2_Pasqal_347 0g/0b/845 · 01_BS_KTCStolenTithe_Solomorne_33 0g/0b/507 · 01_RMNC_Yrliet_StartingEventYrliet_06 0g/0b/643 · BNTRS_AreaStressful_Abelard_92 0g/0b/277 · …</div>
+    </details>
+  </div>
+
+  <div class="split">
+    <section class="main" aria-label="Current clip">
+      <article class="clip">
+        <div class="meta">
+          <b>{{cur.speaker}}</b>
+          <span class="mono">{{cur.engine}}</span><span class="sep">·</span>
+          <span>ref <span class="mono">{{cur.ref}}</span></span><span class="sep">·</span>
+          <span class="num">{{cur.dur}}</span><span class="sep">·</span>
+          <span class="num">{{cur.cps}} chars/s</span><span class="sep">·</span>
+          <span>{{cur.emo}}</span>
+          <span class="muted num" style="margin-left: auto; font-size: 12px">clip {{cur.n}} of 11,051</span>
+        </div>
+        <p class="cliptext">{{cur.text}}</p>
+        <sc-if value="{{cur.hasSent}}" hint-placeholder-val="{{ false }}"><div class="sentas"><span style="font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 600">Sent to the model as</span><br>{{cur.sent}}</div></sc-if>
+        <div class="flagrow">
+          <sc-for list="{{cur.flags}}" as="f" hint-placeholder-count="2"><span class="flag {{f.cls}}" title="{{f.why}}"><svg width="11" height="11" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 2l6.5 11.5h-13z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path></svg>{{f.name}}</span><span class="why">{{f.why}}</span></sc-for>
+        </div>
+        <sc-if value="{{cur.hasAsr}}" hint-placeholder-val="{{ false }}"><div class="inline-error"><span class="mono" style="color: var(--bad)">ASR</span><div>heard <b>“{{cur.heard}}”</b> · word error rate <b class="num">{{cur.wer}}</b></div></div></sc-if>
+
+        <div class="ab" aria-label="Compare">
+          <div class="ab-slots" role="group" aria-label="Compare sources">
+            <sc-for list="{{slots}}" as="s" hint-placeholder-count="4">
+              <button class="ab-slot" aria-pressed="{{s.pressed}}" disabled="{{s.disabled}}" sc-camel-on-click="{{s.pick}}"><span class="kbd k">{{s.key}}</span><span class="lbl"><b>{{s.label}}</b><span>{{s.sub}}</span></span></button>
+            </sc-for>
+          </div>
+          <div class="ab-track"><button class="play lg on" aria-label="Pause (Space)"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"></path></svg></button><span class="num muted" style="font-size: 12px">0:08.4</span><div class="track"><div class="fill" style="width: 28%"></div><div class="knob" style="left: 28%"></div></div><span class="num muted" style="font-size: 12px">{{cur.durClock}}</span></div>
+        </div>
+
+        <div class="judge">
+          <button class="btn good {{cur.goodOn}}" sc-camel-on-click="{{markGood}}"><svg width="20" height="20" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Good <span class="kbd">G</span></button>
+          <button class="btn bad {{cur.badOn}}" sc-camel-on-click="{{markBad}}"><svg width="20" height="20" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>Bad <span class="kbd">B</span></button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div class="muted" style="font-size: 12px">What is wrong? Tags also mark the clip bad · keys 1–9, 0</div>
+          <div class="tags">
+            <sc-for list="{{tags}}" as="t" hint-placeholder-count="10"><button class="chip" aria-pressed="{{t.on}}" sc-camel-on-click="{{t.toggle}}"><span class="kbd">{{t.key}}</span>{{t.label}}</button></sc-for>
+          </div>
+          <label class="field" style="width: 100%"><span class="lbl">Note</span><input placeholder="Optional · Enter saves"></label>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+          <span class="saved">{{savedNote}}</span>
+          <span style="margin-left: auto; display: flex; gap: 8px"><button class="btn btn-ghost" sc-camel-on-click="{{clear}}">Clear verdict <span class="kbd">U</span></button><button class="btn" sc-camel-on-click="{{nextUnjudged}}">Next unjudged <span class="kbd">N</span></button></span>
+        </div>
+      </article>
+    </section>
+
+    <aside class="side sticky" style="flex: 1 1 340px; max-width: 420px" aria-label="Queue">
+      <div class="card" style="padding: 4px">
+        <div class="list-head" style="justify-content: space-between"><span>Queue · suspicious first</span><span class="n">1–40 of 11,051</span></div>
+        <sc-for list="{{queue}}" as="q" hint-placeholder-count="7">
+          <button class="qrow {{q.sel}}" sc-camel-on-click="{{q.go}}">
+            <span class="dot {{q.dot}}"></span>
+            <span class="t"><b style="color: var(--text-2); font-weight: 600">{{q.speaker}}</b> · {{q.text}}</span>
+            <span class="num muted" style="font-size: 12px">{{q.dur}}</span>
+            <span class="m"><span>{{q.engine}}</span><span class="w">{{q.flagStr}}</span></span>
+          </button>
+        </sc-for>
+        <div class="row muted" style="font-size: 12px; justify-content: space-between">J K move · N next unjudged<button class="btn btn-sm">Load 40 more</button></div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div class="player" role="region" aria-label="Audio player">
+  <div class="np"><span class="t">{{cur.speaker}} · {{slotLabel}}</span><span class="s">{{cur.ref}}</span></div>
+  <div class="ctl">
+    <button class="btn btn-ghost btn-icon" aria-label="Previous clip (K)" sc-camel-on-click="{{prev}}"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 3v10M13 3L6 8l7 5z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg></button>
+    <button class="play lg on" aria-label="Pause (Space)"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"></path></svg></button>
+    <button class="btn btn-ghost btn-icon" aria-label="Next clip (J)" sc-camel-on-click="{{next}}"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M12 3v10M3 3l7 5-7 5z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg></button>
+  </div>
+  <div class="seek"><span class="time">0:08.4</span><div class="track"><div class="fill" style="width: 28%"></div><div class="knob" style="left: 28%"></div></div><span class="time">{{cur.durClock}}</span></div>
+  <div class="opts">
+    <div class="seg" role="group" aria-label="Speed"><button aria-pressed="false">1×</button><button aria-pressed="true">1.25×</button><button aria-pressed="false">1.5×</button></div>
+    <button class="btn btn-ghost btn-sm" aria-pressed="false">Auto-play next</button>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1300}}">
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { i: 1, v: {}, tags: {}, slot: 0, comp: 'off', session: 0 }; }
+  renderVals() {
+    const S = this.state;
+    const F = { cap_hit: 'hit the 30 s length cap', slow: 'below 3.5 chars/s', very_long: 'over 60 s', too_long: 'longer than the text needs', fast: 'above 20 chars/s' };
+    const data = [
+      { speaker: 'narrator', engine: 'voxcpm2', ref: '01_designed_narrator', dur: 29.76, cps: '3.1', emo: 'neutral', text: 'You detect a slight hesitation before the reply. There is something you are not being told.', flags: ['cap_hit', 'slow'], real: null },
+      { speaker: 'Pasqal', engine: 'voxcpm2', ref: '01_BNTRS_DLC2_Pasqal_347', dur: 87.04, cps: '3.2', emo: 'neutral', text: 'The data received provides a basis for calling the fallen Tech-Brother Tarzus’s hypothesis into question. //Out of respect for//Due to lack of authorisation to indict// the followers of the Messiah of Discontinuing, we will not proceed with the //detainment//arrest//termination//.', flags: ['slow', 'very_long'], real: 'Pasqal' },
+      { speaker: 'narrator', engine: 'voxcpm2', ref: '01_designed_narrator', dur: 29.76, cps: '4.1', emo: 'sad', text: 'Yrliet flinches and looks away. She tries to say something, but instead just closes her eyes and shakes her head ruefully.', flags: ['cap_hit', 'slow'], real: null },
+      { speaker: 'narrator', engine: 'voxcpm2', ref: '01_designed_narrator', dur: 29.92, cps: '4.9', emo: 'neutral', text: '///[INPUT] || [Pack.comp.] ///nom_OS STAB TRUE ///Log.str.check init. ... ///sector 567>245 dam. ///sector 244>001 stab. ///nom_OS operat.resp. ACT', flags: ['cap_hit', 'slow'], real: null },
+      { speaker: 'narrator', engine: 'voxcpm2', ref: '01_designed_narrator', dur: 29.92, cps: '5.3', emo: 'neutral', text: '///[INPUT] || [Pack.comp.] ///nom_OS STAB TRUE ///nom_OS STAB FALSE ///stat.check init. ... ... ///Perturb. reg. ///Disturb. reg. ///nom_OS operat.resp. QUERY', flags: ['cap_hit', 'slow'], real: null },
+      { speaker: 'narrator', engine: 'voxcpm2', ref: '01_designed_narrator', dur: 27.04, cps: '5.5', emo: 'neutral', text: '///[INPUT] || [Pack.comp.] ///nom_OS STAB TRUE ///stat.check init. ... ///nom_OS unp.: Epitaph ///STATUS: Initiated ... ///dat. reg. [0924558847...]', sent: 'With reverent trepidation, the Tech-Priest accepts the device from your hands and places it inside one of the drives, all the while honouring the machine with modulating binharic prayer. The turbines within the cogitator stir into motion, and the vid-screen lights up: “///[INPUT] || [Pack.comp.] …”', flags: ['cap_hit', 'slow'], real: null },
+      { speaker: 'narrator', engine: 'qwen3_tts', ref: '01_designed_narrator', dur: 1.28, cps: '2.3', emo: 'neutral', text: 'add', flags: ['too_long'], asr: true, real: null }
+    ];
+    const n = data.length;
+    const go = (i) => this.setState({ i: Math.max(0, Math.min(n - 1, i)), slot: 0 });
+    const setV = (val) => { const v = { ...S.v }; if (val) v[S.i] = val; else delete v[S.i]; this.setState({ v, session: S.session + (val && !S.v[S.i] ? 1 : 0), i: val ? Math.min(n - 1, S.i + 1) : S.i, slot: 0 }); };
+    const clock = (s) => Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0');
+    const c = data[S.i];
+    const verdict = S.v[S.i];
+    const tagDefs = ['truncated','garbled','runaway','wrong voice','wrong emotion','robotic','artifact','mispronounced','too fast/slow','bad pause'];
+    const myTags = S.tags[S.i] || {};
+    const tags = tagDefs.map((label, k) => ({ label, key: String((k + 1) % 10), on: myTags[label] ? 'true' : 'false', toggle: () => { const t = { ...myTags, [label]: !myTags[label] }; this.setState({ tags: { ...S.tags, [S.i]: t }, v: { ...S.v, [S.i]: 'b' } }); } }));
+    const slotDefs = [
+      { key: 'A', label: 'Clip', sub: c.engine + ' · ' + clock(c.dur) },
+      { key: 'S', label: 'Clone reference', sub: c.ref },
+      { key: 'D', label: 'Earlier render', sub: 'none for this run', disabled: true },
+      { key: 'F', label: c.real ? 'Real: ' + c.real : 'Real line', sub: c.real ? 'game voice line' : 'not voiced in game', disabled: !c.real }
+    ];
+    const slots = slotDefs.map((d, k) => ({ ...d, disabled: !!d.disabled, pressed: S.slot === k ? 'true' : 'false', pick: () => this.setState({ slot: k }) }));
+    const queue = data.map((d, k) => { const vv = S.v[k]; return { speaker: d.speaker, text: d.text, engine: d.engine, dur: d.dur.toFixed(1) + ' s', flagStr: d.flags.join(' '), sel: k === S.i ? 'sel' : '', dot: vv === 'g' ? 'good' : vv === 'b' ? 'bad' : '', go: () => go(k) }; });
+    const good = Object.values(S.v).filter((x) => x === 'g').length;
+    const bad = Object.values(S.v).filter((x) => x === 'b').length;
+    const unj = 11051 - good - bad;
+    const comps = ['off', 'mild', 'strong'];
+    const keymap = { a: 0, s: 1, d: 2, f: 3 };
+    return {
+      cur: { ...c, n: S.i + 1, dur: c.dur.toFixed(2) + ' s', durClock: clock(c.dur), hasSent: !!c.sent, sent: c.sent || '', flags: c.flags.map((f) => ({ name: f, why: F[f] || '', cls: '' })), hasAsr: !!c.asr, heard: '[ASR transcript]', wer: '1.00', goodOn: verdict === 'g' ? 'on' : '', badOn: verdict === 'b' ? 'on' : '' },
+      slots, tags, queue,
+      slotLabel: slotDefs[S.slot].label,
+      good, bad, unjudgedFmt: unj.toLocaleString('en-US'), goodPct: (good / n * 100) + '%', badPct: (bad / n * 100) + '%', session: S.session,
+      savedNote: verdict ? 'Saved · ' + (verdict === 'g' ? 'good' : 'bad') : 'Unjudged',
+      markGood: () => setV('g'), markBad: () => setV('b'), clear: () => setV(null),
+      next: () => go(S.i + 1), prev: () => go(S.i - 1),
+      nextUnjudged: () => { const j = data.findIndex((d, k) => k > S.i && !S.v[k]); go(j < 0 ? S.i : j); },
+      compOff: S.comp === 'off' ? 'true' : 'false', compMild: S.comp === 'mild' ? 'true' : 'false', compStrong: S.comp === 'strong' ? 'true' : 'false',
+      setOff: () => this.setState({ comp: 'off' }), setMild: () => this.setState({ comp: 'mild' }), setStrong: () => this.setState({ comp: 'strong' }),
+      onKey: (e) => {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
+        const k = e.key.toLowerCase();
+        if (k === 'g') setV('g'); else if (k === 'b') setV('b'); else if (k === 'u') setV(null);
+        else if (k === 'j') go(S.i + 1); else if (k === 'k') go(S.i - 1);
+        else if (k === 'n') { const j = data.findIndex((d, x) => x > S.i && !S.v[x]); go(j < 0 ? S.i : j); }
+        else if (k === 'x') this.setState({ comp: S.comp === 'off' ? 'mild' : 'off' });
+        else if (k in keymap && !slotDefs[keymap[k]].disabled) this.setState({ slot: keymap[k] });
+        else if (/^[0-9]$/.test(k)) { const idx = k === '0' ? 9 : Number(k) - 1; tags[idx].toggle(); }
+      }
+    };
+  }
+}
+</script>
+
+
+</body></html>

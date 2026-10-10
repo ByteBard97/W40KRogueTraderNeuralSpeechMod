@@ -1,0 +1,185 @@
+<!-- FX -->
+<style>
+
+body{margin:0}
+.fam{padding:10px 12px 2px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3)}
+.pre{display:flex;align-items:center;gap:8px;min-height:36px;padding:2px 8px;border-radius:var(--r-md)}
+.pre:hover{background:var(--hover)}
+.pre .nm{flex:1 1 auto;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.map-row{display:grid;grid-template-columns:150px minmax(0,1fr) 90px 28px;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line)}
+.map-row.dirty{background:var(--warn-tint)}
+.map-row .lb{font-family:var(--font-mono);font-size:13px;color:var(--text)}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chain .chip{min-height:26px}
+.arrow{color:var(--text-3);font-size:12px}
+.lab-frame{border:1px solid var(--line-strong);border-radius:var(--r-lg);overflow:hidden;background:var(--n-1)}
+.lab-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--n-2)}
+.lab-body{height:520px;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(45deg,transparent 0 12px,rgba(255,255,255,.015) 12px 24px)}
+@media (max-width:640px){.map-row{grid-template-columns:minmax(0,1fr) 28px}.map-row .chain{grid-column:1 / -1;order:3}.map-row .uses{display:none}.lab-body{height:320px}}
+
+</style>
+
+<x-dc>
+<div class="app">
+<header class="topbar">
+  <div class="brand"><svg width="18" height="20" sc-camel-view-box="0 0 18 20" aria-hidden="true"><path d="M2 19V8a7 7 0 0 1 14 0v11" fill="none" stroke="currentColor" stroke-width="1.6"></path><path d="M6 15v-4M9 16V8M12 15v-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>Voice Studio</div>
+  <nav class="nav" aria-label="Sections">
+    <a href="Speakers.dc.html">Speakers <span class="count">20 left</span></a>
+    <a href="Pools.dc.html">Pools <span class="count">61</span></a>
+    <a href="FX.dc.html" aria-current="page">FX <span class="count">{{navCount}}</span></a>
+    <a href="Matches.dc.html">Matches <span class="count">277</span></a>
+    <a href="QA.dc.html">Render QA <span class="count">11,051</span></a>
+  </nav>
+  <div class="topbar-right">
+    <span class="pill ready" role="status"><span class="led"></span>Model ready</span>
+    <button class="btn btn-ghost btn-icon" aria-label="Keyboard shortcuts"><span class="kbd">?</span></button>
+  </div>
+</header>
+
+<main class="page">
+  <div class="page-head">
+    <div style="display: flex; flex-direction: column; gap: 4px"><h1 class="page-title">FX</h1><span class="page-sub">Which effect presets apply to which voice label · 40 presets · 8 labels</span></div>
+    <div style="margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+      <sc-if value="{{dirty}}" hint-placeholder-val="{{ true }}"><span class="flag">{{dirtyCount}} unsaved changes</span><button class="btn btn-ghost" sc-camel-on-click="{{discard}}">Discard</button></sc-if>
+      <sc-if value="{{clean}}" hint-placeholder-val="{{ false }}"><span class="saved">Map matches the file on disk</span></sc-if>
+      <button class="btn btn-primary" disabled="{{clean}}" sc-camel-on-click="{{askWrite}}">Write map… <span class="kbd">⌘S</span></button>
+    </div>
+  </div>
+
+  <sc-if value="{{confirming}}" hint-placeholder-val="{{ false }}">
+    <div class="inline-confirm">
+      <span>Write <b>{{dirtyCount}} changes</b> to <span class="mono">fx_label_map.json</span>? The current file is kept as <span class="mono">fx_label_map.2026-10-10T17-08.bak.json</span>. Changes reach 9 speakers (see preview).</span>
+      <span style="display: flex; gap: 8px; margin-left: auto"><button class="btn btn-sm btn-primary" sc-camel-on-click="{{doWrite}}">Write <span class="kbd">↵</span></button><button class="btn btn-sm btn-ghost" sc-camel-on-click="{{cancel}}">Cancel <span class="kbd">Esc</span></button></span>
+    </div>
+  </sc-if>
+  <sc-if value="{{written}}" hint-placeholder-val="{{ false }}">
+    <div class="toast" style="max-width: none"><svg class="ico" width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Wrote <span class="mono">fx_label_map.json</span> · backup <span class="mono">fx_label_map.2026-10-10T17-08.bak.json</span></span><button class="btn btn-sm">Restore backup</button></div>
+  </sc-if>
+
+  <div class="split">
+    <aside class="side" style="flex: 1 1 300px; max-width: 360px">
+      <section class="section" aria-labelledby="lib-h">
+        <div class="section-head"><span class="section-title" id="lib-h">Preset library</span><span class="section-summary">40</span></div>
+        <div style="padding: 0 12px 8px"><label class="field" style="width: 100%"><span class="vh">Search presets</span><input placeholder="Search presets"></label></div>
+        <div style="padding: 0 4px 8px">
+          <sc-for list="{{families}}" as="f" hint-placeholder-count="6">
+            <div class="fam">{{f.name}} <span class="num" style="font-weight: 400">{{f.n}}</span></div>
+            <sc-for list="{{f.items}}" as="p" hint-placeholder-count="3">
+              <div class="pre"><button class="play" style="width: 28px; height: 28px" aria-label="Preview {{p.name}}"><svg width="10" height="10" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"></path></svg></button><span class="nm">{{p.name}}</span><span class="tag">{{p.ver}}</span></div>
+            </sc-for>
+          </sc-for>
+        </div>
+      </section>
+    </aside>
+
+    <div class="main">
+      <section class="section" aria-labelledby="map-h">
+        <div class="section-head"><span class="section-title" id="map-h">Label → preset map</span><span class="section-summary">presets run left to right · drag to reorder</span></div>
+        <div>
+          <div class="map-row" style="border-top: 0; padding-top: 0; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); font-weight: 600"><span>Label</span><span>Chain</span><span class="uses">Speakers</span><span></span></div>
+          <sc-for list="{{map}}" as="m" hint-placeholder-count="8">
+            <div class="map-row {{m.cls}}">
+              <span class="lb">{{m.label}}</span>
+              <div class="chain">
+                <sc-for list="{{m.chain}}" as="c" hint-placeholder-count="2"><span class="chip" aria-pressed="true">{{c}} <span aria-hidden="true">×</span></span></sc-for>
+                <sc-if value="{{m.empty}}" hint-placeholder-val="{{ false }}"><span class="muted" style="font-size: 13px">no effect</span></sc-if>
+                <button class="btn btn-sm btn-ghost" sc-camel-on-click="{{m.edit}}">+ Add</button>
+              </div>
+              <span class="uses num muted" style="font-size: 12px">{{m.uses}}</span>
+              <span title="{{m.stateTitle}}"><span class="dot {{m.dot}}"></span></span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="pv-h">
+        <div class="section-head"><span class="section-title" id="pv-h">Assignments preview</span><span class="section-summary">what each speaker will get after Write · changed rows first</span></div>
+        <div class="section-body">
+          <div class="tbl-wrap">
+            <sc-raw-table class="tbl">
+              <sc-raw-thead><sc-raw-tr><sc-raw-th>Speaker</sc-raw-th><sc-raw-th>Label</sc-raw-th><sc-raw-th>Now</sc-raw-th><sc-raw-th>After write</sc-raw-th><sc-raw-th style="width: 90px"><span class="vh">Listen</span></sc-raw-th></sc-raw-tr></sc-raw-thead>
+              <sc-raw-tbody>
+                <sc-for list="{{preview}}" as="p" hint-placeholder-count="5">
+                  <sc-raw-tr><sc-raw-td style="font-weight: 600; white-space: nowrap">{{p.who}}</sc-raw-td><sc-raw-td class="mono">{{p.label}}</sc-raw-td><sc-raw-td class="muted">{{p.now}}</sc-raw-td><sc-raw-td style="color: {{p.afterColor}}">{{p.after}}</sc-raw-td><sc-raw-td><button class="btn btn-sm btn-ghost">A/B</button></sc-raw-td></sc-raw-tr>
+                </sc-for>
+              </sc-raw-tbody>
+            </sc-raw-table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section aria-labelledby="lab-h" style="display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px"><h2 class="section-title" id="lab-h" style="margin: 0">FX Lab</h2><span class="muted" style="font-size: 12px">author and tune presets; saved presets appear in the library above</span></div>
+    <div class="lab-frame">
+      <div class="lab-bar">
+        <label class="field" style="min-height: 28px"><span class="lbl">Source</span><sc-raw-select><option>Pasqal (845)</option></sc-raw-select></label>
+        <label class="field" style="min-height: 28px"><span class="lbl">Start from</span><sc-raw-select><option>servitor</option></sc-raw-select></label>
+        <span class="pill down" role="status" style="margin-left: auto"><span class="led"></span>FX Lab server not reachable on :8908</span>
+        <a class="btn btn-sm btn-ghost" href="#">Open in new tab ↗</a>
+        <button class="btn btn-sm btn-ghost" aria-label="Collapse FX Lab">Collapse</button>
+      </div>
+      <div class="lab-body">
+        <div class="inline-error" style="max-width: 520px"><svg class="ico" width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 2l6.5 11.5h-13zM8 6.5v3M8 11.5v.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <div style="display: flex; flex-direction: column; gap: 6px"><b>The FX Lab runs as its own server</b><span class="muted">Start it, then this panel loads automatically.</span><div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap"><code class="mono" style="padding: 4px 8px; border-radius: 4px; background: var(--n-1); color: var(--text)">python3 tools/fx_lab/server.py</code><button class="btn btn-sm">Copy</button><button class="btn btn-sm">Retry</button></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="player" role="region" aria-label="Audio player">
+  <div class="np"><span class="t">Preview · Machine: servitor</span><span class="s">Pasqal · 01_BNTRS_DLC2_Pasqal_347.wav</span></div>
+  <div class="ctl"><button class="play lg" aria-label="Play"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"></path></svg></button></div>
+  <div class="seek"><span class="time">0:00.0</span><div class="track"><div class="knob" style="left: 0%"></div></div><span class="time">0:07.2</span></div>
+  <div class="opts"><div class="seg" role="group" aria-label="Bypass"><button aria-pressed="false">Raw</button><button aria-pressed="true">With FX</button></div></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:2000}}">
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { dirty: 3, confirming: false, written: false }; }
+  renderVals() {
+    const S = this.state;
+    const fam = (name, items) => ({ name, n: items.length, items: items.map(([n, v]) => ({ name: n, ver: v })) });
+    const families = [
+      fam('Machine', [['Machine: servitor','v1'],['Machine: cogitator / tech-priest','v1'],['Machine: machine spirit','v1'],['v2 Machine: tech-priest (partly human)','v2'],['v2 Machine: servitor (flat buzz)','v2'],['v2 Machine: Necron (cold, ancient)','v2'],['v4 Machine: Pasqal-style stack','v4'],['v4 Machine: vox-grille servitor','v4']]),
+      fam('Vox and helmet', [['Vox channel: vox-caster','v1'],['Vox channel: ship intercom','v1'],['Helmet: sealed suit','v1'],['Helmet + vox (astartes over comms)','v1'],['v2 Vox: field radio','v2'],['v4 Helmet: Astartes with EQ','v4']]),
+      fam('Ethereal and monstrous', [['Ethereal: ghost / psyker','v1'],['v2 Ethereal: Aeldari','v2'],['Monstrous: daemon / huge creature','v1'],['v4 Monstrous: daemon (harmonizer)','v4']]),
+      fam('Space', [['Clean','v1'],['Cavernous: vast hall','v1'],['v2 Cavernous: light hall','v2']]),
+      fam('Vocoder and phaser tests', [['v3 Vocoder: servitor / Cylon (16 bands)','v3'],['v3 Vocoder: ghost whisper','v3'],['Phaser test: classic 4-stage','test']])
+    ];
+    const d = S.dirty > 0;
+    const map = [
+      ['servitor', ['v4 Machine: vox-grille servitor'], '3', true],
+      ['tech-priest', ['v2 Machine: tech-priest (partly human)'], '4', true],
+      ['psyker', ['v2 Ethereal: psyker'], '2', false],
+      ['astartes', ['v4 Helmet: Astartes with EQ', 'v2 Vox: field radio'], '1', true],
+      ['aeldari', ['v2 Ethereal: Aeldari'], '2', false],
+      ['daemon', ['v4 Monstrous: daemon (harmonizer)', 'Cavernous: vast hall'], '1', false],
+      ['vox', ['Vox channel: vox-caster'], '5', false],
+      ['human', [], '31', false]
+    ].map(([label, chain, uses, changed]) => ({ label, chain, uses, empty: chain.length === 0, cls: changed && d ? 'dirty' : '', dot: changed && d ? 'flag' : 'good', stateTitle: changed && d ? 'edited, not written' : 'matches file', edit: () => this.setState({ dirty: S.dirty + 1, written: false }) }));
+    const preview = [
+      ['Pasqal','tech-priest','v1 Machine: cogitator / tech-priest','v2 Machine: tech-priest (partly human)', true],
+      ['Manipulus','tech-priest','v1 Machine: cogitator / tech-priest','v2 Machine: tech-priest (partly human)', true],
+      ['Vox Master Vigdis','servitor','Machine: servitor','v4 Machine: vox-grille servitor', true],
+      ['Idira','psyker','v2 Ethereal: psyker','unchanged', false],
+      ['Abelard','human','no effect','unchanged', false]
+    ].map(([who, label, now, after, ch]) => ({ who, label, now, after: d || !ch ? after : 'written', afterColor: ch && d ? 'var(--warn)' : 'var(--text-3)' }));
+    return {
+      families, map, preview,
+      dirty: d, clean: !d, dirtyCount: S.dirty, navCount: d ? S.dirty + ' unsaved' : '',
+      confirming: S.confirming, written: S.written,
+      askWrite: () => this.setState({ confirming: true }),
+      doWrite: () => this.setState({ confirming: false, written: true, dirty: 0 }),
+      cancel: () => this.setState({ confirming: false }),
+      discard: () => this.setState({ dirty: 0, confirming: false })
+    };
+  }
+}
+</script>
+
+
+</body></html>

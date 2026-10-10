@@ -1,0 +1,349 @@
+<!-- Voice Studio design system -->
+<style>
+
+body{margin:0}
+.ds-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:16px}
+.ds-block{display:flex;flex-direction:column;gap:12px;padding:20px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);min-width:0}
+.ds-h{font-family:var(--font-display);font-size:20px;letter-spacing:.05em;margin:24px 0 0;font-weight:600}
+.ds-cap{font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:600}
+.sw{display:flex;align-items:center;gap:10px}
+.sw i{width:40px;height:40px;border-radius:var(--r-md);border:1px solid var(--line-strong);flex:none}
+.sw b{font-size:13px;font-weight:600;display:block}
+.sw span{font-family:var(--font-mono);font-size:11px;color:var(--text-3)}
+.wrap{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+</style>
+
+<x-dc>
+<div class="app" style="padding-bottom: 0">
+
+<header class="topbar">
+  <div class="brand">
+    <svg width="18" height="20" sc-camel-view-box="0 0 18 20" aria-hidden="true"><path d="M2 19V8a7 7 0 0 1 14 0v11" fill="none" stroke="currentColor" stroke-width="1.6"></path><path d="M6 15v-4M9 16V8M12 15v-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>
+    Voice Studio
+  </div>
+  <nav class="nav" aria-label="Sections">
+    <a href="Speakers.dc.html">Speakers <span class="count">20 left</span></a>
+    <a href="Pools.dc.html">Pools <span class="count">61</span></a>
+    <a href="FX.dc.html">FX</a>
+    <a href="Matches.dc.html">Matches <span class="count">277</span></a>
+    <a href="QA.dc.html">Render QA <span class="count">11,051</span></a>
+  </nav>
+  <div class="topbar-right">
+    <span class="pill ready" role="status"><span class="led"></span>Model ready</span>
+    <button class="btn btn-ghost btn-icon" aria-label="Keyboard shortcuts"><span class="kbd">?</span></button>
+  </div>
+</header>
+
+<main class="page" style="gap: 20px">
+  <div class="page-head">
+    <h1 class="page-title">Design system</h1>
+    <span class="page-sub">Dark only · IBM Plex Sans / Plex Mono · Cinzel for titles only · brass accent · tokens in vs-tokens.css</span>
+  </div>
+
+  <h2 class="ds-h">Colour</h2>
+  <div class="ds-grid">
+    <div class="ds-block">
+      <div class="ds-cap">Neutral ramp</div>
+      <sc-for list="{{neutrals}}" as="c" hint-placeholder-count="10">
+        <div class="sw"><i style="background: {{c.hex}}"></i><div><b>{{c.name}}</b><span>{{c.hex}} · {{c.use}}</span></div></div>
+      </sc-for>
+    </div>
+    <div class="ds-block">
+      <div class="ds-cap">Accent and semantic</div>
+      <sc-for list="{{semantic}}" as="c" hint-placeholder-count="8">
+        <div class="sw"><i style="background: {{c.hex}}"></i><div><b>{{c.name}}</b><span>{{c.hex}} · {{c.use}}</span></div></div>
+      </sc-for>
+    </div>
+    <div class="ds-block">
+      <div class="ds-cap">States</div>
+      <div class="rows" style="border: 1px solid var(--line); border-radius: var(--r-lg); padding: 4px">
+        <div class="row"><span class="dot"></span><span>Default row</span><span class="end muted mono">--surface</span></div>
+        <div class="row" style="background: var(--hover)"><span class="dot"></span><span>Hover</span><span class="end muted mono">--hover</span></div>
+        <div class="row sel"><span class="dot picked"></span><span class="name">Selected / current</span><span class="end muted mono">--selected</span></div>
+        <div class="row"><span class="dot"></span><span class="btn btn-sm is-focus">Keyboard focus</span><span class="end muted mono">--focus 2px</span></div>
+      </div>
+      <p class="muted" style="margin: 0; font-size: 13px">Focus is always a blue ring, separate from the brass selection, so a keyboard user can see both "where I am" and "what is chosen" at once. Text tokens pass AA on every surface: --text-3 on --inset is 4.8:1.</p>
+    </div>
+  </div>
+
+  <h2 class="ds-h">Type, space, radius, elevation</h2>
+  <div class="ds-grid">
+    <div class="ds-block">
+      <div class="ds-cap">Type scale</div>
+      <div style="font-family: var(--font-display); font-size: 24px; font-weight: 600; letter-spacing: .04em">Page title 24 Cinzel</div>
+      <div style="font-size: 19px; line-height: 1.4">Clip text 19 / 1.4 — the line under review</div>
+      <div style="font-size: 16px; font-weight: 600">Current item 16 semibold</div>
+      <div style="font-size: 14px">Body and rows 14 / 1.5</div>
+      <div style="font-size: 12px; color: var(--text-2)">Meta 12 — durations, counts</div>
+      <div class="mono" style="color: var(--text-2)">01_BNTRS_DLC2_Pasqal_347 · 12 mono</div>
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-3); font-weight: 600">Micro label 11 caps</div>
+    </div>
+    <div class="ds-block">
+      <div class="ds-cap">Spacing (4px base)</div>
+      <sc-for list="{{spaces}}" as="s" hint-placeholder-count="7">
+        <div style="display: flex; align-items: center; gap: 12px"><span class="mono" style="width: 64px; color: var(--text-3)">{{s.name}}</span><i style="display: block; height: 10px; width: {{s.px}}; background: var(--accent-lo); border-radius: 2px"></i><span class="mono muted">{{s.px}}</span></div>
+      </sc-for>
+    </div>
+    <div class="ds-block">
+      <div class="ds-cap">Radius and elevation</div>
+      <div class="wrap" style="gap: 16px">
+        <div style="width: 64px; height: 48px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--raised)"></div>
+        <div style="width: 64px; height: 48px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--raised)"></div>
+        <div style="width: 64px; height: 48px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--raised)"></div>
+        <div style="width: 64px; height: 28px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--raised)"></div>
+      </div>
+      <div class="mono muted">r-sm 4 · r-md 6 · r-lg 10 · pill</div>
+      <div class="wrap" style="gap: 16px; padding: 12px 0">
+        <div style="width: 96px; height: 56px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--e-1)"></div>
+        <div style="width: 96px; height: 56px; border-radius: 10px; background: var(--n-3); border: 1px solid var(--line-strong); box-shadow: var(--e-2)"></div>
+        <div style="width: 96px; height: 56px; border-radius: 10px; background: var(--n-2); border: 1px solid var(--line-strong); box-shadow: var(--e-3)"></div>
+      </div>
+      <div class="mono muted">e-1 cards · e-2 toasts, menus · e-3 overlays</div>
+    </div>
+  </div>
+
+  <h2 class="ds-h">Top bar and model status</h2>
+  <div class="ds-block">
+    <div class="ds-cap">Model-status pill — three states, always text plus shape</div>
+    <div class="wrap" style="gap: 16px">
+      <span class="pill ready" role="status"><span class="led"></span>Model ready</span>
+      <span class="pill busy" role="status"><span class="led"></span>Generating 3 / 6<span class="meter"><i style="width: 50%"></i></span><span class="num">0:07</span></span>
+      <span class="pill down" role="status"><span class="led"></span>Model down: server not responding on :8930</span>
+      <button class="btn btn-sm">Retry</button>
+    </div>
+    <p class="muted" style="margin: 0; font-size: 13px">Busy shows the job (take 3 of 6), a determinate meter when the server reports steps, and elapsed time otherwise. Down names the reason and offers Retry. Clicking the pill opens the job queue with Cancel.</p>
+  </div>
+
+  <h2 class="ds-h">Buttons, segmented, chips</h2>
+  <div class="ds-grid">
+    <div class="ds-block">
+      <div class="ds-cap">Buttons (hint shows the key)</div>
+      <div class="wrap">
+        <button class="btn btn-primary">Register pick <span class="kbd">P</span></button>
+        <button class="btn">Save profile <span class="kbd">S</span></button>
+        <button class="btn btn-ghost">Cancel</button>
+        <button class="btn btn-danger">Reject <span class="kbd">R</span></button>
+        <button class="btn btn-icon" aria-label="Move up"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+      </div>
+      <div class="wrap">
+        <button class="btn btn-primary btn-lg">Generate 6 takes <span class="kbd">⌘↵</span></button>
+        <button class="btn btn-sm">Small</button>
+        <button class="btn" disabled="">Disabled</button>
+        <button class="btn is-focus">Focused</button>
+      </div>
+      <div class="ds-cap" style="margin-top: 8px">Judging pair (64px, full width)</div>
+      <div class="judge">
+        <button class="btn good"><svg width="18" height="18" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Good <span class="kbd">G</span></button>
+        <button class="btn bad on"><svg width="18" height="18" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>Bad <span class="kbd">B</span></button>
+      </div>
+    </div>
+    <div class="ds-block">
+      <div class="ds-cap">Segmented control</div>
+      <div class="seg" role="group" aria-label="Compressor"><button aria-pressed="true">Off</button><button aria-pressed="false">Mild</button><button aria-pressed="false">Strong</button></div>
+      <div class="seg accent" role="group" aria-label="Accent"><button aria-pressed="true">British</button><button aria-pressed="false">American</button><button aria-pressed="false">Other</button></div>
+      <div class="ds-cap" style="margin-top: 8px">Filter chips (toggle, with count)</div>
+      <div class="wrap">
+        <button class="chip" aria-pressed="true">All <span class="n">79</span></button>
+        <button class="chip" aria-pressed="false">neutral <span class="n">41</span></button>
+        <button class="chip" aria-pressed="false">amused <span class="n">8</span></button>
+        <button class="chip" aria-pressed="false">sad <span class="n">5</span></button>
+      </div>
+      <div class="ds-cap" style="margin-top: 8px">Tags (origin, bank)</div>
+      <div class="wrap"><span class="tag real">real</span><span class="tag designed">designed</span><span class="tag slot">slot</span><span class="tag bank">bank</span><span class="tag nobank">no bank</span></div>
+    </div>
+    <div class="ds-block">
+      <div class="ds-cap">Flags (auto) — mono, outlined, icon</div>
+      <div class="wrap">
+        <span class="flag"><svg width="11" height="11" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 2l6.5 11.5h-13z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path></svg>cap_hit</span>
+        <span class="flag">slow 3.1 c/s</span>
+        <span class="flag">very_long</span>
+        <span class="flag bad">ASR WER 0.42</span>
+        <span class="flag info">too_long</span>
+      </div>
+      <div class="ds-cap" style="margin-top: 8px">Score chips</div>
+      <div class="wrap"><span class="score ok">p_us 0.00</span><span class="score hot">p_us 0.96</span><span class="score">australia 0.98</span><span class="score none">unscored</span></div>
+      <div class="ds-cap" style="margin-top: 8px">Status dots — shape differs, not only colour</div>
+      <div class="wrap" style="gap: 16px; font-size: 13px">
+        <span class="wrap" style="gap: 6px"><span class="dot"></span>not started</span>
+        <span class="wrap" style="gap: 6px"><span class="dot progress"></span>in progress</span>
+        <span class="wrap" style="gap: 6px"><span class="dot picked"></span>picked</span>
+        <span class="wrap" style="gap: 6px"><span class="dot done"></span>registered</span>
+        <span class="wrap" style="gap: 6px"><span class="dot good"></span>good</span>
+        <span class="wrap" style="gap: 6px"><span class="dot bad"></span>bad</span>
+        <span class="wrap" style="gap: 6px"><span class="dot flag"></span>flagged</span>
+      </div>
+      <div class="ds-cap" style="margin-top: 8px">Stars (1–5, keys 1–5 when row focused)</div>
+      <div class="stars" role="group" aria-label="Fit score 3 of 5">
+        <sc-for list="{{fiveStars}}" as="s" hint-placeholder-count="5"><button class="{{s.cls}}" aria-label="{{s.label}}"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 1.5l2 4.2 4.5.6-3.3 3.1.8 4.5L8 11.7l-4 2.2.8-4.5L1.5 6.3 6 5.7z" fill="currentColor"></path></svg></button></sc-for>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="ds-h">Filter bar, list, sections</h2>
+  <div class="ds-grid">
+    <div class="ds-block" style="grid-column: 1 / -1">
+      <div class="ds-cap">Filter bar — search, selects, sort; active filters echo as removable chips</div>
+      <div class="filterbar">
+        <label class="field grow"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg><span class="vh">Search</span><input placeholder="Search line text   /"></label>
+        <label class="field"><span class="lbl">Speaker</span><sc-raw-select><option>All</option></sc-raw-select></label>
+        <label class="field"><span class="lbl">Flag</span><sc-raw-select><option>cap_hit</option></sc-raw-select></label>
+        <label class="field"><span class="lbl">Verdict</span><sc-raw-select><option>Unjudged</option></sc-raw-select></label>
+        <label class="field"><span class="lbl">Sort</span><sc-raw-select><option>Suspicious first</option></sc-raw-select></label>
+      </div>
+      <div class="active-filters">Showing 412 of 11,051 · <button class="chip" aria-pressed="true">flag: cap_hit ×</button><button class="chip" aria-pressed="true">verdict: unjudged ×</button><button class="btn btn-ghost btn-sm">Clear all</button></div>
+    </div>
+    <div class="ds-block">
+      <div class="ds-cap">Sidebar list with status dots</div>
+      <div class="rows card" style="padding: 4px">
+        <div class="list-head">Needs a voice <span class="n">20</span></div>
+        <a class="row sel" href="#"><span class="dot progress"></span><span class="name">Governor Ruoldo</span><span class="end"><span class="num muted">79</span></span></a>
+        <a class="row" href="#"><span class="dot"></span><span class="name">High Factotum Janris Danrok</span><span class="end"><span class="num muted">498</span></span></a>
+        <a class="row" href="#"><span class="dot picked"></span><span class="name">Incendia Chorda</span><span class="end"><span class="num muted">120</span></span></a>
+        <a class="row" href="#"><span class="dot done"></span><span class="name">Jocasta Sauerback</span><span class="end"><span class="num muted">220</span></span></a>
+      </div>
+    </div>
+    <div class="ds-block">
+      <div class="ds-cap">Data row (play, text, meta, actions)</div>
+      <div class="rows card" style="padding: 4px">
+        <div class="row"><button class="play" aria-label="Play"><svg width="12" height="12" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"></path></svg></button><span style="flex: 1 1 200px; min-width: 0">Oh! Yes! Yes, of course, this very day…</span><span class="tag">surprised 0.4</span><span class="num muted">2.4 s</span></div>
+        <div class="row"><button class="play on" aria-label="Pause"><svg width="12" height="12" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"></path></svg></button><span style="flex: 1 1 200px; min-width: 0">I, well, I do have certain suppositions,</span><span class="tag">neutral 0.2</span><span class="num muted">2.9 s</span></div>
+      </div>
+    </div>
+    <div class="ds-block">
+      <div class="ds-cap">Collapsible section — summary line stays visible when closed</div>
+      <details class="section">
+        <summary><svg class="chev" width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="section-title"><span class="step">3</span>Options</span><span class="section-summary">cfg 2 · 10 steps · new seed per line · 0 of 4 switches on</span></summary>
+      </details>
+      <details class="section" open="">
+        <summary><svg class="chev" width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="section-title"><span class="step">4</span>Post-processing</span><span class="section-summary">2 presets</span></summary>
+        <div class="section-body"><div class="wrap"><span class="chip" aria-pressed="true">1 · v4 Machine: vox-grille servitor ×</span><span class="chip" aria-pressed="true">2 · Cavernous: vast hall ×</span></div></div>
+      </details>
+    </div>
+  </div>
+
+  <h2 class="ds-h">Feedback: saves, errors, confirmation, busy</h2>
+  <div class="ds-grid">
+    <div class="ds-block">
+      <div class="ds-cap">Undo toast (replaces modal confirms)</div>
+      <div class="toast"><svg class="ico" width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Merged <b>Male eldar</b> into <b>Male human</b> · 55 lines moved</span><button class="btn btn-sm">Undo <span class="kbd">Z</span></button></div>
+      <div class="toast err"><svg class="ico" width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 2l6.5 11.5h-13zM8 6.5v3M8 11.5v.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Verdict not saved: 503 from /api/qa. Kept locally, will retry.</span><button class="btn btn-sm">Retry</button></div>
+      <div class="ds-cap" style="margin-top: 8px">Quiet save indicator</div>
+      <span class="saved"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Saved · 2 s ago</span>
+    </div>
+    <div class="ds-block">
+      <div class="ds-cap">Inline error — at the control that failed</div>
+      <div class="inline-error"><svg class="ico" width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 2l6.5 11.5h-13zM8 6.5v3M8 11.5v.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg><div><b>File not found</b><div class="mono dim">data/voices/ruoldo_ref.wav</div><div class="muted">Check the path is relative to the repo root.</div></div></div>
+      <div class="ds-cap" style="margin-top: 8px">Inline confirm — states the consequence</div>
+      <div class="inline-confirm"><span>Merge <b>Male eldar</b> into <b>Male human</b>? <b>55 lines</b> move; the slot is removed.</span><span class="wrap" style="margin-left: auto"><button class="btn btn-sm btn-primary">Merge <span class="kbd">↵</span></button><button class="btn btn-sm btn-ghost">Cancel <span class="kbd">Esc</span></button></span></div>
+    </div>
+    <div class="ds-block">
+      <div class="ds-cap">Busy — generation job card</div>
+      <div class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 10px; background: var(--raised)">
+        <div class="wrap" style="justify-content: space-between"><span class="wrap"><span class="spinner"></span><b>Generating take 3 of 6</b></span><span class="num muted">0:07 elapsed · ~0:21 left</span></div>
+        <div class="bar"><i class="a" style="width: 42%"></i></div>
+        <div class="wrap" style="justify-content: space-between"><span class="muted" style="font-size: 12px">“I am most flattered by your attention, esteemed judicator…”</span><button class="btn btn-sm btn-ghost">Cancel</button></div>
+      </div>
+      <div class="ds-cap" style="margin-top: 8px">Loading rows (skeleton)</div>
+      <div class="skeleton" style="width: 90%"></div><div class="skeleton" style="width: 70%"></div><div class="skeleton" style="width: 80%"></div>
+    </div>
+  </div>
+
+  <h2 class="ds-h">Audio</h2>
+  <div class="ds-grid">
+    <div class="ds-block">
+      <div class="ds-cap">Inline play — idle, playing, unavailable, large</div>
+      <div class="wrap" style="gap: 12px">
+        <button class="play" aria-label="Play"><svg width="12" height="12" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"></path></svg></button>
+        <button class="play on" aria-label="Pause"><svg width="12" height="12" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"></path></svg></button>
+        <button class="play" disabled="" aria-label="No render"><svg width="12" height="12" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"></path></svg></button>
+        <button class="play lg on" aria-label="Pause"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"></path></svg></button>
+      </div>
+      <div class="ds-cap" style="margin-top: 8px">Inline play with mini waveform (progress in brass)</div>
+      <div class="wrap" style="flex-wrap: nowrap">
+        <button class="play on" aria-label="Pause"><svg width="12" height="12" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"></path></svg></button>
+        <div class="wave" aria-hidden="true"><sc-for list="{{wave}}" as="w" hint-placeholder-count="40"><i class="{{w.cls}}" style="height: {{w.h}}"></i></sc-for></div>
+        <span class="num muted" style="font-size: 12px">1.9 / 4.6 s</span>
+      </div>
+    </div>
+    <div class="ds-block" style="grid-column: span 2">
+      <div class="ds-cap">A/B compare strip — one audio element, switching keeps the playhead</div>
+      <div class="ab">
+        <div class="ab-head"><span>Line</span><b style="color: var(--text)">“I am a bit tipsy, so I cannot help it!”</b><span style="margin-left: auto">Switch <span class="kbd">1</span>–<span class="kbd">4</span> · Tab cycles · playhead kept</span></div>
+        <div class="ab-slots" role="group" aria-label="Compare sources">
+          <sc-for list="{{abSlots}}" as="s" hint-placeholder-count="4">
+            <button class="ab-slot" aria-pressed="{{s.pressed}}" disabled="{{s.disabled}}" sc-camel-on-click="{{s.pick}}"><span class="kbd k">{{s.key}}</span><span class="lbl"><b>{{s.label}}</b><span>{{s.sub}}</span></span></button>
+          </sc-for>
+        </div>
+        <div class="ab-track"><button class="play on" aria-label="Pause"><svg width="12" height="12" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"></path></svg></button><span class="num muted" style="font-size: 12px">0:01.8</span><div class="track" style="flex: 1 1 auto"><div class="fill" style="width: 38%"></div><div class="knob" style="left: 38%"></div></div><span class="num muted" style="font-size: 12px">0:04.7</span><button class="btn btn-sm btn-ghost" aria-pressed="true">Loop <span class="kbd">L</span></button></div>
+      </div>
+      <p class="muted" style="margin: 0; font-size: 13px">Now comparing <b style="color: var(--text)">{{abCurrent}}</b>. Durations differ, so the playhead is kept as a fraction of each clip; a toggle switches to absolute seconds.</p>
+    </div>
+  </div>
+  <div class="ds-block">
+    <div class="ds-cap">Persistent audio bar — lives at the bottom of every page</div>
+    <div class="player static">
+      <div class="np"><span class="t">Governor Ruoldo · c0 · clone test 1</span><span class="s">ruoldo/c0/real_line_01.wav</span></div>
+      <div class="ctl">
+        <button class="btn btn-ghost btn-icon" aria-label="Previous clip"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 3v10M13 3L6 8l7 5z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg></button>
+        <button class="play lg on" aria-label="Pause (Space)"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"></path></svg></button>
+        <button class="btn btn-ghost btn-icon" aria-label="Next clip"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M12 3v10M3 3l7 5-7 5z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg></button>
+      </div>
+      <div class="seek"><span class="time">0:01.8</span><div class="track"><div class="fill" style="width: 38%"></div><div class="knob" style="left: 38%"></div></div><span class="time">0:04.7</span></div>
+      <div class="opts">
+        <div class="seg" role="group" aria-label="Speed"><button aria-pressed="false">0.75×</button><button aria-pressed="true">1×</button><button aria-pressed="false">1.25×</button><button aria-pressed="false">1.5×</button></div>
+        <button class="btn btn-ghost btn-sm" aria-pressed="false"><svg width="14" height="14" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M3 7a4 4 0 0 1 4-4h5M10 1l2 2-2 2M13 9a4 4 0 0 1-4 4H4M6 15l-2-2 2-2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>Loop</button>
+        <span class="wrap" style="gap: 6px; color: var(--text-3)"><svg width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"></path><path d="M11.5 5.5a3.5 3.5 0 0 1 0 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg><span class="track" style="width: 72px"><span class="fill" style="width: 70%"></span></span></span>
+      </div>
+    </div>
+    <p class="muted" style="margin: 0; font-size: 13px">Space play/pause · ← → seek 1 s · Shift+← → 5 s · , . previous/next clip · L loop · [ ] speed. One shared &lt;audio&gt; element app-wide; any inline play button loads into it, so only one thing ever plays.</p>
+  </div>
+
+  <h2 class="ds-h">Shortcut overlay and global states</h2>
+  <div class="ds-grid">
+    <div class="overlay" role="dialog" aria-label="Keyboard shortcuts for Render QA" style="grid-column: span 2">
+      <div class="wrap" style="justify-content: space-between"><b style="font-size: 16px">Shortcuts · Render QA</b><span class="muted" style="font-size: 12px">Press <span class="kbd">?</span> any time · <span class="kbd">Esc</span> closes</span></div>
+      <div class="keys">
+        <div><h4>Move</h4><div class="k">Next / previous clip<span><span class="kbd">J</span> <span class="kbd">K</span></span></div><div class="k">Next unjudged<span class="kbd">N</span></div><div class="k">Focus search<span class="kbd">/</span></div></div>
+        <div><h4>Judge</h4><div class="k">Good<span class="kbd">G</span></div><div class="k">Bad<span class="kbd">B</span></div><div class="k">Clear verdict<span class="kbd">U</span></div><div class="k">Toggle tag 1–9<span class="kbd">1–9</span></div></div>
+        <div><h4>Listen</h4><div class="k">Play / pause<span class="kbd">Space</span></div><div class="k">Compare clip / ref / earlier / real<span><span class="kbd">A</span> <span class="kbd">S</span> <span class="kbd">D</span> <span class="kbd">F</span></span></div><div class="k">Compressor on / off<span class="kbd">X</span></div><div class="k">Loop<span class="kbd">L</span></div></div>
+      </div>
+    </div>
+    <div class="ds-block">
+      <div class="ds-cap">Global empty / loading / error</div>
+      <div class="empty"><span class="t">Nothing matches these filters</span><span>412 clips are hidden by 2 filters.</span><button class="btn btn-sm">Clear filters</button></div>
+      <div class="empty"><span class="spinner"></span><span class="t">Loading 11,051 clips</span><span>Reading merged export…</span></div>
+      <div class="inline-error"><svg class="ico" width="16" height="16" sc-camel-view-box="0 0 16 16" aria-hidden="true"><path d="M8 2l6.5 11.5h-13zM8 6.5v3M8 11.5v.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg><div><b>Could not reach the API on 127.0.0.1:8930</b><div class="muted">Start it with <span class="mono">python3 -m voice_studio</span>, then</div><button class="btn btn-sm" style="margin-top: 6px">Retry</button></div></div>
+    </div>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:3600}}">
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ab: 1 }; }
+  renderVals() {
+    const neutrals = [
+      ['--n-0','#0d0e10','app background'],['--n-1','#131417','surface, top bar'],['--n-2','#191b1f','raised, buttons'],['--n-3','#202328','inset, hover'],['--n-4','#2a2e34','hairline'],['--n-5','#373c43','control border'],['--n-6','#4f555d','disabled'],['--n-7','#8d949d','tertiary text'],['--n-8','#b7bdc4','secondary text'],['--n-9','#dcdfe3','primary text']
+    ].map(([name,hex,use]) => ({ name, hex, use }));
+    const semantic = [
+      ['--accent','#c9a35c','primary, current, playing'],['--accent-hi','#dbb877','hover, active text'],['--good','#74c795','good, accepted, saved'],['--bad','#ee7a69','bad, reject, errors'],['--warn','#e6a254','auto flags, attention'],['--info','#7fb2e8','links, real origin'],['--focus','#9ccaff','keyboard focus ring'],['--accent-tint','rgba(201,163,92,.13)','selected row']
+    ].map(([name,hex,use]) => ({ name, hex, use }));
+    const spaces = [['s-1','4px'],['s-2','8px'],['s-3','12px'],['s-4','16px'],['s-5','24px'],['s-6','32px'],['s-7','48px']].map(([name,px]) => ({ name, px }));
+    const fiveStars = [1,2,3,4,5].map((n) => ({ cls: n <= 3 ? 'on' : '', label: n + ' star' + (n > 1 ? 's' : '') }));
+    const hs = [30,55,70,45,80,95,60,40,75,88,65,50,35,70,90,85,60,45,30,55,72,66,48,38,58,80,92,70,52,40,30,45,62,78,55,40,28,35,22,18];
+    const wave = hs.map((h, i) => ({ h: h + '%', cls: i < 16 ? 'p' : '' }));
+    const defs = [
+      { key: '1', label: 'Real clip', sub: 'Pasqal_347.wav' },
+      { key: '2', label: 'Bank render', sub: 'voxcpm2' },
+      { key: '3', label: 'Raw clone', sub: 'c0 · seed 4821' },
+      { key: '4', label: 'Clone + FX', sub: 'no FX selected', disabled: true }
+    ];
+    const abSlots = defs.map((d, i) => ({ ...d, pressed: this.state.ab === i ? 'true' : 'false', disabled: !!d.disabled, pick: () => this.setState({ ab: i }) }));
+    return { neutrals, semantic, spaces, fiveStars, wave, abSlots, abCurrent: defs[this.state.ab].label };
+  }
+}
+</script>
+
+
+</body></html>
