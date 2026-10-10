@@ -2,11 +2,13 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '../api/client'
 import { createKeyedQueue } from './serial'
-import type { QaClip, QaFacets, QaFilter, QaRun, QaStats, QaVerdict, QaVerdictValue } from '../api/types'
+import type { QaClip, QaFacets, QaFilter, QaRun, QaStats, QaVerdict, QaVerdictValue, QaView } from '../api/types'
 
 export const QA_PAGE = 40
 const DEFAULT_RUN = 'export'
 const RANDOM_SEED = 1
+/** Most pages "next unjudged" will pull in while looking for an unjudged clip. */
+export const MAX_AUTOLOAD_PAGES = 25
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export const useQaStore = defineStore('qa', () => {
@@ -19,6 +21,12 @@ export const useQaStore = defineStore('qa', () => {
   const offset = ref(0)
   const hasNext = ref(false)
   const stats = ref<QaStats>({ good: 0, bad: 0, unjudged: 0 })
+  /** Counts for the filtered set; null until the server sends them (older servers only give run-wide stats). */
+  const view = ref<QaView | null>(null)
+  /** Clips given a first verdict since the page loaded. */
+  const session = ref(0)
+  const index = ref(0)
+  const current = computed<QaClip | undefined>(() => items.value[index.value])
   const error = ref<string | null>(null)
   const pending = ref(0)
   const loading = computed(() => pending.value > 0)
@@ -77,8 +85,46 @@ export const useQaStore = defineStore('qa', () => {
       total.value = exclude ? p.total + skip.length : p.total   // the server counts only what is left after the skip
       hasNext.value = p.items.length > 0 && (exclude ? p.total - p.items.length > 0 : p.offset + p.items.length < p.total)
       stats.value = p.stats
+      view.value = p.view ?? null
+      index.value = 0
     })
   }
+
+  /** Appends the next batch under the queue. Same offset or exclusion rule as paging; a stale response is dropped. */
+  function loadMore() {
+    if (loading.value || !hasNext.value) return Promise.resolve()
+    return tracked(async () => {
+      const seq = ++pageSeq
+      const exclude = byExclusion()
+      const shown = items.value.map((c) => c.guid)
+      const skip = exclude ? [...seen.value, ...shown] : []
+      const at = offset.value + items.value.length
+      const p = await api.qaClips(run.value, {
+        ...filter.value, offset: exclude ? 0 : at, limit: QA_PAGE, ...(exclude && skip.length ? { exclude: skip.join(',') } : {}),
+      })
+      if (seq !== pageSeq) return
+      const have = new Set(shown)
+      items.value = [...items.value, ...p.items.filter((c) => !have.has(c.guid))]
+      total.value = exclude ? p.total + skip.length : p.total
+      hasNext.value = p.items.length > 0 && (exclude ? p.total - p.items.length > 0 : p.offset + p.items.length < p.total)
+      stats.value = p.stats
+      view.value = p.view ?? view.value
+    })
+  }
+
+  /** Index of the first unjudged clip after `from`, loading more of the queue while there is more; -1 when none is left. */
+  async function findNextUnjudged(from: number): Promise<number> {
+    for (let pages = 0; ; pages++) {
+      const i = items.value.findIndex((c, k) => k > from && !c.verdict)
+      if (i >= 0) return i
+      if (!hasNext.value || pages >= MAX_AUTOLOAD_PAGES) return -1
+      const runAtStart = run.value
+      await loadMore()
+      if (runAtStart !== run.value || error.value) return -1
+    }
+  }
+  const select = (i: number) => { index.value = Math.min(Math.max(i, 0), Math.max(items.value.length - 1, 0)) }
+  const move = (by: number) => select(index.value + by)
 
   /** Page 0 also forgets the paging trail; other offsets only apply without a verdict filter. */
   const loadPage = (at = offset.value) => {
@@ -107,8 +153,9 @@ export const useQaStore = defineStore('qa', () => {
   const setFilter = (f: QaFilter) => { filter.value = { seed: RANDOM_SEED, ...f }; return loadPage(0) }
 
   const bump = (v: QaVerdictValue | undefined, by: 1 | -1) => {
-    if (v) stats.value[v] += by
-    else stats.value.unjudged += by
+    const key = v ?? 'unjudged'
+    stats.value[key] += by
+    if (view.value) view.value[key] += by
   }
 
   /**
@@ -128,6 +175,7 @@ export const useQaStore = defineStore('qa', () => {
     item.verdict = after
     bump(before?.verdict, -1)
     bump(after?.verdict, 1)
+    if (!before && after) session.value++
     const body = { run: run.value, guid, verdict, tags: after?.tags ?? [], note: after?.note ?? '' }
     try {
       await enqueue(k, () => api.qaVerdict(body))
@@ -141,6 +189,7 @@ export const useQaStore = defineStore('qa', () => {
       bump(item.verdict?.verdict, -1)
       item.verdict = back
       bump(back?.verdict, 1)
+      if (!before && !back) session.value--
     }
   }
 
@@ -151,6 +200,7 @@ export const useQaStore = defineStore('qa', () => {
   }
 
   return {
+    view, session, index, current, loadMore, findNextUnjudged, select, move,
     runs, run, facets, filter, items, total, offset, stats, error, loading, hasNext, canPrev,
     loadRuns, loadFacets, loadPage, nextPage, prevPage, setRun, setFilter, setVerdict, setDetails,
   }

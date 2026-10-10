@@ -10,3 +10,8 @@ export function isTypingTarget(t: EventTarget | null): boolean {
 export function blurAfterPointer(e: MouseEvent) {
   if (e.detail > 0) (e.currentTarget as HTMLElement | null)?.blur()
 }
+
+/** Like blurAfterPointer, for a container: after a mouse click on a button inside it, drop that button's focus. */
+export function blurClickedButton(e: MouseEvent) {
+  if (e.detail > 0) (e.target as HTMLElement | null)?.closest('button')?.blur()
+}

@@ -22,7 +22,7 @@ describe('RegisterAllButton', () => {
 
   it('registers after confirming and summarises registered and skipped speakers', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
-    vi.mocked(api.registerAll).mockResolvedValue({ registered: ['A', 'B'], skipped: [{ name: 'C', reason: 'no pick' }] })
+    vi.mocked(api.registerAll).mockResolvedValue({ registered: [{ name: 'A', cand: 'c1' }, { name: 'B', cand: 'c2' }], skipped: [{ name: 'C', reason: 'no_pick', detail: 'no pick' }] })
     const w = mount(RegisterAllButton)
     await w.find('button').trigger('click')
     await flushPromises()

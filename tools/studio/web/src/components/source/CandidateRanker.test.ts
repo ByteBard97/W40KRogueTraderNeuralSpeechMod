@@ -1,105 +1,61 @@
 import { mount } from '@vue/test-utils'
-import { ref } from 'vue'
-import { describe, expect, it, vi } from 'vitest'
-
-const play = vi.hoisted(() => vi.fn())
-vi.mock('../../composables/useAudioPlayer', () => ({ useAudioPlayer: () => ({ play, playing: null }) }))
-
+import { describe, expect, it } from 'vitest'
+import { cand } from '../../test-utils/speakerCtx'
 import CandidateRanker from './CandidateRanker.vue'
-import { SPEAKER_CTX_KEY } from '../../composables/useSpeakerContext'
 
-const cands = ['c0.wav', 'c1.wav', 'c2.wav'].map((id, i) => ({
-  id, file: `data/vd/${id}`, scores: { p_us: 0.1 * (i + 1), top: 'england', p_top: 0.8 }, verdict: {}, gen: null,
-}))
+const cands = ['c0.wav', 'c1.wav', 'c2.wav'].map((id) => cand(id))
+const mk = (over: Record<string, unknown> = {}) => mount(CandidateRanker, { attachTo: document.body, props: { candidates: cands, sourceIds: new Set<string>(), pickId: null, speaker: 'Ruoldo', ...over } })
 
 describe('CandidateRanker', () => {
-  it('shows rank numbers in the given order', () => {
-    const w = mount(CandidateRanker, { props: { candidates: cands, order: ['c1.wav'] } })
-    const rows = w.findAll('.cand')
-    expect(rows).toHaveLength(3)
-    expect(rows[0].text()).toContain('c1')            // ranked ones first
+  it('lists candidates in the order given as a listbox, with rank numbers', () => {
+    const w = mk()
+    expect(w.find('[role=listbox]').exists()).toBe(true)
+    expect(w.findAll('[role=option]').map((r) => r.attributes('data-cand'))).toEqual(['c0', 'c1', 'c2'])
+    expect(w.findAll('.rank').map((r) => r.text())).toEqual(['1', '2', '3'])
   })
 
-  it('moves a candidate down with the button and emits the full new order', async () => {
-    const w = mount(CandidateRanker, { props: { candidates: cands, order: [] } })
-    await w.findAll('.cand')[0].find('[data-move="down"]').trigger('click')
+  it('marks only the explicit pick, not rank 1', () => {
+    const w = mk({ pickId: 'c2.wav' })
+    expect(w.findAll('[role=option]').map((r) => r.attributes('aria-selected'))).toEqual(['false', 'false', 'true'])
+  })
+
+  it('moves with the buttons and emits the full new order', async () => {
+    const w = mk()
+    await w.find('[aria-label="Move c0 down"]').trigger('click')
     expect(w.emitted('reorder')![0]).toEqual([['c1.wav', 'c0.wav', 'c2.wav']])
-  })
-
-  it('moves up with the button and does nothing at the edges', async () => {
-    const w = mount(CandidateRanker, { props: { candidates: cands, order: [] } })
-    await w.findAll('.cand')[2].find('[data-move="up"]').trigger('click')
-    expect(w.emitted('reorder')![0]).toEqual([['c0.wav', 'c2.wav', 'c1.wav']])
-    await w.findAll('.cand')[0].find('[data-move="up"]').trigger('click')
-    expect(w.emitted('reorder')).toHaveLength(1)
+    await w.find('[aria-label="Move c2 up"]').trigger('click')
+    expect(w.emitted('reorder')![1]).toEqual([['c0.wav', 'c2.wav', 'c1.wav']])
   })
 
   it('reorders by drag and drop', async () => {
-    const w = mount(CandidateRanker, { props: { candidates: cands, order: [] } })
-    const rows = w.findAll('.cand')
+    const w = mk()
+    const rows = w.findAll('[draggable=true]')
     await rows[0].trigger('dragstart')
     await rows[2].trigger('drop')
     expect(w.emitted('reorder')![0]).toEqual([['c1.wav', 'c2.wav', 'c0.wav']])
   })
 
-  it('emits verdicts for accent, fit and reject', async () => {
-    const w = mount(CandidateRanker, { props: { candidates: cands, order: [] } })
-    const row = w.findAll('.cand')[0]
-    await row.find('[data-accent="british"]').trigger('click')
-    await row.find('[data-reject]').trigger('click')
-    expect(w.emitted('verdict')![0]).toEqual([{ cand: 'c0.wav', accent: 'british' }])
-    expect(w.emitted('verdict')![1]).toEqual([{ cand: 'c0.wav', reject: true }])
+  it('passes verdicts, pick, reject and source ticks up with the candidate id', async () => {
+    const w = mk()
+    const row = w.findAll('[role=option]')[1]
+    await row.find('[aria-label="Fit 4"]').trigger('click')
+    await row.findAll('button').find((b) => b.text() === 'Pick')!.trigger('click')
+    await row.findAll('button').find((b) => b.text() === 'Reject')!.trigger('click')
+    await row.find('input[type=checkbox]').setValue(true)
+    expect(w.emitted('verdict')![0]).toEqual(['c1.wav', { fit: 4 }])
+    expect(w.emitted('pick')![0]).toEqual(['c1.wav'])
+    expect(w.emitted('reject')![0]).toEqual(['c1.wav'])
+    expect(w.emitted('source')![0]).toEqual(['c1.wav', true])
+  })
+
+  it('shows clone tests under their own candidate only', () => {
+    const w = mk({ clones: [{ file: 'k.wav', candidate: 'c1.wav', text: 'Only for c1', scores: null }] })
+    const rows = w.findAll('[role=option]')
+    expect(rows[0].text()).not.toContain('Only for c1')
+    expect(rows[1].text()).toContain('Only for c1')
   })
 
   it('shows an empty state with no candidates', () => {
-    const w = mount(CandidateRanker, { props: { candidates: [], order: [] } })
-    expect(w.text()).toContain('No candidates')
-  })
-
-  it('ticks a candidate as a clone source through the speaker context, and hides the box without one', async () => {
-    const ctx = { selectedSources: ref(new Set<string>()) }
-    const w = mount(CandidateRanker, { props: { candidates: cands, order: [] }, global: { provide: { [SPEAKER_CTX_KEY as symbol]: ctx } } })
-    await w.findAll('input[data-source]')[1].setValue(true)
-    expect([...ctx.selectedSources.value]).toEqual(['cand:c1.wav'])
-    await w.findAll('input[data-source]')[1].setValue(false)
-    expect(ctx.selectedSources.value.size).toBe(0)
-    const bare = mount(CandidateRanker, { props: { candidates: cands, order: [] } })
-    expect(bare.find('input[data-source]').exists()).toBe(false)
-  })
-
-  it('marks candidates that have no recorded seed', () => {
-    const withSeed = { ...cands[0], id: 'c9.wav', gen: { seed: 7 } }
-    const w = mount(CandidateRanker, { props: { candidates: [cands[0], withSeed], order: [] } })
-    const rows = w.findAll('.cand')
-    expect(rows[0].find('[data-no-seed]').exists()).toBe(true)
-    expect(rows[1].find('[data-no-seed]').exists()).toBe(false)
-    expect(rows[1].text()).toContain('seed 7')
-  })
-
-  it('shows p_us, the top label with its probability, and unscored when there are no scores', () => {
-    const unscored = { ...cands[0], id: 'c8.wav', scores: null }
-    const w = mount(CandidateRanker, { props: { candidates: [cands[1], unscored], order: [] } })
-    const rows = w.findAll('.cand')
-    expect(rows[0].text()).toContain('p_us 0.20')
-    expect(rows[0].text()).toContain('england 0.80')
-    expect(rows[0].text()).not.toContain('unscored')
-    expect(rows[1].text()).toContain('unscored')
-  })
-
-  it('lists clone tests under their own candidate only, with text and p_us, and plays them', async () => {
-    const clones = [
-      { file: 'data/vd/clones/m/c1_L0.wav', candidate: 'c1.wav', text: 'Real line one.', scores: { p_us: 0.75, top: 'england', p_top: 0.5 } },
-      { file: 'data/vd/clones/m/c1_L1.wav', candidate: 'c1.wav', text: 'Real line two.', scores: null },
-    ]
-    const w = mount(CandidateRanker, { props: { candidates: cands, order: [], clones } })
-    const rows = w.findAll('.cand')
-    expect(rows[0].findAll('[data-clone]')).toHaveLength(0)
-    const mine = rows[1].findAll('[data-clone]')
-    expect(mine).toHaveLength(2)
-    expect(mine[0].text()).toContain('p_us 0.75')
-    expect(mine[0].text()).toContain('Real line one.')
-    expect(mine[1].text()).not.toContain('p_us')
-    await mine[0].find('button').trigger('click')
-    expect(play).toHaveBeenCalledWith('data/vd/clones/m/c1_L0.wav')
+    expect(mk({ candidates: [] }).text()).toContain('No candidates')
   })
 })

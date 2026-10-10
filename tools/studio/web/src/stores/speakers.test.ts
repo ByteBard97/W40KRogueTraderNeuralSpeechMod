@@ -41,10 +41,10 @@ describe('speakers store', () => {
 
   it('registers all picks and reloads the list', async () => {
     vi.mocked(api.speakers).mockResolvedValue([sp('A', 'source', true)] as never)
-    vi.mocked(api.registerAll).mockResolvedValue({ registered: ['A'], skipped: [] })
+    vi.mocked(api.registerAll).mockResolvedValue({ registered: [{ name: 'A', cand: 'c1' }], skipped: [] })
     const s = useSpeakersStore()
     const r = await s.registerAll()
-    expect(r.registered).toEqual(['A'])
+    expect(r.registered).toEqual([{ name: 'A', cand: 'c1' }])
     expect(api.speakers).toHaveBeenCalled()
   })
 })

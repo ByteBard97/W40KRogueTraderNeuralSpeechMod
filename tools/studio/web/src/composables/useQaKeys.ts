@@ -9,6 +9,7 @@ export function useQaKeys(handle: (action: QaAction) => void) {
     const t = e.target as HTMLElement | null
     if (t && (TYPING_TAGS.includes(t.tagName) || t.isContentEditable)) return
     if (e.ctrlKey || e.metaKey || e.altKey) return
+    if (e.key === ' ' && (t?.tagName === 'BUTTON' || t?.tagName === 'A')) return   // Space belongs to the focused control
     const action = keyAction(e.key)
     if (!action) return
     e.preventDefault()

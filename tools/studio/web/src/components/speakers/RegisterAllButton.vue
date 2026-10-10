@@ -29,8 +29,8 @@ async function registerAll() {
     <button data-register-all :disabled="busy" @click="registerAll">{{ busy ? 'registering…' : 'Register all picks' }}</button>
     <span v-if="error" class="err">{{ error }}</span>
     <span v-if="result" class="dim">
-      Registered {{ result.registered.length }}<template v-if="result.registered.length"> ({{ result.registered.join(', ') }})</template>.
-      <template v-if="result.skipped.length">Skipped: <span v-for="s in result.skipped" :key="s.name" class="skip">{{ s.name }}: {{ s.reason }}</span></template>
+      Registered {{ result.registered.length }}<template v-if="result.registered.length"> ({{ result.registered.map((r) => r.name).join(', ') }})</template>.
+      <template v-if="result.skipped.length">Skipped: <span v-for="s in result.skipped" :key="s.name" class="skip">{{ s.name }}: {{ s.detail ?? s.reason }}</span></template>
     </span>
   </span>
 </template>

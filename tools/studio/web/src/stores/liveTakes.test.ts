@@ -25,3 +25,13 @@ describe('live takes store', () => {
     expect(s.forSlug('a').map((x) => x.file)).toEqual(['2'])
   })
 })
+
+describe('live takes store, duplicates', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+  it('ignores a take whose file is already listed (a job result can arrive twice)', () => {
+    const s = useLiveTakesStore()
+    s.add('a', take('1'))
+    s.add('a', take('1'))
+    expect(s.forSlug('a')).toHaveLength(1)
+  })
+})

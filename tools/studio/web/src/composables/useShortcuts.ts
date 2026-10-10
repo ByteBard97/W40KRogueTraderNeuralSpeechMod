@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted, readonly, ref } from 'vue'
+import { onBeforeUnmount, onMounted, readonly, ref, shallowRef } from 'vue'
 
 export interface ShortcutItem {
   label: string
@@ -29,7 +29,8 @@ export const GLOBAL_SHORTCUTS: ShortcutGroup = {
   ],
 }
 
-const page = ref<ShortcutSet | null>(null)
+// shallow: the cleanup below compares by identity with the object the page registered
+const page = shallowRef<ShortcutSet | null>(null)
 const open = ref(false)
 
 /** Register the current page's shortcut list for the overlay. Call from a page's setup; it clears on unmount. */

@@ -1,72 +1,84 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { api } from '../../api/client'
-
-vi.mock('../../api/client', () => ({ api: { poolSpot: vi.fn().mockResolvedValue({ slot: 'male_human', size: 10, remaining: 1, items: [{ guid: 'u1', text: 'Sampled line.', entry: null }] }), poolSpotRecord: vi.fn() } }))
-import { createRouter, createMemoryHistory } from 'vue-router'
+import { createMemoryHistory, createRouter } from 'vue-router'
+import { slot } from '../../test-utils/poolFixtures'
 import SlotList from './SlotList.vue'
 
-const slots = [{ id: 'male_human', name: 'Male human', speaker_key: 'pool_male_human', slug: 'pool_male_human', gender: 'male', species: 'human', age: null, lines: 1300, spot: { checked: 4, wrong: 1 } }]
+const slots = [
+  slot('male_human', 'Male human', { lines: 1300, spot: { checked: 10, wrong: 0 } }),
+  slot('female_human', 'Female human', { lines: 4, spot: { checked: 10, wrong: 1 } }),
+  slot('old', 'Old', { lines: 1 }),
+]
 const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/speakers/:slug', component: { template: '<i/>' } }] })
+const make = (list = slots, selectedId: string | null = null) => mount(SlotList, { props: { slots: list, selectedId }, global: { plugins: [router] } })
 
 describe('SlotList', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('lists slots with counts, spot-check progress and a link to the slot page', () => {
-    const w = mount(SlotList, { props: { slots }, global: { plugins: [router] } })
-    expect(w.text()).toContain('Male human')
-    expect(w.text()).toContain('1300')
-    expect(w.text()).toContain('4 checked')
+  it('lists slots with line counts, a total, and a link to the slot page', () => {
+    const w = make()
+    expect(w.text()).toContain('1,300')
+    expect(w.text()).toContain('3 · 1,305 lines')
     expect(w.find('a').attributes('href')).toBe('/speakers/pool_male_human')
   })
 
-  it('emits rename with the new name', async () => {
-    const w = mount(SlotList, { props: { slots }, global: { plugins: [router] } })
+  it('shows the check state as a dot name and the button label', () => {
+    const w = make()
+    const dots = w.findAll('[role="img"]').map((d) => d.attributes('aria-label'))
+    expect(dots).toEqual(['spot-checked', '1 wrong in spot check', 'not checked'])
+    const labels = w.findAll('[data-spot]').map((b) => b.text())
+    expect(labels).toEqual(['Re-check', 'Re-check', 'Spot check'])
+  })
+
+  it('emits spot with the slot id, and marks the selected one', async () => {
+    const w = make(slots, 'old')
+    await w.findAll('[data-spot]')[2].trigger('click')
+    expect(w.emitted('spot')![0]).toEqual(['old'])
+    expect(w.findAll('[aria-current="true"]')).toHaveLength(1)
+  })
+
+  it('renames a slot', async () => {
+    const w = make()
     await w.find('[data-rename]').trigger('click')
-    await w.find('input').setValue('Dockhands')
+    await w.find('[data-rename-input]').setValue('Dockhands')
     await w.find('[data-save-name]').trigger('click')
     expect(w.emitted('rename')![0]).toEqual(['male_human', 'Dockhands'])
   })
 
-  it('shows an empty state with no slots', () => {
-    expect(mount(SlotList, { props: { slots: [] }, global: { plugins: [router] } }).text()).toMatch(/no slots/i)
-  })
-
-  it('tells its parent when a spot check was recorded, so the counts can refresh', async () => {
-    vi.mocked(api.poolSpotRecord).mockResolvedValue({ checked: 1, wrong: 0 })
-    const w = mount(SlotList, { props: { slots }, global: { plugins: [router] } })
-    await w.find('[data-spot]').trigger('click')
-    await flushPromises()
-    await w.find('[data-ok]').trigger('click')
-    await w.find('[data-submit]').trigger('click')
-    await flushPromises()
-    expect(w.emitted('recorded')).toHaveLength(1)
-  })
-
-  it('opens a spot check for a slot on demand', async () => {
-    const w = mount(SlotList, { props: { slots }, global: { plugins: [router] } })
-    expect(api.poolSpot).not.toHaveBeenCalled()
-    await w.find('[data-spot]').trigger('click')
-    await flushPromises()
-    expect(api.poolSpot).toHaveBeenCalledWith('male_human')
-    expect(w.text()).toContain('Sampled line.')
-    await w.find('[data-spot]').trigger('click')
-    expect(w.text()).not.toContain('Sampled line.')
-  })
-
-  it('merges a slot into another after showing how many lines move', async () => {
-    const two = [...slots, { ...slots[0], id: 'female_human', name: 'Female human', lines: 50 }]
-    const w = mount(SlotList, { props: { slots: two }, global: { plugins: [router] } })
+  it('merge states the consequence, then confirms with the chosen target', async () => {
+    const w = make()
     await w.find('[data-merge]').trigger('click')
-    expect(w.find('[data-merge-confirm]').exists()).toBe(false)
-    await w.find('[data-merge-target]').setValue('female_human')
-    expect(w.find('[data-merge-note]').text()).toBe('Move 1300 lines from Male human into Female human?')
-    await w.find('[data-merge-confirm]').trigger('click')
+    expect(w.find('[data-merge-note]').exists()).toBe(false)
+    await w.find('[data-merge-target-field] select').setValue('female_human')
+    expect(w.find('[data-merge-note]').text()).toBe('1,300 lines move to Female human; the slot and its name are removed.')
+    await w.find('[role="alertdialog"] button').trigger('click')
     expect(w.emitted('merge')![0]).toEqual(['male_human', 'female_human'])
-    expect(w.find('[data-merge-target]').exists()).toBe(false)
+    expect(w.find('[data-merge-note]').exists()).toBe(false)
   })
 
-  it('offers no merge with a single slot', () => {
-    expect(mount(SlotList, { props: { slots }, global: { plugins: [router] } }).find('[data-merge]').exists()).toBe(false)
+  it('Esc cancels a merge', async () => {
+    const w = make()
+    await w.find('[data-merge]').trigger('click')
+    await w.find('[data-merge-target-field] select').setValue('old')
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await w.vm.$nextTick()
+    expect(w.emitted('merge')).toBeUndefined()
+    expect(w.find('[data-merge-note]').exists()).toBe(false)
+  })
+
+  it('hides Merge when there is only one slot', () => {
+    expect(make([slots[0]]).find('[data-merge]').exists()).toBe(false)
+  })
+
+  it('creates a new voice from the form', async () => {
+    const w = make()
+    await w.find('[data-new-voice]').trigger('click')
+    await w.find('[data-nv-name]').setValue('Dock foreman')
+    await w.find('form').trigger('submit')
+    expect(w.emitted('create')![0][0]).toMatchObject({ name: 'Dock foreman', gender: 'any' })
+  })
+
+  it('has an empty state', () => {
+    expect(make([]).text()).toContain('No slots yet')
   })
 })

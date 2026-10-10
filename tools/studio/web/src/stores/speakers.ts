@@ -33,6 +33,17 @@ export const useSpeakersStore = defineStore('speakers', () => {
     if (s) s.has_pick = hasPick
   }
 
+  /** Lines Pools routes to each slot voice, by speaker key. Empty when Pools is not built or the route is missing. */
+  const slotLines = ref<Record<string, number>>({})
+  async function loadSlotLines() {
+    try {
+      const p = await api.pools()
+      slotLines.value = Object.fromEntries(p.slots.map((x) => [x.speaker_key, x.lines]))
+    } catch {
+      slotLines.value = {}
+    }
+  }
+
   async function registerAll() {
     const r = await api.registerAll()
     await load()
@@ -51,5 +62,5 @@ export const useSpeakersStore = defineStore('speakers', () => {
       loading.value = false
     }
   }
-  return { list, loading, error, byStatus, pickedCount, position, neighbours, setPick, registerAll, load }
+  return { list, loading, error, byStatus, pickedCount, slotLines, loadSlotLines, position, neighbours, setPick, registerAll, load }
 })

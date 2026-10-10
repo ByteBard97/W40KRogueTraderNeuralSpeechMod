@@ -10,6 +10,8 @@ export const useNavCountsStore = defineStore('navCounts', () => {
   const pools = ref<number | null>(null)
   const matchesUndecided = ref<number | null>(null)
   const qaClips = ref<number | null>(null)
+  /** Set by the FX page: label-map edits not yet written. */
+  const fxUnsaved = ref(0)
 
   const attempt = async (job: () => Promise<void>) => {
     try {
@@ -22,13 +24,13 @@ export const useNavCountsStore = defineStore('navCounts', () => {
   async function load() {
     await Promise.all([
       attempt(async () => { speakersLeft.value = (await api.speakers()).filter((s) => s.status === 'needs_voice').length }),
-      attempt(async () => { pools.value = (await api.pools()).slots.length }),
-      attempt(async () => { matchesUndecided.value = (await api.matches({ limit: 1 })).counts.undecided }),
+      attempt(async () => { pools.value = (await api.pools()).queue_entries }),
+      attempt(async () => { matchesUndecided.value = (c => c.unreviewed ?? c.undecided)((await api.matches({ limit: 1 })).counts) }),
       attempt(async () => {
         const runs = await api.qaRuns()
         qaClips.value = (runs.find((r) => r.id === QA_EXPORT_RUN) ?? runs[0])?.clips ?? null
       }),
     ])
   }
-  return { speakersLeft, pools, matchesUndecided, qaClips, load }
+  return { speakersLeft, pools, matchesUndecided, qaClips, fxUnsaved, load }
 })

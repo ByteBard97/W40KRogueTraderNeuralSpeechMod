@@ -1,116 +1,169 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { api } from '../../api/client'
+import { cand, designState, makeCtx, withCtx } from '../../test-utils/speakerCtx'
+import { useLiveTakesStore } from '../../stores/liveTakes'
 import { useModelStore } from '../../stores/model'
-import { SPEAKER_CTX_KEY } from '../../composables/useSpeakerContext'
+import { useWorkbenchJobsStore } from '../../stores/workbenchJobs'
+import { useToasts } from '../../composables/useToasts'
 
-const play = vi.hoisted(() => vi.fn())
-vi.mock('../../composables/useAudioPlayer', () => ({ useAudioPlayer: () => ({ play, playing: null }) }))
-vi.mock('../../api/client', () => ({
-  api: { designGenerate: vi.fn(), designKeep: vi.fn(), designVerdict: vi.fn(), designOrder: vi.fn(), designDescription: vi.fn() },
+const api = vi.hoisted(() => ({
+  designGenerate: vi.fn(), designKeep: vi.fn(), designVerdict: vi.fn(), designOrder: vi.fn(), designDescription: vi.fn(),
+  jobSubmit: vi.fn(), jobsActive: vi.fn(), job: vi.fn(), jobCancel: vi.fn(),
 }))
+vi.mock('../../api/client', async (orig) => ({ ...(await orig<typeof import('../../api/client')>()), api }))
 
+import { ApiRequestError } from '../../api/client'
 import DesignPanel from './DesignPanel.vue'
 
-const design = { description: 'A calm woman.', text: 'Sample.', order: [], pick: null, candidates: [], clones: [] }
-function mountPanel() {
-  const ctx = { slug: 'muaran', detail: ref({ design }), load: vi.fn(), refreshDetail: vi.fn() }
-  return { ctx, w: mount(DesignPanel, { global: { provide: { [SPEAKER_CTX_KEY as symbol]: ctx } } }) }
+const job = { id: 'j1', kind: 'design', slug: 'ruoldo', label: 'Designing', state: 'running', total: 1, done: 0, index: 1, items: [{ n: 0, state: 'running', seed: 606, cfg: 2, timesteps: 10, text: null }], takes: [], fx: [], error: null, elapsed_s: 3, expected_s: 10, current: { n: 0, text: null, seed: 606, cfg: 2, timesteps: 10, elapsed_s: 3, expected_s: 10 } }
+const live = { file: 'live_tmp/t1.wav', seed: 4242, cfg: 2, timesteps: 10, seconds: 4.1, description: 'A calm woman.', text: 'Sample.' }
+
+function mountPanel(design = designState()) {
+  const ctx = makeCtx()
+  ;(ctx.detail.value as { design: unknown }).design = design
+  return { ctx, w: mount(DesignPanel, { attachTo: document.body, ...withCtx(ctx) }) }
 }
+const openLive = (w: ReturnType<typeof mountPanel>['w']) => w.find('.live .head').trigger('click')
+const errors = () => useToasts().toasts.value.filter((t) => t.kind === 'err').map((t) => t.message)
 
 describe('DesignPanel', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+  beforeEach(() => { setActivePinia(createPinia()); vi.clearAllMocks(); useToasts().clear(); api.jobsActive.mockResolvedValue([]) })
 
-  it('disables Generate with a reason while the model is down', () => {
+  it('Pick sends an explicit pick and does not touch the order; picking again clears it', async () => {
+    api.designVerdict.mockResolvedValue({})
+    const { ctx, w } = mountPanel()
+    await w.findAll('[data-cand=c1] button').find((b) => b.text() === 'Pick')!.trigger('click')
+    expect(api.designVerdict).toHaveBeenCalledWith('ruoldo', { cand: 'c1.wav', pick: true })
+    expect(api.designOrder).not.toHaveBeenCalled()
+    expect((ctx.detail.value as { design: { pick: string } }).design.pick).toBe('c1.wav')
+    await w.findAll('[data-cand=c1] button').find((b) => b.text() === 'Picked')!.trigger('click')
+    expect(api.designVerdict).toHaveBeenLastCalledWith('ruoldo', { cand: 'c1.wav', pick: false })
+  })
+
+  it('rejecting the picked candidate also clears the pick', async () => {
+    api.designVerdict.mockResolvedValue({})
+    const { w } = mountPanel(designState({ pick: 'c0.wav' }))
+    await w.findAll('[data-cand=c0] button').find((b) => b.text() === 'Reject')!.trigger('click')
+    expect(api.designVerdict).toHaveBeenCalledWith('ruoldo', { cand: 'c0.wav', reject: true, pick: false })
+  })
+
+  it('reorder keeps the pick separate (the order call carries no follow_rank) and shows the new order at once', async () => {
+    api.designOrder.mockResolvedValue({})
+    const { w } = mountPanel(designState({ pick: 'c2.wav' }))
+    await w.find('[aria-label="Move c0 down"]').trigger('click')
+    expect(api.designOrder).toHaveBeenCalledWith('ruoldo', ['c1.wav', 'c0.wav', 'c2.wav'])
+    await flushPromises()
+    expect(w.findAll('[role=option]').map((r) => r.attributes('data-cand'))).toEqual(['c1', 'c0', 'c2'])
+  })
+
+  it('stores accent score and fit on the candidate, optimistically', async () => {
+    api.designVerdict.mockResolvedValue({})
+    const { ctx, w } = mountPanel()
+    await w.find('[data-cand=c0] [aria-label="Accent score 3"]').trigger('click')
+    await w.find('[data-cand=c0] [aria-label="Fit 2"]').trigger('click')
+    expect(api.designVerdict).toHaveBeenCalledWith('ruoldo', { cand: 'c0.wav', accent_score: 3 })
+    expect((ctx.detail.value as { design: { candidates: { verdict: object }[] } }).design.candidates[0].verdict).toMatchObject({ accent_score: 3, fit: 2 })
+  })
+
+  it('shows the server error as a toast and re-reads the speaker when a verdict fails', async () => {
+    api.designVerdict.mockRejectedValue(new Error('rejected pick cannot be registered'))
+    const { ctx, w } = mountPanel()
+    await w.find('[data-cand=c0] [aria-label="Fit 2"]').trigger('click')
+    await flushPromises()
+    expect(errors()).toContain('rejected pick cannot be registered')
+    expect(ctx.refreshDetail).toHaveBeenCalled()
+  })
+
+  it('Edit opens the description box; saving on blur writes only a real change', async () => {
+    api.designDescription.mockResolvedValue({})
     const { w } = mountPanel()
-    const btn = w.find('[data-generate]')
-    expect(btn.attributes('disabled')).toBeDefined()
+    await w.findAll('button').find((b) => b.text().startsWith('Edit'))!.trigger('click')
+    const box = w.find('textarea')
+    await box.trigger('blur')
+    expect(api.designDescription).not.toHaveBeenCalled()
+    await w.findAll('button').find((b) => b.text().startsWith('Edit'))!.trigger('click')
+    await w.find('textarea').setValue('A gruff man.')
+    await w.find('textarea').trigger('blur')
+    expect(api.designDescription).toHaveBeenCalledWith('ruoldo', 'A gruff man.')
+    await w.findAll('button').find((b) => b.text().startsWith('Edit'))!.trigger('click')
+    await w.find('textarea').setValue('   ')
+    await w.find('textarea').trigger('blur')
+    expect(api.designDescription).toHaveBeenCalledTimes(1)
+  })
+
+  it('Generate submits a design job and shows its row with the seed, id and a Cancel', async () => {
+    useModelStore().state = 'ready'
+    api.jobSubmit.mockResolvedValue(job)
+    const { w } = mountPanel()
+    await openLive(w)
+    await w.find('input[data-seed]').setValue(' 55 ')
+    await w.find('.live [data-generate]').trigger('click')
+    await flushPromises()
+    expect(api.jobSubmit).toHaveBeenCalledWith('ruoldo', 'design', { items: [{ description: 'A calm woman.', seed: '55', cfg: 2, timesteps: 10 }], label: 'Designing' })
+    const row = w.find('.job')
+    expect(row.text()).toContain('c3')
+    expect(row.text()).toContain('seed 606')
+    await row.find('button').trigger('click')
+    expect(api.jobCancel).toHaveBeenCalledWith('j1')
+  })
+
+  it('names the next candidate id from the highest existing one', async () => {
+    const { w } = mountPanel(designState({ candidates: [cand('c2.wav'), cand('c7.wav')], order: [] }))
+    await openLive(w)
+    expect(w.text()).toContain('Keep as c8')
+  })
+
+  it('disables Generate with the model reason while the model is down', async () => {
+    const { w } = mountPanel()
+    await openLive(w)
+    expect(w.find('.live [data-generate]').attributes('disabled')).toBeDefined()
     expect(w.text()).toMatch(/not running/i)
   })
 
-  it('generates a take, lists it, reuses its seed, and keeps it', async () => {
+  it('on a server without a job queue falls back to a synchronous generate', async () => {
     useModelStore().state = 'ready'
-    vi.mocked(api.designGenerate).mockResolvedValue({ file: 'live_tmp/t1.wav', seed: 4242, cfg: 2, timesteps: 10, seconds: 4.1, description: 'A calm woman.', text: 'Sample.' })
-    vi.mocked(api.designKeep).mockResolvedValue({ cand: 'c6.wav' })
-    const { ctx, w } = mountPanel()
-    await w.find('[data-generate]').trigger('click')
+    api.jobSubmit.mockRejectedValue(new ApiRequestError(404, 'no route'))
+    api.designGenerate.mockResolvedValue(live)
+    const { w } = mountPanel()
+    await openLive(w)
+    await w.find('.live [data-generate]').trigger('click')
     await flushPromises()
-    expect(vi.mocked(api.designGenerate).mock.calls[0][0]).toBe('muaran')
+    expect(api.designGenerate).toHaveBeenCalledWith('ruoldo', { description: 'A calm woman.', seed: '', cfg: 2, timesteps: 10 })
     expect(w.text()).toContain('4242')
+  })
+
+  it('lists unkept takes, reuses a seed, and keeps once even on a double click, refreshing only the detail', async () => {
+    useLiveTakesStore().add('ruoldo', live)
+    let done: (v: { cand: string }) => void = () => undefined
+    api.designKeep.mockReturnValue(new Promise((r) => { done = r }))
+    const { ctx, w } = mountPanel()
+    await openLive(w)
     await w.find('[data-seed-chip]').trigger('click')
     expect((w.find('input[data-seed]').element as HTMLInputElement).value).toBe('4242')
-    await w.find('[data-keep]').trigger('click')
+    const keep = w.find('[data-keep]')
+    await keep.trigger('click')
+    await keep.trigger('click')
+    done({ cand: 'c3.wav' })
     await flushPromises()
-    expect(api.designKeep).toHaveBeenCalledWith('muaran', expect.objectContaining({ file: 'live_tmp/t1.wav', seed: 4242 }))
-    expect(ctx.refreshDetail).toHaveBeenCalled()
-    expect(ctx.load).not.toHaveBeenCalled()      // load() would reset the ticked sources and unsaved options
-  })
-
-  it('shows the error and keeps earlier takes when generation fails', async () => {
-    useModelStore().state = 'ready'
-    vi.mocked(api.designGenerate).mockRejectedValue(new Error('model backend is not running'))
-    const { w } = mountPanel()
-    await w.find('[data-generate]').trigger('click')
-    await flushPromises()
-    expect(w.text()).toContain('model backend is not running')
-  })
-
-  it('saves the description on blur only when it changed and is not empty', async () => {
-    vi.mocked(api.designDescription).mockClear()
-    const { w } = mountPanel()
-    const ta = w.find('textarea')
-    await ta.trigger('blur')
-    expect(api.designDescription).not.toHaveBeenCalled()
-    await ta.setValue('   ')
-    await ta.trigger('blur')
-    expect(api.designDescription).not.toHaveBeenCalled()
-    await ta.setValue('A gruff man.')
-    await ta.trigger('blur')
-    expect(api.designDescription).toHaveBeenCalledWith('muaran', 'A gruff man.')
-  })
-
-  it('shows the error when a verdict, keep or reorder call fails', async () => {
-    vi.mocked(api.designOrder).mockRejectedValue(new Error('audit.json is not valid JSON'))
-    const { w } = mountPanel()
-    await (w.findComponent({ name: 'CandidateRanker' }).vm as unknown as { $emit: (e: string, o: string[]) => void }).$emit('reorder', ['c1.wav'])
-    await flushPromises()
-    expect(w.text()).toContain('audit.json is not valid JSON')
-  })
-
-  it('keeps a take once even when Keep is clicked twice quickly', async () => {
-    useModelStore().state = 'ready'
-    vi.mocked(api.designKeep).mockClear()
-    vi.mocked(api.designGenerate).mockResolvedValue({ file: 'live_tmp/t2.wav', seed: 1, cfg: 2, timesteps: 10, seconds: 1, description: 'd', text: 't' })
-    vi.mocked(api.designKeep).mockImplementation(() => new Promise((r) => setTimeout(() => r({ cand: 'c7.wav' }), 20)))
-    const { w } = mountPanel()
-    await w.find('[data-generate]').trigger('click')
-    await flushPromises()
-    await w.find('[data-keep]').trigger('click')
-    await w.find('[data-keep]').trigger('click')
-    await new Promise((r) => setTimeout(r, 40))
     expect(api.designKeep).toHaveBeenCalledTimes(1)
+    expect(api.designKeep).toHaveBeenCalledWith('ruoldo', expect.objectContaining({ file: 'live_tmp/t1.wav', seed: 4242 }))
+    expect(ctx.refreshDetail).toHaveBeenCalled()
+    expect(ctx.load).not.toHaveBeenCalled()
+    expect(useLiveTakesStore().forSlug('ruoldo')).toEqual([])
   })
 
-  it('plays a new take as soon as it is generated', async () => {
-    useModelStore().state = 'ready'
-    play.mockClear()
-    vi.mocked(api.designGenerate).mockResolvedValue({ file: 'live_tmp/t5.wav', seed: 5, cfg: 2, timesteps: 10, seconds: 1, description: 'd', text: 't' })
+  it('keeps unkept takes when the panel is mounted again for the same speaker', async () => {
+    useLiveTakesStore().add('ruoldo', live)
+    mountPanel().w.unmount()
     const { w } = mountPanel()
-    await w.find('[data-generate]').trigger('click')
-    await flushPromises()
-    expect(play).toHaveBeenCalledWith('data/voice_design/live_tmp/t5.wav')
+    await openLive(w)
+    expect(w.text()).toContain('4242')
   })
 
-  it('keeps unkept takes when the panel is remounted for the same speaker (navigating away and back)', async () => {
-    useModelStore().state = 'ready'
-    vi.mocked(api.designGenerate).mockResolvedValue({ file: 'live_tmp/t6.wav', seed: 6666, cfg: 2, timesteps: 10, seconds: 1, description: 'd', text: 't' })
-    const first = mountPanel()
-    await first.w.find('[data-generate]').trigger('click')
-    await flushPromises()
-    first.w.unmount()
-    const again = mountPanel()
-    expect(again.w.text()).toContain('6666')
+  it('shows a job already running (the page was left and re-opened)', async () => {
+    useWorkbenchJobsStore().active.ruoldo = [job as never]
+    const { w } = mountPanel()
+    expect(w.find('.job').exists()).toBe(true)
   })
 })

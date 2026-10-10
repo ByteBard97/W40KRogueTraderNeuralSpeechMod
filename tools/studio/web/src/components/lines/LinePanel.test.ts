@@ -1,54 +1,79 @@
 import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
-import { describe, expect, it, vi } from 'vitest'
-
-vi.mock('../../composables/useAudioPlayer', () => ({ useAudioPlayer: () => ({ play: vi.fn(), playing: null }) }))
-
+import { describe, expect, it } from 'vitest'
+import { lineOf, makeCtx, withCtx } from '../../test-utils/speakerCtx'
 import LinePanel from './LinePanel.vue'
-import { SPEAKER_CTX_KEY } from '../../composables/useSpeakerContext'
 
-const mk = (n: number) => ({ guid: `g${n}`, text: `line number ${n} `.repeat(6), emotion: n % 2 ? 'calm' : 'sad', intensity: 0.2, pace: 'normal', instruct: null, baseline: n === 0 ? null : `data/r/g${n}.wav` })
-
-function mountWith(count: number) {
-  const ctx = { lines: ref(Array.from({ length: count }, (_, i) => mk(i))), selectedLines: ref(new Set<string>()) }
-  return { ctx, w: mount(LinePanel, { global: { provide: { [SPEAKER_CTX_KEY as symbol]: ctx } } }) }
+const long = (n: number) => `Line number ${n} is a fairly long sentence for the spread picker to accept it as a test line.`
+const many = (n: number) => Array.from({ length: n }, (_, i) => lineOf(`g${i}`, { text: long(i), emotion: ['neutral', 'amused', 'sad', 'fear', 'angry', 'calm', 'proud', 'happy', 'bitter', 'worried'][i % 10] }))
+const mk = (lines = many(30), selected: string[] = []) => {
+  const ctx = makeCtx({ lines: ref(lines), selectedLines: ref(new Set(selected)) })
+  return { ctx, w: mount(LinePanel, withCtx(ctx)) }
 }
 
 describe('LinePanel', () => {
-  it('ticks a line into the selection', async () => {
-    const { ctx, w } = mountWith(4)
-    await w.findAll('input[type=checkbox]')[1].setValue(true)
-    expect([...ctx.selectedLines.value]).toEqual(['g1'])
+  it('ticks and unticks a line in the shared selection', async () => {
+    const { ctx, w } = mk(many(3))
+    const box = w.find('.tl input[type=checkbox]')
+    await box.setValue(true)
+    expect([...ctx.selectedLines.value]).toEqual(['g0'])
+    await box.setValue(false)
+    expect(ctx.selectedLines.value.size).toBe(0)
   })
 
-  it('filters by emotion chip and by search text', async () => {
-    const { w } = mountWith(6)
-    await w.find('[data-emo="sad"]').trigger('click')
-    expect(w.findAll('.line')).toHaveLength(3)
-    await w.find('input[type=search]').setValue('number 2')
-    expect(w.findAll('.line')).toHaveLength(1)
+  it('summarises ticks per emotion', () => {
+    const { w } = mk(many(30), ['g0', 'g1', 'g10'])
+    expect(w.text()).toContain('3 of 30 ticked')
+    expect(w.text()).toContain('neutral 2')
+    expect(w.text()).toContain('amused 1')
   })
 
-  it('caps rendering and shows more on request', async () => {
-    const { w } = mountWith(450)
-    expect(w.findAll('.line')).toHaveLength(200)
+  it('filters by emotion chip (with counts) and by search text', async () => {
+    const { w } = mk(many(30))
+    const chips = w.findAll('.chip')
+    expect(chips[0].text()).toContain('all')
+    expect(chips[0].text()).toContain('30')
+    await chips.find((c) => c.text().startsWith('amused'))!.trigger('click')
+    expect(w.findAll('.tl').every((r) => r.text().includes('amused'))).toBe(true)
+    await w.find('input[type=search]').setValue('number 2 ')
+    expect(w.findAll('.tl')).toHaveLength(1)
+    await w.find('input[type=search]').setValue('zzz')
+    expect(w.text()).toContain('No line matches')
+  })
+
+  it('shows the first page with a position bar, then more, then all', async () => {
+    const { w } = mk(many(30))
+    expect(w.findAll('.tl')).toHaveLength(8)
+    expect(w.text()).toContain('Showing 1–8 of 30')
     await w.find('[data-more]').trigger('click')
-    expect(w.findAll('.line')).toHaveLength(400)
+    expect(w.findAll('.tl')).toHaveLength(28)
+    await w.find('[data-all]').trigger('click')
+    expect(w.findAll('.tl')).toHaveLength(30)
+    expect(w.find('[data-all]').exists()).toBe(false)
   })
 
-  it('"spread" selects up to 6 lines and "clear" empties the selection', async () => {
-    const { ctx, w } = mountWith(30)
+  it('folds emotions beyond the top eight into a +n chip that expands them', async () => {
+    const { w } = mk(many(30))
+    expect(w.find('[data-more-emotions]').text()).toBe('+2')
+    expect(w.findAll('.chip')).toHaveLength(9)
+    await w.find('[data-more-emotions]').trigger('click')
+    expect(w.findAll('.chip')).toHaveLength(11)
+  })
+
+  it('"spread" ticks up to six lines across emotions and "clear" empties the selection', async () => {
+    const { ctx, w } = mk(many(30))
     await w.find('[data-spread]').trigger('click')
-    expect(ctx.selectedLines.value.size).toBeGreaterThan(0)
-    expect(ctx.selectedLines.value.size).toBeLessThanOrEqual(6)
+    expect(ctx.selectedLines.value.size).toBe(6)
     await w.find('[data-clear]').trigger('click')
     expect(ctx.selectedLines.value.size).toBe(0)
   })
 
-  it('disables the bank play button when there is no bank clip and shows an empty state', () => {
-    const { w } = mountWith(2)
-    expect(w.findAll('.play')[0].attributes('disabled')).toBeDefined()
-    const empty = mount(LinePanel, { global: { provide: { [SPEAKER_CTX_KEY as symbol]: { lines: ref([]), selectedLines: ref(new Set()) } } } })
-    expect(empty.text()).toContain('No lines for this speaker')
+  it('shows the bank render length, disables play without a bank clip, and shows an empty state', () => {
+    const { w } = mk([lineOf('a', { baseline: 'data/b/a.wav', dur: 7.94 }), lineOf('b')])
+    expect(w.text()).toContain('7.9 s')
+    const plays = w.findAll('.tl .play')
+    expect(plays[0].attributes('disabled')).toBeUndefined()
+    expect(plays[1].attributes('disabled')).toBeDefined()
+    expect(mk([]).w.text()).toContain('No lines for this speaker')
   })
 })

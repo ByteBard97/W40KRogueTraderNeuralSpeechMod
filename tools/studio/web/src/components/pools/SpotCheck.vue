@@ -1,58 +1,94 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { api } from '../../api/client'
 import type { SpotSample } from '../../api/types'
+import { usePoolsStore } from '../../stores/pools'
 import EmptyState from '../shared/EmptyState.vue'
+import SectionCard from '../shared/SectionCard.vue'
+import Btn from '../ui/Btn.vue'
+import InlineError from '../ui/InlineError.vue'
+import InlinePlay from '../ui/InlinePlay.vue'
+import Seg from '../ui/Seg.vue'
 
-const props = defineProps<{ slotId: string }>()
-const emit = defineEmits<{ recorded: [] }>()
+type Mark = 'right' | 'wrong' | ''
+const MARKS = [{ value: 'right' as Mark, label: 'Right' }, { value: 'wrong' as Mark, label: 'Wrong' }]
+
+/** Ten sampled lines from one slot: is each one the right kind of voice? Keys Y W (J K move) are driven by the page. */
+const props = defineProps<{ slotId: string; slotName: string }>()
+const pools = usePoolsStore()
 const sample = ref<SpotSample | null>(null)
-const verdicts = reactive<Record<string, boolean>>({})
-const result = ref('')
+const marks = reactive<Record<string, Mark>>({})
+const cursor = ref(0)
 const error = ref('')
+const submitting = ref(false)
 
-const complete = computed(() => !!sample.value?.items.length && sample.value.items.every((i) => i.guid in verdicts))
+const items = computed(() => sample.value?.items ?? [])
+const marked = computed(() => items.value.filter((i) => marks[i.guid]).length)
+const wrong = computed(() => items.value.filter((i) => marks[i.guid] === 'wrong').length)
+const complete = computed(() => items.value.length > 0 && marked.value === items.value.length)
+const left = computed(() => items.value.length - marked.value)
+const note = computed(() => (complete.value ? `${wrong.value} wrong of ${items.value.length}` : `${left.value} left · ${wrong.value} wrong so far`))
 
 async function load() {
   error.value = ''
   try {
     sample.value = await api.poolSpot(props.slotId)
-    for (const k of Object.keys(verdicts)) delete verdicts[k]
+    for (const k of Object.keys(marks)) delete marks[k]
+    cursor.value = 0
   } catch (e) {
+    sample.value = null
     error.value = e instanceof Error ? e.message : String(e)
   }
 }
 async function submit() {
-  try {
-    const r = await api.poolSpotRecord(props.slotId, { ...verdicts })
-    result.value = `${r.checked} checked, ${r.wrong} wrong`
-    emit('recorded')
-    await load()
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e)
-  }
+  if (!complete.value || submitting.value) return
+  submitting.value = true
+  const results = Object.fromEntries(items.value.map((i) => [i.guid, marks[i.guid] === 'right']))
+  const r = await pools.recordSpot(props.slotId, results)
+  submitting.value = false
+  if (r) await load()
 }
-onMounted(load)
+/** Mark the line under the cursor and move on to the next unmarked one. */
+function mark(value: 'right' | 'wrong') {
+  const i = items.value[cursor.value]
+  if (!i) return
+  marks[i.guid] = value
+  const next = items.value.findIndex((x, n) => n > cursor.value && !marks[x.guid])
+  if (next >= 0) cursor.value = next
+}
+const step = (delta: number) => (cursor.value = Math.min(Math.max(0, cursor.value + delta), Math.max(0, items.value.length - 1)))
+const title = (t: string) => (t.length > 60 ? `${t.slice(0, 60)}…` : t)
+
+watch(() => props.slotId, load, { immediate: true })
+defineExpose({ mark, step, submit })
 </script>
 
 <template>
-  <div>
-    <p v-if="error" class="err">{{ error }}</p>
-    <EmptyState v-if="sample && !sample.items.length" message="Nothing left to check in this slot." />
-    <div v-for="i in sample?.items ?? []" :key="i.guid" class="line">
-      <span class="text">{{ i.text }}</span>
-      <button data-ok :class="{ on: verdicts[i.guid] === true }" @click="verdicts[i.guid] = true">✓</button>
-      <button data-wrong :class="{ on: verdicts[i.guid] === false }" @click="verdicts[i.guid] = false">✗</button>
+  <SectionCard id="spot" :title="`Spot check · ${slotName}`" :summary="`${marked} / ${items.length} marked`">
+    <InlineError v-if="error" title="Could not load a sample">{{ error }}</InlineError>
+    <EmptyState v-else-if="sample && !items.length" message="Nothing left to check in this slot." />
+    <div v-for="(i, n) in items" :key="i.guid" class="sc" :class="{ cur: n === cursor }" :aria-current="n === cursor ? 'true' : undefined" @pointerdown="cursor = n">
+      <div class="line">
+        <InlinePlay class="pl" :id="i.wav ?? null" :title="title(i.text)" :subtitle="`Spot check · ${slotName}`" unavailable-reason="This line is not rendered yet" />
+        <span class="t">{{ i.text }}</span>
+      </div>
+      <Seg :model-value="marks[i.guid] ?? ''" :options="MARKS" aria-label="Is this the right slot?" @update:model-value="(v) => (marks[i.guid] = v as Mark)" />
     </div>
-    <button v-if="sample?.items.length" data-submit :disabled="!complete" @click="submit">Submit {{ sample.items.length }} {{ sample.items.length === 1 ? 'check' : 'checks' }}</button>
-    <span class="dim">{{ result }}</span>
-  </div>
+    <p v-if="items.length" class="hint">Y right · W wrong · J K next, previous{{ sample && sample.remaining > items.length ? ` · ${sample.remaining - items.length} more unchecked in this slot` : '' }}</p>
+    <div v-if="items.length" class="foot">
+      <Btn variant="primary" data-submit :disabled="!complete || submitting" @click="submit">Submit spot check</Btn>
+      <span class="note">{{ note }}</span>
+    </div>
+  </SectionCard>
 </template>
 
 <style scoped>
-.line { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
-.text { flex: 1; }
-button.on { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
-.err { color: var(--bad); }
-.dim { color: var(--dim); font-size: 12px; margin-left: 8px; }
+.sc { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-3); align-items: center; padding: var(--s-2) 0; border-top: 1px solid var(--line); }
+.sc.cur { background: var(--selected); box-shadow: inset 0 0 0 1px var(--selected-line); border-radius: var(--r-md); padding-inline: var(--s-2); border-top-color: transparent; }
+.line { display: flex; gap: var(--s-2); align-items: flex-start; min-width: 0; }
+.pl { flex: none; }
+.t { font-size: 13px; line-height: 1.4; padding-top: 6px; }
+.hint { margin: var(--s-3) 0 0; font-size: 13px; color: var(--text-3); }
+.foot { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; padding-top: var(--s-3); }
+.note { font-size: var(--fs-sm); color: var(--text-3); }
 </style>

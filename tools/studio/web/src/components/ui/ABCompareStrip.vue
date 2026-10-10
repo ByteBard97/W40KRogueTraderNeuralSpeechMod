@@ -21,7 +21,7 @@ const KEEP_OPTIONS = [
  * as absolute seconds). A clip with no path is shown disabled. `hotkeys` binds 1-4 on the document; the page should enable it
  * on one strip at a time. The strip also answers 1-4 while it has focus.
  */
-const props = withDefaults(defineProps<{ clips: ClipItem[]; line?: string; modelValue?: string; hotkeys?: boolean }>(), { line: undefined, modelValue: undefined })
+const props = withDefaults(defineProps<{ clips: ClipItem[]; line?: string; modelValue?: string; hotkeys?: boolean; keys?: string[] }>(), { line: undefined, modelValue: undefined, keys: undefined })
 const emit = defineEmits<{ 'update:modelValue': [key: string] }>()
 
 const audio = useGlobalAudio()
@@ -57,11 +57,20 @@ function togglePlay(e: MouseEvent) {
 }
 const seekFraction = (f: number) => active.value && audio.seek(f * audio.state.duration)
 
+/** Slot index for a key: the letters given in `keys` when set, otherwise the digits 1-4. -1 when the key is not a slot key. */
+function slotForKey(key: string): number {
+  if (props.keys) {
+    const i = props.keys.findIndex((k) => k.toLowerCase() === key.toLowerCase())
+    return i < props.clips.length ? i : -1
+  }
+  const n = Number(key)
+  return Number.isInteger(n) && n >= 1 && n <= Math.min(MAX_HOTKEY_SLOTS, props.clips.length) ? n - 1 : -1
+}
 function onKey(e: KeyboardEvent) {
   if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || isTypingTarget(e.target)) return
-  const n = Number(e.key)
-  if (!Number.isInteger(n) || n < 1 || n > Math.min(MAX_HOTKEY_SLOTS, props.clips.length)) return
-  const c = props.clips[n - 1]
+  const n = slotForKey(e.key)
+  if (n < 0) return
+  const c = props.clips[n]
   if (!available(c)) return
   e.preventDefault()
   pick(c)
@@ -81,7 +90,7 @@ watch(
   <div class="ab" @keydown="!hotkeys && onKey($event)">
     <div class="head">
       <template v-if="line"><span>Line</span><b class="line">“{{ line }}”</b></template>
-      <span class="hint">Switch <Kbd>1</Kbd>–<Kbd>{{ Math.min(clips.length, MAX_HOTKEY_SLOTS) }}</Kbd> · playhead kept</span>
+      <span class="hint">Switch <Kbd>{{ keys?.[0] ?? 1 }}</Kbd>–<Kbd>{{ keys ? keys[Math.min(keys.length, clips.length) - 1] : Math.min(clips.length, MAX_HOTKEY_SLOTS) }}</Kbd> · playhead kept</span>
     </div>
     <div class="slots" role="group" aria-label="Compare sources">
       <button
@@ -94,7 +103,7 @@ watch(
         :title="available(c) ? (c.title ?? c.label) : 'no clip'"
         @click="pick(c)"
       >
-        <Kbd class="k">{{ n + 1 }}</Kbd>
+        <Kbd class="k">{{ keys?.[n] ?? n + 1 }}</Kbd>
         <span class="lbl"><b>{{ c.label }}</b><span>{{ available(c) ? (c.sub ?? c.path ?? '') : 'no clip' }}</span></span>
       </button>
     </div>

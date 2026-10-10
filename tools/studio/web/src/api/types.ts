@@ -9,6 +9,13 @@ export interface SpeakerSummary {
   line_count: number
   status: SpeakerStatus
   has_pick: boolean
+  /** Added by the list enrichment; optional so an older server still renders. */
+  kind?: 'named' | 'slot' | 'real'
+  pick?: string | null
+  ranked?: number
+  candidates?: number
+  registered?: boolean
+  sample?: string | null
 }
 
 export interface RealClip {
@@ -23,6 +30,8 @@ export interface RealClip {
 export interface Verdict {
   accent?: 'british' | 'american' | 'other'
   fit?: number
+  /** 1 to 5, null clears it. Separate from fit; stored by the studio in audit.json. */
+  accent_score?: number | null
   reject?: boolean
 }
 
@@ -42,8 +51,8 @@ export interface CloneTest {
 }
 
 export interface RegisterAllResult {
-  registered: string[]
-  skipped: { name: string; reason: string }[]
+  registered: { name: string; cand: string | null }[]
+  skipped: { name: string; reason: 'no_pick' | 'real' | 'error' | string; detail?: string }[]
 }
 
 export interface DesignState {
@@ -98,12 +107,16 @@ export interface Line {
   pace: string | null
   instruct: string | null
   baseline: string | null
+  /** Seconds of the bank render, when the server reports it. */
+  dur?: number | null
 }
 
 export interface TakeFx {
   presets: string[]
   wav: string
   v: number
+  /** Seconds of the processed clip, when the server reports it. */
+  dur?: number | null
 }
 
 export interface Take {
@@ -162,6 +175,8 @@ export interface PoolSlot {
   age: string | null
   lines: number
   spot: { checked: number; wrong: number }
+  /** Made by hand with 'New designed voice'. */
+  custom?: boolean
 }
 
 export interface PoolSummary {
@@ -172,6 +187,15 @@ export interface PoolSummary {
   slots: PoolSlot[]
   queue_lines: number
   queue_entries: number
+  /** Routes set by hand (source 'override'). */
+  overrides?: number
+}
+
+/** A line sampled for review. `wav` is repo-relative (servable via /file), null when not rendered. */
+export interface PoolSampleItem {
+  guid: string
+  text: string
+  wav: string | null
 }
 
 export interface QueueEntry {
@@ -184,6 +208,8 @@ export interface QueueEntry {
   reasons: string[]
   lines: number
   samples: string[]
+  role?: string | null
+  sample_items?: PoolSampleItem[]
   to: PoolTarget
   slot?: string | null
   speaker?: string | null
@@ -201,6 +227,9 @@ export interface PoolRoute {
   confidence: number | null
   reasons: string[]
   source: 'auto' | 'override'
+  entry_name?: string | null
+  entry_label?: string | null
+  wav?: string | null
 }
 
 export interface RoutesPage {
@@ -214,7 +243,21 @@ export interface SpotSample {
   slot: string
   size: number
   remaining: number
-  items: { guid: string; text: string; entry: string | null }[]
+  items: { guid: string; text: string; entry: string | null; wav?: string | null }[]
+}
+
+/** What `override` returns. `undo.previous` goes back to `/routes/restore`. Absent on an older server. */
+export interface OverrideResult {
+  changed: number
+  undo?: { previous: Record<string, unknown> }
+}
+
+export interface NewSlotBody {
+  name: string
+  gender: 'male' | 'female' | 'any'
+  species?: string
+  age?: string
+  description?: string
 }
 
 export interface OverrideBody {
@@ -230,6 +273,9 @@ export interface FxPresetInfo {
   source: 'scenario' | 'saved'
   dsp: string
   notes: string
+  /** Added by the redesign API; older servers omit them. */
+  family?: string
+  version?: string
 }
 
 export type FxLabels = Record<string, string[]>
@@ -245,6 +291,48 @@ export interface FxWritten {
   path: string
   lines: number
   speakers: number
+  backup?: string | null
+  affected_speakers?: number
+}
+
+export interface FxUsage {
+  labels: Record<string, { lines: number; speakers: number; presets: number }>
+  pools_built: boolean
+}
+
+export interface FxDiffRow {
+  voice: string
+  kind: string
+  speaker: string
+  labels: string[]
+  lines: number
+  now: string[]
+  after: string[]
+  changed: boolean
+  changed_lines: number
+  sample_wav: string | null
+}
+
+export interface FxDiff {
+  rows: FxDiffRow[]
+  changed: number
+  unmapped_labels: Record<string, number>
+  file_mtime: number | null
+}
+
+export interface FxBackup {
+  name: string
+  kind: 'assignments' | 'labels'
+  path: string
+  mtime: number
+  size: number
+}
+
+export interface FxRestored {
+  restored: string
+  kind: string
+  path: string
+  backup: string | null
 }
 
 export type MatchValue = '' | 'accept' | 'reject'
@@ -271,14 +359,34 @@ export interface MatchRowData {
   flagged: boolean
   decision: MatchValue
   effective: MatchValue
+  /** Added by the server's matches change (API-CHANGES): absent on an older server. */
+  suggest?: 'accept' | 'reject'
+  suggest_reason?: string
+  /** Repo path of a prompt-bank clip of the proposed speaker; null without a bank. */
+  speaker_sample?: string | null
+}
+
+export interface MatchCounts {
+  flagged: number
+  bank: number
+  nobank: number
+  undecided: number
+  total?: number
+  accepted?: number
+  rejected?: number
+  reviewed?: number
+  unreviewed?: number
+  flagged_unreviewed?: number
 }
 
 export interface MatchesPage {
   total: number
   offset: number
   limit: number
-  counts: { flagged: number; bank: number; nobank: number; undecided: number }
+  counts: MatchCounts
   items: MatchRowData[]
+  /** A deferred pools rebuild is pending. */
+  pools_stale?: boolean
 }
 
 export interface MatchFilter {
@@ -351,7 +459,16 @@ export interface QaStats {
   by_ref?: Record<string, QaRefTally>
 }
 
+/** Counts for the filtered set (not the whole run). Sent by newer servers only. */
+export interface QaView {
+  good: number
+  bad: number
+  unjudged: number
+  total: number
+}
+
 export interface QaPage {
+  view?: QaView
   total: number
   offset: number
   limit: number

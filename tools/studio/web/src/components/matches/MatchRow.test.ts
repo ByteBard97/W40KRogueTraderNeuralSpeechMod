@@ -1,27 +1,26 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
+import type { MatchRowData } from '../../api/types'
 import MatchRow from './MatchRow.vue'
 
-const row = { id: 'C|a', conversation: 'C', entry: 'a', name: 'Heinrix', label: 'The inquisitor', gender: 'female', species: 'human', role: 'ally',
-  evidence: ['said x'], lines: 4, samples: ['One.', 'Two.'], gaps: [true], speaker: 'Heinrix', has_bank: true, speaker_lines: 40, game_gender: 'male',
-  warning: 'game tags Heinrix as male on only 5 line(s)', ambiguous_with: ['Heinrix Two'], flagged: true, decision: '', effective: '' }
+const row = { id: 'C|a', conversation: 'IdiraLab', entry: 'a', name: 'Idira', label: 'witch', lines: 1, speaker: 'Idira the Insidious', has_bank: true,
+  flagged: true, decision: '', effective: '', suggest: 'accept' } as MatchRowData
 
 describe('MatchRow', () => {
-  it('shows the match, the warnings, the evidence and the samples with a gap marker', () => {
-    const t = mount(MatchRow, { props: { row: row as never } }).text()
-    for (const s of ['Heinrix', 'bank', 'game tags Heinrix as male', 'also matches: Heinrix Two', 'said x', 'One.', 'Two.', 'other speakers']) expect(t).toContain(s)
+  it('shows who, the speaker, the source with a singular line count and the suggestion', () => {
+    const t = mount(MatchRow, { props: { row, selected: false } }).text()
+    for (const s of ['Idira', 'Idira the Insidious', 'IdiraLab · 1 line', 'suggest accept']) expect(t).toContain(s)
+    expect(t).not.toContain('1 lines')
   })
-
-  it('emits the chosen decision', async () => {
-    const w = mount(MatchRow, { props: { row: row as never } })
-    await w.find('[data-decision]').setValue('reject')
-    expect(w.emitted('decide')![0]).toEqual(['reject'])
+  it('shows the decision instead of the suggestion, with a named dot', () => {
+    const w = mount(MatchRow, { props: { row: { ...row, decision: 'reject' }, selected: false } })
+    expect(w.text()).toContain('Rejected')
+    expect(w.find('[role=img]').attributes('aria-label')).toBe('Rejected')
   })
-
-  it('marks flagged rows and shows no-bank rows differently', () => {
-    expect(mount(MatchRow, { props: { row: row as never } }).classes()).toContain('flag')
-    const w = mount(MatchRow, { props: { row: { ...row, flagged: false, has_bank: false, warning: null, ambiguous_with: null } as never } })
-    expect(w.classes()).not.toContain('flag')
-    expect(w.text()).toContain('no bank')
+  it('marks the selected row and emits select', async () => {
+    const w = mount(MatchRow, { props: { row, selected: true } })
+    expect(w.attributes('aria-current')).toBe('true')
+    await w.trigger('click')
+    expect(w.emitted('select')).toHaveLength(1)
   })
 })

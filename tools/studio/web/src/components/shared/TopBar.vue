@@ -15,7 +15,7 @@ const fmt = (n: number) => n.toLocaleString('en-US')
 const links = computed(() => [
   { to: '/speakers', label: 'Speakers', count: counts.speakersLeft === null ? null : `${fmt(counts.speakersLeft)} left` },
   { to: '/pools', label: 'Pools', count: counts.pools === null ? null : fmt(counts.pools) },
-  { to: '/fx', label: 'FX', count: null },
+  { to: '/fx', label: 'FX', count: counts.fxUnsaved ? `${counts.fxUnsaved} unsaved` : null },
   { to: '/matches', label: 'Matches', count: counts.matchesUndecided === null ? null : fmt(counts.matchesUndecided) },
   { to: '/qa', label: 'Render QA', count: counts.qaClips === null ? null : fmt(counts.qaClips) },
 ])

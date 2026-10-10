@@ -1,7 +1,8 @@
 import type {
-  MatchFilter, MatchValue, QaFacets, QaFilter, QaPage, QaRun, QaVerdictBody, MatchesPage, FxLabels, FxPresetInfo, FxPreview, FxWritten, OverrideBody, PoolSummary, QueueEntry, RoutesPage, SpotSample,
+  MatchFilter, MatchValue, QaFacets, QaFilter, QaPage, QaRun, QaVerdictBody, MatchesPage, FxLabels, FxPresetInfo, FxPreview, FxWritten, FxUsage, FxDiff, FxBackup, FxRestored, OverrideBody, OverrideResult, NewSlotBody, PoolSlot, PoolSummary, QueueEntry, RoutesPage, SpotSample,
   CloneRequest, RegisterAllResult, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
 } from './types'
+import type { JobView } from './jobs'
 
 export class ApiRequestError extends Error {
   constructor(public status: number, message: string) {
@@ -34,10 +35,14 @@ export const api = {
     post<LiveTake>(`${S(slug)}/design/generate`, body),
   designKeep: (slug: string, body: Partial<LiveTake>) => post<{ cand: string }>(`${S(slug)}/design/keep`, body),
   designVerdict: (slug: string, body: { cand: string; pick?: boolean } & Verdict) => post<object>(`${S(slug)}/design/verdict`, body),
-  designOrder: (slug: string, order: string[]) => post<object>(`${S(slug)}/design/order`, { order }),
+  designOrder: (slug: string, order: string[], followRank = false) => post<object>(`${S(slug)}/design/order`, { order, follow_rank: followRank }),
   designDescription: (slug: string, description: string) => post<object>(`${S(slug)}/design/description`, { description }),
   register: (slug: string) => post<{ registered: string[] }>(`${S(slug)}/register`),
   registerAll: () => post<RegisterAllResult>('/api/speakers/register-all'),
+  jobSubmit: (slug: string, kind: 'clone' | 'design', body: { items: object[]; fx?: string[]; label?: string }) => post<JobView>(`${S(slug)}/${kind}/jobs`, body),
+  jobsActive: (slug: string) => request<JobView[]>(`/api/jobs?active=1&slug=${encodeURIComponent(slug)}`),
+  job: (id: string) => request<JobView>(`/api/jobs/${encodeURIComponent(id)}`),
+  jobCancel: (id: string) => post<JobView>(`/api/jobs/${encodeURIComponent(id)}/cancel`),
   cloneGenerate: (slug: string, body: CloneRequest) => post<Take>(`${S(slug)}/clone/generate`, body),
   takeFx: (slug: string, id: string, presets: string[]) => post<Take>(`${S(slug)}/takes/${id}/fx`, { presets }),
   takeRate: (slug: string, id: string, body: { rating?: number; note?: string }) => post<Take>(`${S(slug)}/takes/${id}/rate`, body),
@@ -48,7 +53,10 @@ export const api = {
     return request<RoutesPage>(`/api/pools/routes${qs ? `?${qs}` : ''}`)
   },
   poolQueue: () => request<QueueEntry[]>('/api/pools/queue'),
-  poolOverride: (body: OverrideBody) => post<{ changed: number }>('/api/pools/routes', body),
+  poolOverride: (body: OverrideBody) => post<OverrideResult>('/api/pools/routes', body),
+  poolRestore: (previous: Record<string, unknown>) => post<{ changed: number }>('/api/pools/routes/restore', { previous }),
+  poolUnmerge: (slot: string) => post<{ changed: number; slot?: PoolSlot }>(`/api/pools/slots/${encodeURIComponent(slot)}/unmerge`, {}),
+  poolCreateSlot: (body: NewSlotBody) => post<PoolSlot>('/api/pools/slots', body),
   poolRename: (slot: string, name: string) => post<object>(`/api/pools/slots/${encodeURIComponent(slot)}/rename`, { name }),
   poolMerge: (slot: string, into: string) => post<{ changed: number }>(`/api/pools/slots/${encodeURIComponent(slot)}/merge`, { into }),
   poolSpot: (slot: string, seed?: number) => request<SpotSample>(`/api/pools/spot-check/${encodeURIComponent(slot)}${seed === undefined ? '' : `?seed=${seed}`}`),
@@ -58,11 +66,17 @@ export const api = {
   fxSaveLabels: (labels: FxLabels) => post<FxLabels>('/api/fx/labels', labels),
   fxPreview: () => request<FxPreview>('/api/fx/assignments/preview'),
   fxWrite: () => post<FxWritten>('/api/fx/assignments'),
+  fxUsage: () => request<FxUsage>('/api/fx/labels/usage'),
+  fxDiff: () => request<FxDiff>('/api/fx/assignments/diff'),
+  fxBackups: () => request<FxBackup[]>('/api/fx/backups'),
+  fxRestore: (backup: string) => post<FxRestored>('/api/fx/restore', { backup }),
   matches: (f: MatchFilter & { offset?: number; limit?: number }) => {
     const qs = Object.entries(f).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')
     return request<MatchesPage>(`/api/matches${qs ? `?${qs}` : ''}`)
   },
-  matchDecision: (id: string, value: MatchValue) => post<{ pools_rebuilt: boolean; queue_entries?: number }>('/api/matches/decision', { id, value }),
+  matchDecision: (id: string, value: MatchValue, rebuild = true) =>
+    post<{ pools_rebuilt: boolean; pools_stale?: boolean; queue_entries?: number }>('/api/matches/decision', rebuild ? { id, value } : { id, value, rebuild: false }),
+  matchesRebuild: () => post<{ pools_rebuilt: boolean; queue_entries?: number }>('/api/matches/rebuild'),
   qaRuns: () => request<QaRun[]>('/api/qa/runs'),
   qaFacets: (run: string) => request<QaFacets>(`/api/qa/facets?run=${encodeURIComponent(run)}`),
   qaClips: (run: string, f: QaFilter & { offset?: number; limit?: number; exclude?: string }) => {

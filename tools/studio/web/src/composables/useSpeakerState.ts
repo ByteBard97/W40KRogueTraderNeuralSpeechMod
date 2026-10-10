@@ -1,6 +1,8 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import { api } from '../api/client'
 import type { Line, ModelOptions, SourceClip, SpeakerDetail, Take } from '../api/types'
+import type { SeedPolicy } from '../utils/seedPolicy'
+import { useToasts } from './useToasts'
 
 export const DEFAULT_OPTIONS: ModelOptions = {
   cfg: 2, timesteps: 10, seed: '', use_instruct: false, retry_badcase: false, normalize: false, continuation: false,
@@ -13,6 +15,8 @@ export interface SpeakerContext {
   takes: Ref<Take[]>
   fxAvailable: Ref<string[]>
   options: Ref<ModelOptions>
+  /** How seeds are chosen for a batch; `options.seed` holds the typed value used by 'fixed'. */
+  seedPolicy: Ref<SeedPolicy>
   fxChosen: Ref<string[]>
   supplied: Ref<SourceClip[]>
   selectedSources: Ref<Set<string>>
@@ -22,6 +26,7 @@ export interface SpeakerContext {
   loading: Ref<boolean>
   error: Ref<string | null>
   notice: Ref<string>
+  noticeKind: Ref<'ok' | 'error'>
   load(): Promise<void>
   refreshDetail(): Promise<void>
   addSupplied(wav: string, text: string): void
@@ -39,6 +44,7 @@ export function useSpeakerState(slug: string): SpeakerContext {
   const takes = ref<Take[]>([])
   const fxAvailable = ref<string[]>([])
   const options = ref<ModelOptions>({ ...DEFAULT_OPTIONS })
+  const seedPolicy = ref<SeedPolicy>('new')
   const fxChosen = ref<string[]>([])
   const supplied = ref<SourceClip[]>([])
   const selectedSources = ref<Set<string>>(new Set())
@@ -46,6 +52,15 @@ export function useSpeakerState(slug: string): SpeakerContext {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const notice = ref('')
+  const noticeKind = ref<'ok' | 'error'>('ok')
+  const toasts = useToasts()
+  /** Keep the last message and show it as a toast, so the same message twice is seen twice. */
+  const say = (text: string, kind: 'ok' | 'error' = 'ok') => {
+    noticeKind.value = kind
+    notice.value = text
+    if (kind === 'ok') toasts.ok(text)
+    else toasts.error(text)
+  }
 
   const sources = computed<SourceClip[]>(() => {
     const d = detail.value
@@ -67,6 +82,7 @@ export function useSpeakerState(slug: string): SpeakerContext {
     const p = d.profile
     if (!p) return
     options.value = { ...DEFAULT_OPTIONS, ...p.options }
+    seedPolicy.value = String(p.options.seed ?? '').trim() ? 'fixed' : 'new'
     fxChosen.value = [...p.fx]
     selectedLines.value = new Set(p.test_lines)
     const hit = sources.value.find((s) => s.wav === p.source.wav)
@@ -111,39 +127,39 @@ export function useSpeakerState(slug: string): SpeakerContext {
   async function saveProfile() {
     const src = chosenSources.value[0]
     if (!src) {
-      notice.value = 'Choose a source clip first.'
+      say('Choose a source clip first.', 'error')
       return
     }
     try {
       await api.saveProfile(slug, {
         source: { wav: src.wav, text: src.text, origin: src.origin },
-        options: options.value, fx: fxChosen.value, test_lines: [...selectedLines.value],
+        options: { ...options.value, seed: seedPolicy.value === 'fixed' ? options.value.seed : '' }, fx: fxChosen.value, test_lines: [...selectedLines.value],
       } as never)
-      notice.value = 'Profile saved.'
+      say('Profile saved.')
       const d = await api.speaker(slug)
       detail.value = d
     } catch (e) {
-      notice.value = msg(e)
+      say(msg(e), 'error')
     }
   }
 
   async function setActive() {
     try {
-      notice.value = `Active settings: ${(await api.setActive(slug)).active}`
+      say(`Active settings: ${(await api.setActive(slug)).active}`)
     } catch (e) {
-      notice.value = msg(e)
+      say(msg(e), 'error')
     }
   }
 
   async function registerPick() {
     try {
       const r = await api.register(slug)
-      notice.value = `Registered ${r.registered.join(', ')} in the prompt bank.`
+      say(`Registered ${r.registered.join(', ')} in the prompt bank.`)
       await load()
     } catch (e) {
-      notice.value = msg(e)
+      say(msg(e), 'error')
     }
   }
 
-  return { slug, detail, lines, takes, fxAvailable, options, fxChosen, supplied, selectedSources, selectedLines, sources, chosenSources, loading, error, notice, load, refreshDetail, addSupplied, upsertTake, saveProfile, setActive, registerPick }
+  return { slug, detail, lines, takes, fxAvailable, options, seedPolicy, fxChosen, supplied, selectedSources, selectedLines, sources, chosenSources, loading, error, notice, noticeKind, load, refreshDetail, addSupplied, upsertTake, saveProfile, setActive, registerPick }
 }

@@ -230,4 +230,83 @@ describe('qa store', () => {
     expect(s.items[0].verdict?.verdict).toBe('good')
     expect(s.stats).toEqual({ good: 1, bad: 0, unjudged: 2 })
   })
+
+  it('load more appends the next batch by offset and stops at the end', async () => {
+    const s = useQaStore()
+    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('a'), clip('b')]), total: 3 } as never)
+    await s.loadPage(0)
+    expect(s.hasNext).toBe(true)
+    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('c')]), total: 3, offset: 2 } as never)
+    await s.loadMore()
+    expect(vi.mocked(api.qaClips).mock.calls.at(-1)![1]).toMatchObject({ offset: 2, limit: 40 })
+    expect(s.items.map((c) => c.guid)).toEqual(['a', 'b', 'c'])
+    expect(s.hasNext).toBe(false)
+    await s.loadMore()
+    expect(api.qaClips).toHaveBeenCalledTimes(2)
+  })
+
+  it('load more under a verdict filter excludes everything already shown and keeps the cursor', async () => {
+    const s = useQaStore()
+    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('a'), clip('b')]), total: 3 } as never)
+    await s.setFilter({ verdict: 'unjudged' })
+    s.select(1)
+    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('c')]), total: 1 } as never)
+    await s.loadMore()
+    expect(vi.mocked(api.qaClips).mock.calls.at(-1)![1]).toMatchObject({ offset: 0, exclude: 'a,b' })
+    expect(s.items.map((c) => c.guid)).toEqual(['a', 'b', 'c'])
+    expect(s.total).toBe(3)
+    expect(s.hasNext).toBe(false)
+    expect(s.index).toBe(1)
+  })
+
+  it('drops a load-more answer that arrives after the list was reloaded', async () => {
+    const s = useQaStore()
+    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('a')]), total: 5 } as never)
+    await s.loadPage(0)
+    let late!: (v: never) => void
+    vi.mocked(api.qaClips).mockImplementationOnce(() => new Promise<never>((r) => { late = r }))
+    const more = s.loadMore()
+    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('x')]), total: 5 } as never)
+    await s.setFilter({ speaker: 'Abelard' })
+    late({ ...page([clip('stale')]), total: 5, offset: 1 } as never)
+    await more
+    expect(s.items.map((c) => c.guid)).toEqual(['x'])
+  })
+
+  it('next unjudged loads more of the queue until it finds one, and gives up at the end', async () => {
+    const s = useQaStore()
+    const done = { verdict: 'good', tags: [], note: '' }
+    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('a'), clip('b', done)]), total: 4 } as never)
+    await s.loadPage(0)
+    vi.mocked(api.qaClips).mockResolvedValueOnce({ ...page([clip('c', done), clip('d')]), total: 4, offset: 2 } as never)
+    expect(await s.findNextUnjudged(0)).toBe(3)
+    expect(s.items).toHaveLength(4)
+    expect(await s.findNextUnjudged(3)).toBe(-1)
+  })
+
+  it('cursor moves stay inside the list and a new page puts it back on the first clip', async () => {
+    const s = useQaStore()
+    vi.mocked(api.qaClips).mockResolvedValue(page([clip('a'), clip('b')]) as never)
+    await s.loadPage(0)
+    s.move(5)
+    expect(s.current?.guid).toBe('b')
+    s.move(-9)
+    expect(s.index).toBe(0)
+    s.select(1)
+    await s.loadPage(0)
+    expect(s.index).toBe(0)
+  })
+
+  it('counts first verdicts this session, not changes, and keeps the filtered view counts in step', async () => {
+    const s = useQaStore()
+    vi.mocked(api.qaClips).mockResolvedValue({ ...page([clip('a'), clip('b', { verdict: 'good', tags: [], note: '' })]), view: { good: 1, bad: 0, unjudged: 1, total: 2 } } as never)
+    vi.mocked(api.qaVerdict).mockResolvedValue({})
+    await s.loadPage(0)
+    await s.setVerdict('a', 'good')
+    await s.setVerdict('a', 'bad')
+    await s.setVerdict('b', null)
+    expect(s.session).toBe(1)
+    expect(s.view).toEqual({ good: 0, bad: 1, unjudged: 1, total: 2 })
+  })
 })
+

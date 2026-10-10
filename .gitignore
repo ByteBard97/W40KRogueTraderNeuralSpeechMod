@@ -68,3 +68,4 @@ screens/
 screenshots/
 *_shot.png
 *-screenshot*.png
+tools/studio/web/vite.mock.tmp.config.ts

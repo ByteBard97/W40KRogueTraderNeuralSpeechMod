@@ -9,6 +9,7 @@ export const useLiveTakesStore = defineStore('liveTakes', () => {
   const forSlug = (slug: string): LiveTake[] => bySlug.value[slug] ?? []
 
   function add(slug: string, take: LiveTake): LiveTake {
+    if (forSlug(slug).some((t) => t.file === take.file)) return take      // a job result can be handed over twice
     bySlug.value[slug] = [take, ...forSlug(slug)]
     return take
   }
