@@ -16,5 +16,7 @@ export const router = createRouter({
     { path: '/fx', component: FxView },
     { path: '/matches', component: MatchesView },
     { path: '/qa', component: QaView },
+    // Dev only (or a build with VITE_STYLEGUIDE=1): every shared component on one page.
+    ...(import.meta.env.DEV || import.meta.env.VITE_STYLEGUIDE ? [{ path: '/styleguide', component: () => import('./views/StyleguideView.vue') }] : []),
   ],
 })

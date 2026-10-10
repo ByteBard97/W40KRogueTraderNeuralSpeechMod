@@ -1,0 +1,65 @@
+/* Voice Studio base: reset, type, focus, layout helpers and the table/field helpers pages share.
+   Components own their own scoped CSS; only classes that never collide with a component live here. */
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--text); }
+body { margin: 0; font: var(--fs-md)/var(--lh-body) var(--font-ui); -webkit-font-smoothing: antialiased; }
+a { color: var(--info); }
+a:hover { color: var(--info-hi); }
+:focus-visible, .is-focus { outline: 2px solid var(--focus); outline-offset: 2px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+
+/* Legacy element styling for pages not yet ported. Class-based components override it (higher specificity). */
+button, input, select, textarea { background: var(--raised); border: 1px solid var(--line-strong); border-radius: var(--r-md); padding: 5px 9px; }
+button { cursor: pointer; }
+button:disabled { opacity: 0.5; cursor: default; }
+
+.mono { font-family: var(--font-mono); font-size: var(--fs-sm); }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--text-3); }
+.dim { color: var(--text-2); }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Page layout */
+.page { width: 100%; max-width: 1480px; margin: 0 auto; padding: var(--s-5); display: flex; flex-direction: column; gap: var(--s-4); }
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s-3) var(--s-5); }
+.page-title { font-family: var(--font-display); font-weight: 600; font-size: var(--fs-2xl); letter-spacing: 0.04em; margin: 0; line-height: 1.1; }
+.page-sub { color: var(--text-3); font-size: var(--fs-sm); }
+.split { display: flex; flex-wrap: wrap; gap: var(--s-4); align-items: flex-start; }
+.split > .main { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: var(--s-4); }
+.split > .side { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: var(--s-4); }
+.sticky { position: sticky; top: calc(var(--topbar-h) + var(--s-3)); }
+.vs-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.divider { height: 1px; background: var(--line); border: 0; margin: 0; }
+.list-head { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-3) var(--s-3) var(--s-2); font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.06em; }
+.list-head .n { font-family: var(--font-mono); color: var(--text-3); font-weight: 500; }
+.saved { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--good); }
+
+/* Tables */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { text-align: left; font-weight: 600; color: var(--text-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; background: var(--n-1); position: sticky; top: 0; }
+.tbl td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl td.r, .tbl th.r { text-align: right; }
+
+/* Fields: apply to a <label class="field"> wrapping an input/select, or directly to select/textarea */
+.field { display: inline-flex; align-items: center; gap: 8px; min-height: var(--hit); padding: 0 10px; border-radius: var(--r-md); border: 1px solid var(--line-strong); background: var(--n-1); color: var(--text); min-width: 0; }
+.field input, .field select { border: 0; background: transparent; outline: none; min-width: 0; width: 100%; color: var(--text); padding: 0; border-radius: 0; }
+.field input::placeholder { color: var(--text-3); }
+.field:focus-within { outline: 2px solid var(--focus); outline-offset: 1px; border-color: transparent; }
+.field .lbl { color: var(--text-3); font-size: var(--fs-sm); white-space: nowrap; }
+select.field { appearance: none; padding-right: 28px; background-image: linear-gradient(45deg, transparent 50%, var(--text-3) 50%), linear-gradient(135deg, var(--text-3) 50%, transparent 50%); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+textarea.field { padding: 8px 10px; min-height: 64px; resize: vertical; width: 100%; line-height: var(--lh-body); }
+
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--n-5); border-top-color: var(--accent); animation: spin 0.8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .page { padding: var(--s-3); }
+  .hide-sm { display: none !important; }
+  .page-title { font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

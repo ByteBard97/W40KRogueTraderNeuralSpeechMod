@@ -27,3 +27,21 @@ describe('model store', () => {
     expect(m.reason).toMatch(/live_backend/)
   })
 })
+
+describe('model store busy elapsed', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.useFakeTimers()
+  })
+  it('counts seconds while busy and resets when ready; retry refreshes', async () => {
+    const m = useModelStore()
+    vi.mocked(api.health).mockResolvedValue({ state: 'busy' })
+    await m.retry()
+    vi.advanceTimersByTime(3000)
+    expect(m.busyElapsed).toBe(3)
+    vi.mocked(api.health).mockResolvedValue({ state: 'ready' })
+    await m.refresh()
+    expect(m.busyElapsed).toBe(0)
+    vi.useRealTimers()
+  })
+})

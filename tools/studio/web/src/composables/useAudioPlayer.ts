@@ -1,29 +1,9 @@
-import { ref } from 'vue'
-import { fileUrl } from '../utils/fileUrl'
+import { useGlobalAudio, type PlayMeta } from './globalAudio'
 
-const playing = ref<string | null>(null)
-let el: HTMLAudioElement | null = null
-
-function element(): HTMLAudioElement {
-  if (!el) {
-    el = new Audio()
-    el.addEventListener('ended', () => (playing.value = null))
-  }
-  return el
-}
-
+/** Compatibility wrapper over the app-wide player. `playing` is the id of what is playing now, or null. */
 export function useAudioPlayer() {
-  function stop() {
-    if (el) el.pause()
-    playing.value = null
-  }
+  const g = useGlobalAudio()
   /** `id` names what is playing; `url` overrides where the audio comes from (default: /file for a repo path). */
-  function play(id: string, url?: string) {
-    if (playing.value === id) return stop()
-    const a = element()
-    a.src = url ?? fileUrl(id)
-    void a.play().catch(() => (playing.value = null))
-    playing.value = id
-  }
-  return { playing, play, stop }
+  const play = (id: string, url?: string, meta?: PlayMeta) => g.play(id, url, meta)
+  return { playing: g.playing, play, stop: g.stop }
 }

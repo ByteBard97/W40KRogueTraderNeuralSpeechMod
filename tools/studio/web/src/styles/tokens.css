@@ -1,0 +1,117 @@
+/* Voice Studio tokens. Source of truth: docs/design/voice-studio-redesign/shared.css. Dark only. */
+
+:root {
+  color-scheme: dark;
+
+  /* Neutral ramp — cool graphite, never pure black or white */
+  --n-0: #0d0e10;
+  --n-1: #131417;
+  --n-2: #191b1f;
+  --n-3: #202328;
+  --n-4: #2a2e34;
+  --n-5: #373c43;
+  --n-6: #4f555d;
+  --n-7: #8d949d;
+  --n-8: #b7bdc4;
+  --n-9: #dcdfe3;
+
+  /* Roles */
+  --bg: var(--n-0);
+  --surface: var(--n-1);
+  --raised: var(--n-2);
+  --inset: var(--n-3);
+  --line: var(--n-4);
+  --line-strong: var(--n-5);
+  --text: var(--n-9);
+  --text-2: var(--n-8);
+  --text-3: var(--n-7);
+  --text-off: var(--n-6);
+
+  /* Accent — muted brass. Used for primary action, current item, now-playing. */
+  --accent: #c9a35c;
+  --accent-hi: #dbb877;
+  --accent-lo: #8d7040;
+  --accent-ink: #1b1508;
+  --accent-tint: rgba(201, 163, 92, 0.13);
+
+  /* Semantic. Good and bad differ in lightness as well as hue, and always carry an icon or word. */
+  --good: #74c795;
+  --good-tint: rgba(116, 199, 149, 0.13);
+  --good-ink: #0b1d12;
+  --bad: #ee7a69;
+  --bad-tint: rgba(238, 122, 105, 0.13);
+  --bad-ink: #2a0d08;
+  --warn: #e6a254;
+  --warn-tint: rgba(230, 162, 84, 0.13);
+  --info: #7fb2e8;
+  --info-tint: rgba(127, 178, 232, 0.13);
+
+  /* States */
+  --selected: var(--accent-tint);
+  --selected-line: rgba(201, 163, 92, 0.55);
+  --hover: rgba(220, 223, 227, 0.05);
+  --focus: #9ccaff;
+
+  /* Type */
+  --font-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Menlo, monospace;
+  --font-display: "Cinzel", "Trajan Pro", Georgia, serif;
+  --fs-xs: 11px;   /* kbd, micro labels */
+  --fs-sm: 12px;   /* meta, ids, chips */
+  --fs-md: 14px;   /* body, rows */
+  --fs-lg: 16px;   /* current item text */
+  --fs-xl: 19px;   /* QA clip text, section titles */
+  --fs-2xl: 24px;  /* page title (display face) */
+  --lh-tight: 1.25;
+  --lh-body: 1.5;
+
+  /* Space (4px base) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  /* Radius */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 10px;
+  --r-pill: 999px;
+
+  /* Elevation — borders do most of the work; shadows only for floating layers */
+  --e-1: 0 1px 0 rgba(0, 0, 0, 0.35);
+  --e-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --e-3: 0 18px 48px rgba(0, 0, 0, 0.6);
+
+  /* Hit targets */
+  --hit: 32px;       /* dense rows */
+  --hit-lg: 44px;    /* primary controls */
+  --hit-xl: 64px;    /* judging buttons */
+
+  --bar-h: 64px;     /* persistent audio bar */
+  --topbar-h: 48px;
+
+  /* Outline tints used by flags, danger/good buttons, confirm boxes (from the design's literal rgba values) */
+  --good-line: rgba(116, 199, 149, 0.55);
+  --bad-line: rgba(238, 122, 105, 0.55);
+  --warn-line: rgba(230, 162, 84, 0.45);
+  --info-line: rgba(127, 178, 232, 0.45);
+  --info-hi: #a7cbf2;
+  --scrim: rgba(8, 9, 10, 0.6);
+
+  /* Z layers */
+  --z-topbar: 20;
+  --z-player: 30;
+  --z-toast: 40;
+  --z-overlay: 50;
+
+  /* Legacy aliases: the pre-redesign components still read these. Remove once every page is ported. */
+  --card: var(--raised);
+  --fg: var(--text);
+  --dim: var(--text-3);
+  --ok: var(--good);
+  --acc: var(--accent);
+  --on-acc: var(--accent-ink);
+}
