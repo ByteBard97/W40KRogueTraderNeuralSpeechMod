@@ -50,6 +50,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .field:focus-within { outline: 2px solid var(--focus); outline-offset: 1px; border-color: transparent; }
 .field .lbl { color: var(--text-3); font-size: var(--fs-sm); white-space: nowrap; }
 select.field { appearance: none; padding-right: 28px; background-image: linear-gradient(45deg, transparent 50%, var(--text-3) 50%), linear-gradient(135deg, var(--text-3) 50%, transparent 50%); background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+/* Native option lists ignore the transparent field background and render white; give them dark colours */
+select option, select optgroup { background: var(--raised); color: var(--text); }
+select option:checked { background: var(--n-4); color: var(--text); }
 textarea.field { padding: 8px 10px; min-height: 64px; resize: vertical; width: 100%; line-height: var(--lh-body); }
 
 .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--n-5); border-top-color: var(--accent); animation: spin 0.8s linear infinite; flex: none; }
