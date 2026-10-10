@@ -30,6 +30,15 @@ def api(cfg, tmp_path):
             raw = e.read()
             return e.code, (json.loads(raw) if raw[:1] == b"{" else raw)
 
+    def raw(method, path, headers=None):
+        req = urllib.request.Request(base + path, method=method, headers=headers or {})
+        try:
+            with urllib.request.urlopen(req) as r:
+                return r.status, r.read(), r.headers
+        except urllib.error.HTTPError as e:
+            return e.code, e.read(), e.headers
+
+    call.raw = raw
     yield call
     srv.shutdown()
     srv.server_close()
@@ -113,3 +122,19 @@ def test_model_down_is_503_for_live_calls(cfg, tmp_path):
 def test_register_all_over_http(api):
     st, r = api("POST", "/api/speakers/register-all", {})
     assert st == 200 and r["registered"] == [] and {x["reason"] for x in r["skipped"]} == {"no_pick", "real"}
+
+
+
+def test_file_route_supports_byte_ranges(api):
+    """Browsers can only seek an <audio> source when the server answers Range requests."""
+    st, full = api("GET", "/file?p=data/voices/wav/Pasqal/E1.wav")
+    assert st == 200
+    st, part, headers = api.raw("GET", "/file?p=data/voices/wav/Pasqal/E1.wav", {"Range": "bytes=2-9"})
+    assert st == 206 and part == full[2:10]
+    assert headers["Content-Range"] == f"bytes 2-9/{len(full)}"
+    st, tail, _ = api.raw("GET", "/file?p=data/voices/wav/Pasqal/E1.wav", {"Range": "bytes=-4"})
+    assert st == 206 and tail == full[-4:]
+    st, _, headers = api.raw("GET", "/file?p=data/voices/wav/Pasqal/E1.wav")
+    assert headers["Accept-Ranges"] == "bytes"
+    st, _, _ = api.raw("GET", "/file?p=data/voices/wav/Pasqal/E1.wav", {"Range": f"bytes={len(full) + 5}-"})
+    assert st == 416

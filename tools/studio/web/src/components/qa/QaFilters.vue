@@ -106,13 +106,14 @@ const clearAll = () => emit('change', { ...props.filter, speaker: '', ref: '', e
 </template>
 
 <style scoped>
-.qa-filters { display: flex; flex-direction: column; gap: var(--s-2); }
-.pop { position: relative; }
+.qa-filters { position: relative; display: flex; flex-direction: column; gap: var(--s-2); }
+/* The popover anchors under the whole filter area, not the button: the button sits mid-bar and a 560px body would run off the right edge. */
+.pop { position: static; }
 .pop-btn { list-style: none; display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--hit); padding: 0 var(--s-3); border-radius: var(--r-md); border: 1px solid var(--line-strong); background: var(--raised); color: var(--text); font-weight: 500; cursor: pointer; }
 .pop-btn::-webkit-details-marker { display: none; }
 .pop-btn:hover { border-color: var(--n-6); }
 .count { font-size: var(--fs-sm); }
-.pop-body { position: absolute; z-index: calc(var(--z-topbar) - 1); top: calc(var(--hit) + var(--s-1)); left: 0; width: min(560px, calc(100vw - 2 * var(--s-4))); display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--s-2); padding: var(--s-3); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line-strong); box-shadow: var(--e-2); }
+.pop-body { position: absolute; z-index: calc(var(--z-topbar) - 1); top: calc(100% + var(--s-1)); left: 0; width: min(560px, calc(100vw - 2 * var(--s-4))); display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--s-2); padding: var(--s-3); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line-strong); box-shadow: var(--e-2); }
 .comp { display: flex; align-items: center; gap: var(--s-2); margin-left: auto; }
 .label { font-size: var(--fs-sm); }
 @media (max-width: 640px) { .comp { margin-left: 0; width: 100%; justify-content: flex-end; } }

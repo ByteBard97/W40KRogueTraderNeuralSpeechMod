@@ -17,16 +17,45 @@ DEFAULT_PORT = 8930
 DEFAULT_DIST = Path(__file__).resolve().parents[2] / "web" / "dist"
 
 
+def parse_range(header: str | None, total: int):
+    """(first, last) for a single `bytes=a-b` / `bytes=a-` / `bytes=-n` range; None when absent or not understood; "bad" when unsatisfiable."""
+    if not header or not header.startswith("bytes=") or "," in header:
+        return None
+    a, _, z = header[6:].strip().partition("-")
+    try:
+        if a == "":
+            n = int(z)
+            return (max(total - n, 0), total - 1) if n > 0 and total else "bad"
+        first, last = int(a), int(z) if z else total - 1
+    except ValueError:
+        return None
+    if first >= total or first > last:
+        return "bad"
+    return first, min(last, total - 1)
+
+
 def make_server(cfg: Config, model: ModelClient, port: int = DEFAULT_PORT, web_dist: Path | None = None):
     router, dist = build_router(), web_dist or DEFAULT_DIST
 
     class Handler(BaseHTTPRequestHandler):
-        def _send(self, code: int, body: bytes, ctype: str) -> None:
+        def _send(self, code: int, body: bytes, ctype: str, headers: dict | None = None) -> None:
             self.send_response(code)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
+            for k, v in (headers or {}).items():
+                self.send_header(k, v)
             self.end_headers()
             self.wfile.write(body)
+
+        def _send_media(self, body: bytes, ctype: str) -> None:
+            """200 or 206: browsers can only seek an audio source when Range requests are answered."""
+            total, rng = len(body), parse_range(self.headers.get("Range"), len(body))
+            if rng is None:
+                return self._send(200, body, ctype, {"Accept-Ranges": "bytes"})
+            if rng == "bad":
+                return self._send(416, b"", ctype, {"Content-Range": f"bytes */{total}"})
+            a, z = rng
+            self._send(206, body[a:z + 1], ctype, {"Accept-Ranges": "bytes", "Content-Range": f"bytes {a}-{z}/{total}"})
 
         def _api(self, method: str, body: dict) -> None:
             u = urlparse(self.path)
@@ -43,7 +72,7 @@ def make_server(cfg: Config, model: ModelClient, port: int = DEFAULT_PORT, web_d
                 if p is None:
                     return self._send(404, b"not found", "text/plain")
                 try:
-                    return self._send(200, p.read_bytes(), mimetypes.guess_type(p.name)[0] or "application/octet-stream")
+                    return self._send_media(p.read_bytes(), mimetypes.guess_type(p.name)[0] or "application/octet-stream")
                 except Exception as e:
                     return self._send(500, f"{type(e).__name__}: {e}".encode(), "text/plain")
             if u.path == "/fx-file":
@@ -52,7 +81,7 @@ def make_server(cfg: Config, model: ModelClient, port: int = DEFAULT_PORT, web_d
                 if p is None or p.suffix != ".wav":
                     return self._send(404, b"not found", "text/plain")
                 try:
-                    return self._send(200, qa.compressed(p, args.get("fx", "")), "audio/wav")
+                    return self._send_media(qa.compressed(p, args.get("fx", "")), "audio/wav")
                 except ApiError as e:
                     return self._send(e.status, e.message.encode(), "text/plain")
                 except Exception as e:
@@ -61,7 +90,7 @@ def make_server(cfg: Config, model: ModelClient, port: int = DEFAULT_PORT, web_d
                 args = {k: v[0] for k, v in parse_qs(u.query).items()}
                 names = [n for n in (args.get("presets") or args.get("preset") or "").split(fx.PREVIEW_SEP) if n]
                 try:
-                    return self._send(200, fx.render_preview(cfg, names, args.get("p", "")), "audio/wav")
+                    return self._send_media(fx.render_preview(cfg, names, args.get("p", "")), "audio/wav")
                 except ApiError as e:
                     return self._send(e.status, e.message.encode(), "text/plain")
                 except Exception as e:
