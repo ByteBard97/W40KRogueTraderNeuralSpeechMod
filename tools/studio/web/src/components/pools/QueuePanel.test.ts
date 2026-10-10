@@ -74,6 +74,18 @@ describe('QueuePanel', () => {
     expect(api.poolOverride).toHaveBeenCalledWith({ entry: 'C|a', to: 'slot', slot: 'custom_boss' })
   })
 
+  it('the new voice form sends a description when one is typed', async () => {
+    const { w } = await mountWith()
+    vi.mocked(api.poolCreateSlot).mockResolvedValue(slot('custom_vox', 'Vox', { custom: true }))
+    await w.find('select').setValue('__new__')
+    const form = w.find('form')
+    await form.find('[data-nv-name]').setValue('Vox')
+    await form.find('[data-nv-description]').setValue('Female cyborg, modulated vox-caster voice')
+    await form.trigger('submit')
+    await flushPromises()
+    expect(api.poolCreateSlot).toHaveBeenCalledWith({ name: 'Vox', gender: 'male', species: 'human', description: 'Female cyborg, modulated vox-caster voice' })
+  })
+
   it('cannot accept or move a group without a roster entry', async () => {
     const { w } = await mountWith([entryOf('b', { entry: null })])
     expect(w.find('[data-accept]').attributes('disabled')).toBeDefined()

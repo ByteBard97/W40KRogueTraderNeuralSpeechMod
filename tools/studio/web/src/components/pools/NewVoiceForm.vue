@@ -20,11 +20,12 @@ const name = ref(props.name ?? '')
 const gender = ref<Gender>(props.gender === 'male' || props.gender === 'female' ? props.gender : 'any')
 const species = ref(props.species && props.species !== 'unknown' ? props.species : DEFAULT_SPECIES)
 const age = ref('')
+const description = ref('')
 const ready = computed(() => name.value.trim().length > 0)
 
 function submit() {
   if (!ready.value) return
-  emit('create', { name: name.value.trim(), gender: gender.value, species: species.value.trim() || DEFAULT_SPECIES, ...(age.value.trim() ? { age: age.value.trim() } : {}) })
+  emit('create', { name: name.value.trim(), gender: gender.value, species: species.value.trim() || DEFAULT_SPECIES, ...(age.value.trim() ? { age: age.value.trim() } : {}), ...(description.value.trim() ? { description: description.value.trim() } : {}) })
 }
 </script>
 
@@ -34,6 +35,7 @@ function submit() {
     <Seg v-model="gender" :options="GENDERS" aria-label="Gender" />
     <label class="field"><span class="lbl">Species</span><input v-model="species" data-nv-species autocomplete="off" /></label>
     <label class="field"><span class="lbl">Age</span><input v-model="age" data-nv-age placeholder="optional" autocomplete="off" /></label>
+    <label class="field desc"><span class="lbl">Voice</span><input v-model="description" data-nv-description placeholder="optional, e.g. female cyborg, modulated vox voice" autocomplete="off" /></label>
     <span class="acts">
       <Btn type="submit" variant="primary" size="sm" :disabled="!ready" data-nv-create>{{ confirmLabel ?? 'Create voice' }}</Btn>
       <Btn variant="ghost" size="sm" kbd="Esc" @click="emit('cancel')">Cancel</Btn>
@@ -46,6 +48,7 @@ function submit() {
 .nv { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); padding: var(--s-3); border-radius: var(--r-md); background: var(--inset); border: 1px solid var(--line-strong); }
 .name { flex: 1 1 200px; }
 .field { min-height: 28px; }
+.desc { flex: 1 1 100%; }
 .acts { display: flex; gap: var(--s-2); margin-left: auto; }
 .note { flex-basis: 100%; font-size: var(--fs-sm); color: var(--text-3); }
 </style>
