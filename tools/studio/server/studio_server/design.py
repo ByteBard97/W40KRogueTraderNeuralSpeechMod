@@ -23,24 +23,44 @@ def _manifest(cfg: Config) -> dict:
     return read_json(cfg.voice_design / "design_manifest.json", {})
 
 
+ACCENT_SCORES = range(1, 6)
+
+
 def post_verdict(cfg: Config, slug: str, body: dict) -> dict:
+    """Fit, accent, reject and pick go through the shared apply_verdict; accent_score (1 to 5, null clears) is the
+    studio's own key and is stored beside them in audit.json cands[cand]."""
     name = design_name(cfg, slug)
     if body.get("cand") not in _manifest(cfg)[name]["candidates"]:
         raise ApiError(400, f"unknown candidate {body.get('cand')!r}")
+    score = body.get("accent_score")
+    if "accent_score" in body and score is not None and (isinstance(score, bool) or score not in ACCENT_SCORES):
+        raise ApiError(400, "accent_score must be a whole number 1 to 5, or null")
     with STATE_LOCK:
-        audit = read_json(cfg.voice_design / "audit.json", {})
-        write_json_atomic(cfg.voice_design / "audit.json", apply_verdict(audit, {**body, "name": name}))
+        audit = apply_verdict(read_json(cfg.voice_design / "audit.json", {}), {**body, "name": name})
+        if "accent_score" in body:
+            cand = audit[name]["cands"][body["cand"]]
+            if score is None:
+                cand.pop("accent_score", None)
+            else:
+                cand["accent_score"] = score
+        write_json_atomic(cfg.voice_design / "audit.json", audit)
     return {}
 
 
-def post_order(cfg: Config, slug: str, order: list[str]) -> dict:
+def post_order(cfg: Config, slug: str, order: list[str], follow_rank: bool = False) -> dict:
+    """Save the ranking. The pick is a separate choice and is left alone (cleared only if it is no longer one of the
+    speaker's candidates); with follow_rank true the old behaviour applies and rank 1 becomes the pick."""
     name = design_name(cfg, slug)
     known = set(_manifest(cfg)[name]["candidates"])
     if any(c not in known for c in order):
         raise ApiError(400, "order contains an unknown candidate")
     with STATE_LOCK:
         audit = read_json(cfg.voice_design / "audit.json", {})
-        write_json_atomic(cfg.voice_design / "audit.json", apply_order(audit, {"name": name, "order": order}))
+        prev = (audit.get(name) or {}).get("pick")
+        audit = apply_order(audit, {"name": name, "order": order})
+        if not follow_rank:
+            audit[name]["pick"] = prev if prev in known else None
+        write_json_atomic(cfg.voice_design / "audit.json", audit)
     return {}
 
 
@@ -102,15 +122,22 @@ def register_pick(cfg: Config, slug: str) -> dict:
 
 
 def register_all(cfg: Config) -> dict:
-    """Register every designed speaker's pick, one at a time with the per-speaker checks; failures are reported, not fatal."""
+    """Register every designed speaker's pick, one at a time with the per-speaker checks; failures are reported, not fatal.
+
+    registered: [{name, cand}]. skipped: [{name, reason, detail}] for every other speaker; reason is "real" (a game
+    voice, nothing to register), "no_pick" (designed, nothing picked yet) or "error" (detail holds the message)."""
     registered, skipped = [], []
     for s in list_speakers(cfg):
-        if s["origin"] != "designed" or not s["has_pick"]:
-            continue
-        try:
-            registered.extend(register_pick(cfg, s["slug"])["registered"])
-        except ApiError as e:
-            skipped.append({"name": s["name"], "reason": e.message})
+        if s["origin"] != "designed":
+            skipped.append({"name": s["name"], "reason": "real", "detail": "real voice, nothing to register"})
+        elif not s["has_pick"]:
+            skipped.append({"name": s["name"], "reason": "no_pick", "detail": "designed, no pick yet"})
+        else:
+            try:
+                register_pick(cfg, s["slug"])
+                registered.append({"name": s["name"], "cand": s["pick"]})
+            except ApiError as e:
+                skipped.append({"name": s["name"], "reason": "error", "detail": e.message})
     return {"registered": registered, "skipped": skipped}
 
 

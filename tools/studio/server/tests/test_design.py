@@ -15,8 +15,8 @@ def test_verdict_pick_and_toggle(cfg):
     assert read_json(cfg.voice_design / "audit.json", {})["Muaran"]["pick"] is None
 
 
-def test_order_sets_rank_one_as_pick(cfg):
-    design.post_order(cfg, "muaran", ["c1.wav", "c0.wav"])
+def test_order_with_follow_rank_sets_rank_one_as_pick(cfg):
+    design.post_order(cfg, "muaran", ["c1.wav", "c0.wav"], follow_rank=True)
     a = read_json(cfg.voice_design / "audit.json", {})["Muaran"]
     assert a["order"] == ["c1.wav", "c0.wav"] and a["pick"] == "c1.wav"
 
@@ -168,12 +168,16 @@ def test_register_all_registers_picks_and_reports_skips(cfg):
     from conftest import put
     design.post_verdict(cfg, "muaran", {"cand": "c0.wav", "pick": True})
     r = design.register_all(cfg)
-    assert r == {"registered": ["Muaran"], "skipped": []}
+    assert r["registered"] == [{"name": "Muaran", "cand": "c0.wav"}]
+    assert r["skipped"] == [{"name": "Pasqal", "reason": "real", "detail": "real voice, nothing to register"}]
     assert (cfg.voices / "prompts/designed/muaran.wav").is_file()
     put(cfg.voice_design / "audit.json", {"Muaran": {"pick": "c0.wav", "cands": {"c0.wav": {"reject": True}}}})
     r2 = design.register_all(cfg)
-    assert r2["registered"] == [] and r2["skipped"][0]["name"] == "Muaran" and "rejected" in r2["skipped"][0]["reason"]
+    err = next(x for x in r2["skipped"] if x["name"] == "Muaran")
+    assert r2["registered"] == [] and err["reason"] == "error" and "rejected" in err["detail"]
 
 
-def test_register_all_with_no_picks_is_empty(cfg):
-    assert design.register_all(cfg) == {"registered": [], "skipped": []}
+def test_register_all_with_no_picks_skips_everyone_by_category(cfg):
+    r = design.register_all(cfg)
+    assert r["registered"] == []
+    assert {(x["name"], x["reason"]) for x in r["skipped"]} == {("Muaran", "no_pick"), ("Pasqal", "real")}

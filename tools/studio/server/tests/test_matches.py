@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from conftest import put
+from conftest import put, write_wav
 from studio_server import matches, pools
 from studio_server.errors import ApiError
 from studio_server.jsonio import read_json
@@ -39,7 +39,7 @@ def test_effective_defaults_clean_accepted_flagged_undecided(pcfg):
 def test_page_groups_filters_and_counts(pcfg):
     with_flagged(pcfg)
     p = matches.page(pcfg)
-    assert p["total"] == 3 and p["counts"] == {"flagged": 1, "bank": 1, "nobank": 1, "undecided": 1}
+    assert p["total"] == 3 and {k: p["counts"][k] for k in ("flagged", "bank", "nobank", "undecided")} == {"flagged": 1, "bank": 1, "nobank": 1, "undecided": 1}
     assert [i["id"] for i in matches.page(pcfg, group="bank")["items"]] == ["C1|a"]
     assert [i["id"] for i in matches.page(pcfg, speaker="terv")["items"]] == ["C1|b"]
     assert [i["id"] for i in matches.page(pcfg, state="undecided")["items"]] == ["C1|w"]
@@ -90,3 +90,86 @@ def test_samples_come_from_all_conversation_lines_cut_at_600(pcfg):
     put(pcfg.data / "npc_profile/roster_35b_all.json", roster)
     a = next(r for r in matches.rows(pcfg) if r["id"] == "C1|a")
     assert a["samples"][0] == "x" * matches.SAMPLE_CHARS and "A named-speaker line." in a["samples"]
+
+
+def test_counts_total_accepted_rejected_reviewed_and_unreviewed_filter(pcfg):
+    with_flagged(pcfg)
+    c = matches.page(pcfg)["counts"]
+    assert (c["total"], c["accepted"], c["rejected"], c["reviewed"], c["unreviewed"], c["flagged_unreviewed"]) == (3, 0, 0, 0, 3, 1)
+    matches.save(pcfg, "C1|a", "accept")
+    matches.save(pcfg, "C1|w", "reject")
+    p = matches.page(pcfg)
+    c = p["counts"]
+    assert (c["accepted"], c["rejected"], c["reviewed"], c["unreviewed"], c["flagged_unreviewed"]) == (1, 1, 2, 1, 0)
+    assert [i["id"] for i in matches.page(pcfg, state="unreviewed")["items"]] == ["C1|b"]   # clean but never reviewed
+    assert {i["id"] for i in matches.page(pcfg, state="reviewed")["items"]} == {"C1|a", "C1|w"}
+    assert [i["id"] for i in matches.page(pcfg, state="reject")["items"]] == ["C1|w"]
+    assert matches.page(pcfg, state="unreviewed")["counts"]["total"] == 3     # counts ignore the filters
+    with pytest.raises(ApiError) as e:
+        matches.page(pcfg, state="bogus")
+    assert e.value.status == 400
+
+
+def test_suggest_and_speaker_sample(pcfg):
+    with_flagged(pcfg)
+    by = {r["id"]: r for r in matches.rows(pcfg)}
+    assert by["C1|w"]["suggest"] == "reject" and "ame tags Heinrix" in by["C1|w"]["suggest_reason"]
+    assert by["C1|a"]["suggest"] == "accept" and by["C1|a"]["suggest_reason"] == ""
+    assert by["C1|a"]["speaker_sample"] is None                       # Heinrix has a bank entry but no clip
+    prompts = json.loads((pcfg.data / "voices/prompts/prompts.json").read_text(encoding="utf-8"))
+    prompts["Heinrix"] = [{"rank": 1, "wav": "prompts/Heinrix/01.wav", "text": "t"}]
+    put(pcfg.data / "voices/prompts/prompts.json", prompts)
+    write_wav(pcfg.data / "voices/prompts/Heinrix/01.wav")
+    by = {r["id"]: r for r in matches.rows(pcfg)}
+    assert by["C1|a"]["speaker_sample"] == "data/voices/prompts/Heinrix/01.wav"
+    assert by["C1|b"]["speaker_sample"] is None                       # no bank
+
+
+def test_ambiguous_clean_bank_match_suggests_accept_with_reason():
+    row = {"warning": None, "ambiguous_with": ["Idira the Insidious"], "speaker": "Idira", "has_bank": True}
+    assert matches.suggestion(row) == ("accept", "Also matches Idira the Insidious. Accepting uses the Idira bank.")
+
+
+def test_rows_are_cached_until_an_input_changes(pcfg, monkeypatch):
+    calls = []
+    real = matches._build_rows
+    monkeypatch.setattr(matches, "_build_rows", lambda c: calls.append(1) or real(c))
+    a = matches.rows(pcfg)
+    assert matches.rows(pcfg) is a and len(calls) == 1
+    matches.save(pcfg, "C1|a", "reject")                                # a decision is not a row input
+    matches.page(pcfg)
+    assert len(calls) == 1
+    with_flagged(pcfg)
+    assert len(matches.rows(pcfg)) == 3 and len(calls) == 2
+
+
+def test_deferred_decisions_leave_pools_stale_until_flushed(pcfg):
+    pools.rebuild(pcfg, min_slot_lines=3)
+    assert matches.pools_stale(pcfg) is False
+    r = matches.save(pcfg, "C1|a", "reject", rebuild=False)
+    assert r == {"pools_rebuilt": False, "pools_stale": True}
+    assert matches.pools_stale(pcfg) and matches.page(pcfg)["pools_stale"] is True
+    assert pools.summary(pcfg)["destinations"]["speaker_bank"] == 2     # not rebuilt yet
+    matches.save(pcfg, "C1|b", "accept", rebuild=False)                  # a burst
+    out = matches.flush_pools(pcfg)
+    assert out["pools_rebuilt"] is True and not matches.pools_stale(pcfg)
+    assert pools.summary(pcfg)["destinations"]["speaker_bank"] == 0     # sees the rejection
+    assert matches.flush_pools(pcfg) == {"pools_rebuilt": False, "pools_stale": False}
+
+
+def test_debounced_flush_runs_once_after_a_burst(pcfg, monkeypatch):
+    monkeypatch.setattr(matches, "REBUILD_DEBOUNCE_S", 0.05)
+    pools.rebuild(pcfg, min_slot_lines=3)
+    matches.save(pcfg, "C1|a", "reject", rebuild=False)
+    matches.save(pcfg, "C1|b", "reject", rebuild=False)
+    import time
+    for _ in range(100):
+        if not matches.pools_stale(pcfg):
+            break
+        time.sleep(0.05)
+    assert not matches.pools_stale(pcfg) and pools.summary(pcfg)["destinations"]["speaker_bank"] == 0
+
+
+def test_deferred_save_without_built_pools_is_not_stale(pcfg):
+    assert matches.save(pcfg, "C1|a", "reject", rebuild=False) == {"pools_rebuilt": False}
+    assert matches.pools_stale(pcfg) is False

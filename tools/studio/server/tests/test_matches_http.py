@@ -38,3 +38,22 @@ def test_matches_flow_over_http(api, pcfg):
     assert api("GET", "/api/matches?state=reject")[1]["total"] == 1
     assert api("POST", "/api/matches/decision", {"id": "C1|a", "value": ""})[0] == 200
     assert api("GET", "/api/matches?state=reject")[1]["total"] == 0
+
+
+def test_deferred_decisions_are_flushed_by_the_route_or_by_the_next_pools_read(api, pcfg):
+    api("POST", "/api/pools/rebuild", {"min_slot_lines": 3})
+    assert api("GET", "/api/pools")[1]["destinations"]["speaker_bank"] == 2
+    st, r = api("POST", "/api/matches/decision", {"id": "C1|a", "value": "reject", "rebuild": False})
+    assert (st, r) == (200, {"pools_rebuilt": False, "pools_stale": True})
+    assert api("GET", "/api/matches")[1]["pools_stale"] is True
+    st, r = api("POST", "/api/matches/rebuild")
+    assert st == 200 and r["pools_rebuilt"] is True
+    assert api("GET", "/api/pools")[1]["destinations"]["speaker_bank"] == 0
+    assert api("POST", "/api/matches/rebuild")[1] == {"pools_rebuilt": False, "pools_stale": False}
+    # no explicit flush: the next pools read does it
+    api("POST", "/api/matches/decision", {"id": "C1|a", "value": "accept", "rebuild": False})
+    assert api("GET", "/api/pools")[1]["destinations"]["speaker_bank"] == 2
+    assert api("GET", "/api/matches")[1]["pools_stale"] is False
+    st, r = api("GET", "/api/matches?state=unreviewed")
+    assert st == 200 and r["counts"]["reviewed"] == 1 and r["counts"]["total"] == 2 and r["total"] == 1
+    assert api("GET", "/api/matches?state=bogus")[0] == 400

@@ -55,3 +55,22 @@ def test_slot_voice_is_reachable_through_the_speaker_routes(api):
     assert st == 200 and d["design"]["candidates"] == [] and d["summary"]["origin"] == "designed"
     lines = api("GET", "/api/speakers/pool_male_human/lines")[1]
     assert lines == []       # until plan.py reroutes the lines to pool_male_human, the speaker has no lines of its own
+
+
+def test_undo_unmerge_new_slot_and_filters_over_http(api):
+    api("POST", "/api/pools/rebuild", {"min_slot_lines": 3})
+    st, res = api("POST", "/api/pools/routes", {"guids": ["u5"], "to": "narrator"})
+    assert st == 200 and res["undo"]["previous"]["u5"]["to"] == "slot"
+    assert api("GET", "/api/pools")[1]["overrides"] == 1
+    assert api("POST", "/api/pools/routes/restore", {"previous": res["undo"]["previous"]}) == (200, {"changed": 1})
+    assert api("POST", "/api/pools/routes/restore", {"previous": {}})[0] == 400
+    st, slot = api("POST", "/api/pools/slots", {"name": "Herald", "gender": "female"})
+    assert st == 200 and slot["id"] == "custom_herald"
+    assert api("POST", "/api/pools/slots", {"name": "Herald", "gender": "female"})[0] == 409
+    assert api("POST", "/api/pools/slots/female_human/merge", {"into": "male_human"})[1]["changed"] == 3
+    st, back = api("POST", "/api/pools/slots/female_human/unmerge")
+    assert st == 200 and back["changed"] == 3
+    assert api("POST", "/api/pools/slots/female_human/unmerge")[0] == 404
+    page = api("GET", "/api/pools/routes?q=heinrix&bank=1&conf_lt=2&entry_name=hein")[1]
+    assert page["total"] == 2 and "wav" in page["items"][0] and page["items"][0]["entry_name"] == "Heinrix"
+    assert api("GET", "/api/pools/routes?conf_lt=x")[0] == 400

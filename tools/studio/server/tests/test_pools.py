@@ -99,7 +99,7 @@ def test_queue_groups_by_roster_entry_with_evidence_and_samples(pcfg):
 
 def test_override_by_entry_accepts_or_moves_and_clears_the_queue(pcfg):
     built(pcfg)
-    assert pools.override(pcfg, {"entry": " C2|q"}) == {"changed": 2}              # accept the current destination
+    assert pools.override(pcfg, {"entry": " C2|q"})["changed"] == 2              # accept the current destination
     assert pools.summary(pcfg)["queue_entries"] == 1 and state(pcfg)["routes"]["u13"]["source"] == "override"
     pools.override(pcfg, {"entry": " C2|q", "to": "slot", "slot": "female_human"})
     assert state(pcfg)["routes"]["u14"]["slot"] == "female_human"

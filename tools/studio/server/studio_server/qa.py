@@ -25,6 +25,13 @@ EXPORT = "export"
 SORTS = ("suspicious", "slowest", "fastest", "longest", "shortest", "random")
 VERDICTS = ("good", "bad")
 FX_CACHE_MAX = 64
+FLAG_INFO = {
+    "cap_hit": f"hit the {CAP_S[0]:.0f} to {CAP_S[1]:.0f} s length cap (the model ran away)",
+    "slow": f"below {SLOW_CPS:g} chars/s",
+    "fast": f"above {FAST_CPS:g} chars/s",
+    "short": f"shorter than {SHORT_S:g} s",
+    "very_long": f"longer than {VERY_LONG_S:g} s",
+}
 
 _CLIPS: dict[tuple, tuple[tuple, list[dict]]] = {}
 _JOBS: dict[tuple, dict] = {}
@@ -110,6 +117,7 @@ def _repo_rel(cfg: Config, p: Path) -> str:
 def _export_clips(cfg: Config, d: Path) -> list[dict]:
     index = read_json(d / "index.json", {})
     jobs = _jobs(cfg)
+    asr = _load_asr(d)            # export/asr.jsonl, when a Whisper pass has been merged in (none exists yet)
     out = []
     for guid, e in index.items():
         dur = _duration(d / e["wav"])
@@ -125,20 +133,26 @@ def _export_clips(cfg: Config, d: Path) -> list[dict]:
             "speaker": e["speaker"], "engine": e["engine"], "voice_source": e.get("voice_source", ""),
             "dur": round(dur, 2), "cps": round(len(text) / dur, 1) if dur else 0,
             "emotion": ann.get("emotion", ""), "instruct": ann.get("instruct", ""),
-            "ref_path": ref, "ref": Path(ref).stem if ref else "", "real": [], "old": None, "heard": "", "wer": None,
-            "flags": auto_flags(dur, len(text), e.get("flags", [])),
+            "ref_path": ref, "ref": Path(ref).stem if ref else "", "real": [], "old": None,
+            "heard": asr.get(guid, {}).get("heard", ""), "wer": asr.get(guid, {}).get("wer"),
+            "flags": auto_flags(dur, len(text), e.get("flags", [])) + asr.get(guid, {}).get("flags", []),
         })
     return out
 
 
-def _run_clips(cfg: Config, d: Path) -> list[dict]:
-    jobs = _jobs(cfg)
+def _load_asr(d: Path) -> dict[str, dict]:
     asr = {}
     if (d / "asr.jsonl").exists():
         for ln in open(d / "asr.jsonl", encoding="utf-8"):
             if ln.strip():
                 r = json.loads(ln)
                 asr[r["guid"]] = r
+    return asr
+
+
+def _run_clips(cfg: Config, d: Path) -> list[dict]:
+    jobs = _jobs(cfg)
+    asr = _load_asr(d)
     real = read_json(d / "real.json", {})
     out = []
     for ln in open(d / "manifest.jsonl", encoding="utf-8"):
@@ -171,7 +185,7 @@ def _run_clips(cfg: Config, d: Path) -> list[dict]:
 
 
 def _stamp(cfg: Config, d: Path, run: str) -> tuple:
-    names = ("index.json",) if run == EXPORT else ("manifest.jsonl", "asr.jsonl", "real.json")
+    names = ("index.json", "asr.jsonl") if run == EXPORT else ("manifest.jsonl", "asr.jsonl", "real.json")
     own = tuple((d / n).stat().st_mtime_ns if (d / n).exists() else 0 for n in names)
     return own + _jobs_stamp(cfg) if run == EXPORT else own       # export fields come from the jobs files too
 
@@ -200,7 +214,7 @@ def facets(cfg: Config, run: str = EXPORT) -> dict:
     cs = clips(cfg, run)
     uniq = lambda vals: sorted({v for v in vals if v})
     return {"speakers": uniq(c["speaker"] for c in cs), "refs": uniq(c["ref"] for c in cs),
-            "engines": uniq(c["engine"] for c in cs), "flags": uniq(f for c in cs for f in c["flags"])}
+            "engines": uniq(c["engine"] for c in cs), "flags": uniq(f for c in cs for f in c["flags"]), "flag_info": FLAG_INFO}
 
 
 def _verdicts_path(cfg: Config, run: str) -> Path:
@@ -228,8 +242,9 @@ def page(cfg: Config, run: str = EXPORT, *, speaker=None, ref=None, engine=None,
     if sort not in SORTS:
         raise ApiError(400, f"sort must be one of {SORTS}")
     cs, judged = clips(cfg, run), get_verdicts(cfg, run)
-    good = sum(1 for c in cs if judged.get(c["guid"], {}).get("verdict") == "good")
-    bad = sum(1 for c in cs if judged.get(c["guid"], {}).get("verdict") == "bad")
+    verdict_of = lambda c: judged.get(c["guid"], {}).get("verdict")
+    good = sum(1 for c in cs if verdict_of(c) == "good")
+    bad = sum(1 for c in cs if verdict_of(c) == "bad")
     by_ref: dict[str, dict] = {}
     for c in cs:
         if c["ref"]:
@@ -241,10 +256,8 @@ def page(cfg: Config, run: str = EXPORT, *, speaker=None, ref=None, engine=None,
     want = (q or "").lower()
     skip = set(exclude.split(",")) if isinstance(exclude, str) else set(exclude or ())    # clips the page already showed
 
-    def keep(c: dict) -> bool:
+    def match(c: dict) -> bool:
         v = judged.get(c["guid"], {}).get("verdict")
-        if c["guid"] in skip:
-            return False
         if speaker and c["speaker"] != speaker or ref and c["ref"] != ref or engine and c["engine"] != engine:
             return False
         if want and want not in c["text"].lower():
@@ -252,6 +265,11 @@ def page(cfg: Config, run: str = EXPORT, *, speaker=None, ref=None, engine=None,
         if flag and not (c["flags"] if flag == "any flag" else not c["flags"] if flag == "no flag" else flag in c["flags"]):
             return False
         return not verdict or (v is None if verdict == "unjudged" else v == verdict)
+
+    keep = lambda c: c["guid"] not in skip and match(c)
+    in_view = [c for c in cs if match(c)] if (speaker or ref or engine or want or flag or verdict) else cs
+    view_good = sum(1 for c in in_view if verdict_of(c) == "good")
+    view_bad = sum(1 for c in in_view if verdict_of(c) == "bad")
 
     if sort == "random":                 # shuffle everything, then filter: judging a clip must not reorder the rest
         ordered = sorted(cs, key=lambda c: c["guid"])
@@ -262,7 +280,10 @@ def page(cfg: Config, run: str = EXPORT, *, speaker=None, ref=None, engine=None,
     limit, offset = max(1, min(int(limit), MAX_PAGE)), max(0, int(offset))
     items = [{**c, "verdict": judged.get(c["guid"])} for c in shown[offset:offset + limit]]
     return {"total": len(shown), "offset": offset, "limit": limit, "items": items,
-            "stats": {"good": good, "bad": bad, "unjudged": len(cs) - good - bad, "by_ref": dict(sorted(by_ref.items()))}}
+            "stats": {"good": good, "bad": bad, "unjudged": len(cs) - good - bad, "total": len(cs), "judged": good + bad,
+                       "by_ref": dict(sorted(by_ref.items()))},
+            "view": {"good": view_good, "bad": view_bad, "unjudged": len(in_view) - view_good - view_bad,
+                     "total": len(in_view)}}
 
 
 def set_verdict(cfg: Config, run: str, body: dict) -> dict:

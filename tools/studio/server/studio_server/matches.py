@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from collections import defaultdict
 
 from . import pools
@@ -15,6 +16,10 @@ DEFAULT_LIMIT = 50
 MAX_PAGE = 200
 SAMPLE_CHARS = 600
 VALUES = ("", "accept", "reject")
+STATES = ("undecided", "unreviewed", "reviewed", "accept", "reject")
+REBUILD_DEBOUNCE_S = 3.0
+PROMPTS = "data/voices/prompts/prompts.json"
+JOBS = "data/render/jobs.jsonl"
 
 
 def decisions(cfg: Config) -> dict:
@@ -49,7 +54,46 @@ def _line_text(cfg: Config) -> dict[str, str]:
     return val
 
 
+_ROWS: dict = {}
+
+
+def _stamp(cfg: Config) -> tuple:
+    return tuple(p.stat().st_mtime_ns if p.exists() else 0
+                 for p in (cfg.root / pools.ROSTER, cfg.root / pools.CONVERSATIONS, cfg.root / PROMPTS, cfg.root / JOBS))
+
+
+def speaker_sample(cfg: Config, speaker: str) -> str | None:
+    """Repo path of the first prompt-bank clip of a banked speaker, so the match can be auditioned."""
+    for p in read_json(cfg.root / PROMPTS, {}).get(speaker) or []:
+        rel = f"data/voices/{p.get('wav', '')}"
+        if p.get("wav") and (cfg.root / rel).is_file():
+            return rel
+    return None
+
+
+def suggestion(row: dict) -> tuple[str, str]:
+    """accept/reject with a reason. A match warning means the text contradicts the game's gender tag on few lines:
+    reject. Everything else, including homonyms, accepts."""
+    if row["warning"]:
+        return "reject", str(row["warning"])[:1].upper() + str(row["warning"])[1:] + "."
+    if row["ambiguous_with"]:
+        also = ", ".join(row["ambiguous_with"])
+        return "accept", f"Also matches {also}." + (f" Accepting uses the {row['speaker']} bank." if row["has_bank"] else "")
+    return "accept", ""
+
+
 def rows(cfg: Config) -> list[dict]:
+    """Every match, cached until the roster, conversations, prompt bank or jobs file changes. Do not mutate the result."""
+    key, stamp = str(cfg.root), _stamp(cfg)
+    hit = _ROWS.get(key)
+    if hit and hit[0] == stamp:
+        return hit[1]
+    val = _build_rows(cfg)
+    _ROWS[key] = (stamp, val)
+    return val
+
+
+def _build_rows(cfg: Config) -> list[dict]:
     roster, known = pools._roster(cfg), pools._known(cfg)
     text = {j["guid"]: j["text"] for j in pools._unnamed_jobs(cfg)}
     text.update(_line_text(cfg))
@@ -74,33 +118,82 @@ def rows(cfg: Config) -> list[dict]:
                 "game_gender": m["game_gender"], "warning": m.get("warning"), "ambiguous_with": m.get("ambiguous_with"),
                 "flagged": bool(m.get("warning") or m.get("ambiguous_with")),
             })
+            out[-1]["suggest"], out[-1]["suggest_reason"] = suggestion(out[-1])
+            out[-1]["speaker_sample"] = speaker_sample(cfg, m["speaker"]) if m["has_bank"] else None
     out.sort(key=lambda r: (not r["flagged"], not r["has_bank"], r["speaker"], r["conversation"]))
     return out
 
 
 def page(cfg: Config, *, group=None, speaker=None, state=None, q=None, offset=0, limit=DEFAULT_LIMIT) -> dict:
+    if state and state not in STATES:
+        raise ApiError(400, f"state must be one of {STATES}")
     decided = decisions(cfg)
     everything = [{**r, "decision": decided.get(r["id"], ""), "effective": effective(r, decided)} for r in rows(cfg)]
-    counts = {"flagged": 0, "bank": 0, "nobank": 0, "undecided": 0}
+    counts = {"flagged": 0, "bank": 0, "nobank": 0, "undecided": 0, "total": len(everything), "accepted": 0,
+              "rejected": 0, "reviewed": 0, "unreviewed": 0, "flagged_unreviewed": 0}
     for r in everything:
         counts[group_of(r)] += 1
         counts["undecided"] += r["effective"] == ""
+        counts["accepted"] += r["decision"] == "accept"
+        counts["rejected"] += r["decision"] == "reject"
+        counts["flagged_unreviewed"] += r["flagged"] and not r["decision"]
+    counts["reviewed"] = counts["accepted"] + counts["rejected"]
+    counts["unreviewed"] = counts["total"] - counts["reviewed"]
     want = (q or "").lower()
     shown = []
     for r in everything:
         if group and group_of(r) != group or speaker and speaker.lower() not in r["speaker"].lower():
             continue
-        if state and (r["effective"] or "undecided") != ("undecided" if state == "undecided" else state):
+        if state == "unreviewed" and r["decision"] or state == "reviewed" and not r["decision"]:
+            continue
+        if state in ("undecided", "accept", "reject") and (r["effective"] or "undecided") != state:
             continue
         if want and want not in " ".join([r["name"] or "", r["label"] or "", r["speaker"], *r["samples"]]).lower():
             continue
         shown.append(r)
     limit = max(1, min(int(limit), MAX_PAGE))
     offset = max(0, int(offset))
-    return {"total": len(shown), "offset": offset, "limit": limit, "counts": counts, "items": shown[offset:offset + limit]}
+    return {"total": len(shown), "offset": offset, "limit": limit, "counts": counts, "items": shown[offset:offset + limit],
+            "pools_stale": pools_stale(cfg)}
 
 
-def save(cfg: Config, rid: str, value: str) -> dict:
+def pools_stale(cfg: Config) -> bool:
+    """True when a decision was saved after the pools were last built (a deferred rebuild is pending)."""
+    dec, built = cfg.root / pools.DECISIONS, pools.pools_path(cfg)
+    return dec.exists() and built.exists() and dec.stat().st_mtime_ns > built.stat().st_mtime_ns
+
+
+_TIMERS: dict = {}
+
+
+def flush_pools(cfg: Config) -> dict:
+    """Rebuild the pools if decisions changed since the last build. Cheap when nothing is pending."""
+    with STATE_LOCK:
+        if not pools_stale(cfg):
+            return {"pools_rebuilt": False, "pools_stale": False}
+        return {"pools_rebuilt": True, "pools_stale": False, "queue_entries": pools.rebuild(cfg)["queue_entries"]}
+
+
+def _schedule_flush(cfg: Config) -> None:
+    """Debounce: a burst of decisions rebuilds once, REBUILD_DEBOUNCE_S after the last one."""
+    def run():
+        try:
+            flush_pools(cfg)
+        except Exception:        # the temp repo may be gone, or a rebuild may fail; the next pools read retries
+            pass
+    key = str(cfg.root)
+    with STATE_LOCK:
+        old = _TIMERS.pop(key, None)
+        if old:
+            old.cancel()
+        t = _TIMERS[key] = threading.Timer(REBUILD_DEBOUNCE_S, run)
+        t.daemon = True
+        t.start()
+
+
+def save(cfg: Config, rid: str, value: str, rebuild: bool = True) -> dict:
+    """rebuild=True (default) rebuilds the pools now; False defers: the rebuild runs after a pause, on POST
+    /api/matches/rebuild, or before the next pools read, whichever comes first."""
     if value not in VALUES:
         raise ApiError(400, f"value must be one of {VALUES}")
     if rid not in {r["id"] for r in rows(cfg)}:
@@ -115,4 +208,7 @@ def save(cfg: Config, rid: str, value: str) -> dict:
         write_json_atomic(path, dict(sorted(d.items())))
     if not pools.pools_path(cfg).exists():
         return {"pools_rebuilt": False}
+    if not rebuild:
+        _schedule_flush(cfg)
+        return {"pools_rebuilt": False, "pools_stale": True}
     return {"pools_rebuilt": True, "queue_entries": pools.rebuild(cfg)["queue_entries"]}

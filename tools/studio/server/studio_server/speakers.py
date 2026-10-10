@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import wave
 from pathlib import Path
 
 from .config import Config
@@ -74,25 +75,62 @@ def _assign_slugs(cfg: Config, names: list[str]) -> dict[str, str]:
     return reg
 
 
+POOL_SLOT_ROLE = "pool slot"
+
+
+def _catalog(cfg: Config) -> dict:
+    return _cached(cfg.voices / "catalog.json", lambda p: {} if p is None else json.loads(p.read_text(encoding="utf-8")))
+
+
+def _first_clip(cfg: Config, name: str, prompts: dict) -> str | None:
+    """The clip a speaker row plays: rank-1 curated clip (as _clips resolves it), else the first catalog clip."""
+    catalog = _catalog(cfg)
+    curated = sorted(prompts.get(name) or [], key=lambda p: p.get("rank", 0))
+    if curated:
+        e = catalog.get(curated[0]["event"])
+        return "data/voices/" + (e["wav"] if e and e["speaker"] == name else curated[0]["wav"])
+    mine = sorted((e for e in catalog.values() if e["speaker"] == name), key=lambda e: e["event"])
+    return "data/voices/" + mine[0]["wav"] if mine else None
+
+
+def _design_fields(cfg: Config, name: str, m: dict, a: dict, prompts: dict) -> dict:
+    """Designed-speaker list fields: how far ranking has got, which candidate is picked, whether it is registered."""
+    cands = (a.get("cands") or {})
+    order = [c for c in a.get("order", []) if c in m["candidates"]]
+    shown = (a.get("pick") if a.get("pick") in m["candidates"] else None) or (order or m["candidates"] or [None])[0]
+    bank = prompts.get(name) or []
+    return {"kind": "slot" if m.get("role") == POOL_SLOT_ROLE or name.startswith("pool_") else "named",
+            "pick": a.get("pick") or None,
+            "ranked": sum(1 for c in m["candidates"] if "fit" in (cands.get(c) or {})),
+            "candidates": len(m["candidates"]),
+            "registered": bool(bank) and bank[0].get("event") == f"designed_{m['slug']}",
+            "sample": f"data/voice_design/clips/{m['slug']}/{shown}" if shown else None}
+
+
 def list_speakers(cfg: Config) -> list[dict]:
     audit = read_json(cfg.voice_design / "audit.json", {})
+    prompts = read_json(cfg.voices / "prompts/prompts.json", {})
     counts: dict[str, int] = {}
     for j in _jobs(cfg):
         counts[j["speaker"]] = counts.get(j["speaker"], 0) + 1
     designed = _designed(cfg)      # a name in the design manifest stays "designed" even after its pick is registered
-    entries = [(n, "designed") for n in designed] + [(n, "real") for n in _real_names(cfg) if n not in designed]
+    entries = [(n, "designed") for n in designed] + [(n, "real") for n in prompts if n not in designed]
     slugs = _assign_slugs(cfg, [n for n, _ in entries])
     out = []
     for name, origin in sorted(entries, key=lambda e: e[0].lower()):
         slug = slugs[name]
+        a = audit.get(name) or {}
         if (studio_dir(cfg, slug) / "profile.json").exists():
             status = "profile"
-        elif origin == "real" or (audit.get(name) or {}).get("pick"):
+        elif origin == "real" or a.get("pick"):
             status = "source"
         else:
             status = "needs_voice"
+        extra = (_design_fields(cfg, name, designed[name], a, prompts) if origin == "designed" else
+                 {"kind": "real", "pick": None, "ranked": 0, "candidates": 0, "registered": False,
+                  "sample": _first_clip(cfg, name, prompts)})
         out.append({"slug": slug, "name": name, "origin": origin, "line_count": counts.get(name, 0), "status": status,
-                    "has_pick": bool((audit.get(name) or {}).get("pick"))})
+                    "has_pick": bool(a.get("pick")), **extra})
     return out
 
 
@@ -155,6 +193,27 @@ def speaker_detail(cfg: Config, slug: str) -> dict:
             "profile": read_json(studio_dir(cfg, slug) / "profile.json", None)}
 
 
+_DURS: dict[Path, tuple[int, float | None]] = {}
+
+
+def wav_dur(path: Path) -> float | None:
+    """Seconds in a wav, read from its header and cached by modification time (None when unreadable or missing)."""
+    try:
+        mtime = path.stat().st_mtime_ns
+    except OSError:
+        return None
+    hit = _DURS.get(path)
+    if hit and hit[0] == mtime:
+        return hit[1]
+    try:
+        with wave.open(str(path)) as w:
+            dur = round(w.getnframes() / w.getframerate(), 2)
+    except (OSError, EOFError, wave.Error):
+        dur = None
+    _DURS[path] = (mtime, dur)
+    return dur
+
+
 def speaker_lines(cfg: Config, name: str) -> list[dict]:
     index = _export_index(cfg)
     out = []
@@ -165,5 +224,6 @@ def speaker_lines(cfg: Config, name: str) -> list[dict]:
         wav = index.get(j["guid"], {}).get("wav")
         out.append({"guid": j["guid"], "text": j["text"], "emotion": a.get("emotion"), "intensity": a.get("intensity"),
                     "pace": a.get("pace"), "instruct": a.get("instruct"),
-                    "baseline": f"data/render/export/{wav}" if wav else None})
+                    "baseline": f"data/render/export/{wav}" if wav else None,
+                    "dur": wav_dur(cfg.render / "export" / wav) if wav else None})
     return out

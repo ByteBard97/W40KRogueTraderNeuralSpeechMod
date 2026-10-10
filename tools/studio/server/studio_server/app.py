@@ -10,7 +10,7 @@ from urllib.parse import parse_qs, urlparse
 from .config import DEFAULT_BACKEND_URL, Config
 from .errors import ApiError
 from .model import ModelClient
-from . import qa
+from . import fx, qa
 from .routes import build_router
 
 DEFAULT_PORT = 8930
@@ -53,6 +53,15 @@ def make_server(cfg: Config, model: ModelClient, port: int = DEFAULT_PORT, web_d
                     return self._send(404, b"not found", "text/plain")
                 try:
                     return self._send(200, qa.compressed(p, args.get("fx", "")), "audio/wav")
+                except ApiError as e:
+                    return self._send(e.status, e.message.encode(), "text/plain")
+                except Exception as e:
+                    return self._send(500, f"{type(e).__name__}: {e}".encode(), "text/plain")
+            if u.path == "/fx-render":
+                args = {k: v[0] for k, v in parse_qs(u.query).items()}
+                names = [n for n in (args.get("presets") or args.get("preset") or "").split(fx.PREVIEW_SEP) if n]
+                try:
+                    return self._send(200, fx.render_preview(cfg, names, args.get("p", "")), "audio/wav")
                 except ApiError as e:
                     return self._send(e.status, e.message.encode(), "text/plain")
                 except Exception as e:

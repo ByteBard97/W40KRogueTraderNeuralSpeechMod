@@ -47,7 +47,7 @@ def test_full_designed_flow_over_http(api):
     assert st == 200 and take["seed"] == 7
     st, kept = api("POST", "/api/speakers/muaran/design/keep", {"file": take["file"], "seed": 7, "cfg": 2.0, "timesteps": 10})
     assert kept == {"cand": "c2.wav"}
-    assert api("POST", "/api/speakers/muaran/design/order", {"order": ["c2.wav", "c0.wav", "c1.wav"]})[0] == 200
+    assert api("POST", "/api/speakers/muaran/design/order", {"order": ["c2.wav", "c0.wav", "c1.wav"], "follow_rank": True})[0] == 200
     st, d = api("GET", "/api/speakers/muaran")
     assert d["design"]["pick"] == "c2.wav" and [c["id"] for c in d["design"]["candidates"]][0] == "c2.wav"
 
@@ -111,4 +111,5 @@ def test_model_down_is_503_for_live_calls(cfg, tmp_path):
 
 
 def test_register_all_over_http(api):
-    assert api("POST", "/api/speakers/register-all", {}) == (200, {"registered": [], "skipped": []})
+    st, r = api("POST", "/api/speakers/register-all", {})
+    assert st == 200 and r["registered"] == [] and {x["reason"] for x in r["skipped"]} == {"no_pick", "real"}

@@ -208,3 +208,32 @@ def test_exclude_is_applied_before_slicing_and_random_order_survives_judging(qcf
     unjudged = [i["guid"] for i in qa.page(qcfg, "export", sort="random", seed=3, verdict="unjudged", limit=200)["items"]]
     assert unjudged == [g for g in every if g != every[2]]
     assert qa.page(qcfg, "export", exclude=",".join(every))["items"] == []
+
+
+def test_view_stats_follow_the_filters_but_not_exclude_or_paging(qcfg):
+    qa.set_verdict(qcfg, "export", {"guid": "q1", "verdict": "good", "tags": [], "note": ""})
+    qa.set_verdict(qcfg, "export", {"guid": "q4", "verdict": "bad", "tags": [], "note": ""})
+    p = qa.page(qcfg, "export")
+    assert p["view"] == {"good": 1, "bad": 1, "unjudged": 4, "total": 6} and p["stats"]["total"] == 6 and p["stats"]["judged"] == 2
+    v = qa.page(qcfg, "export", speaker="Pasqal")["view"]
+    assert v == {"good": 1, "bad": 0, "unjudged": 4, "total": 5}
+    assert qa.page(qcfg, "export", speaker="Pasqal")["stats"]["bad"] == 1       # run-wide stats ignore the filter
+    assert qa.page(qcfg, "export", verdict="unjudged")["view"] == {"good": 0, "bad": 0, "unjudged": 4, "total": 4}
+    paged = qa.page(qcfg, "export", speaker="Pasqal", limit=1, exclude="q1,q2")
+    assert paged["view"] == v and paged["total"] == 3
+    assert qa.page(qcfg, "export", q="nothing matches this")["view"] == {"good": 0, "bad": 0, "unjudged": 0, "total": 0}
+
+
+def test_flag_info_explains_every_automatic_flag(qcfg):
+    info = qa.facets(qcfg, "export")["flag_info"]
+    assert set(info) >= {"cap_hit", "slow", "fast", "short", "very_long"} and "5" not in info["slow"] and "7" in info["slow"]
+    assert set(qa.facets(qcfg, "export")["flags"]) - {"render_flag"} <= set(info)
+
+
+def test_export_picks_up_an_asr_file_when_one_is_merged_in(qcfg):
+    c = next(c for c in qa.clips(qcfg, "export") if c["guid"] == "q1")
+    assert c["heard"] == "" and c["wer"] is None
+    (qcfg.render / "export/asr.jsonl").write_text(json.dumps({"guid": "q1", "heard": "ordinary line", "wer": 0.3, "flags": ["asr_warn"]}) + "\n", encoding="utf-8")
+    os.utime(qcfg.render / "export/asr.jsonl", (1, 1_900_000_001))
+    c = next(c for c in qa.clips(qcfg, "export") if c["guid"] == "q1")
+    assert c["heard"] == "ordinary line" and c["wer"] == 0.3 and "asr_warn" in c["flags"]
