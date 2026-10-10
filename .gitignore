@@ -62,4 +62,9 @@ docs/research/emotional-expressiveness-prompts.md
 /tools/fx_lab/vendor/
 /tools/studio/web/node_modules/
 /tools/studio/web/dist/
-docs/design/voice-studio-redesign/screens/
+
+# Screenshots are never committed (design references, Playwright output, ad-hoc captures)
+screens/
+screenshots/
+*_shot.png
+*-screenshot*.png
