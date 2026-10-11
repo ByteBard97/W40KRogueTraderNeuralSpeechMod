@@ -42,7 +42,7 @@ const create = (body: NewSlotBody) => pools.moveToNewVoice(props.entry, body)
     </div>
     <details v-if="entry.evidence.length">
       <summary class="muted small">Evidence ({{ entry.evidence.length }})</summary>
-      <p class="muted small ev">{{ entry.evidence.join(' · ') }}</p>
+      <ul class="ev" data-evidence><li v-for="(e, i) in entry.evidence" :key="i">{{ e }}</li></ul>
     </details>
     <div class="acts">
       <Btn variant="good" data-accept :disabled="!entry.entry" :kbd="current ? 'A' : undefined" @click="pools.accept(entry)">Accept {{ dest }}</Btn>
@@ -68,7 +68,8 @@ const create = (body: NewSlotBody) => pools.moveToNewVoice(props.entry, body)
 .sample { display: flex; gap: 10px; align-items: flex-start; }
 q { display: block; font-size: var(--fs-md); line-height: 1.45; color: var(--text); quotes: "\201C" "\201D"; padding-top: 4px; }
 summary { cursor: pointer; }
-.ev { margin: 4px 0 0; }
+.ev { margin: 4px 0 0; padding-left: 18px; color: var(--text-2); font-size: var(--fs-md); line-height: var(--lh-body); }
+.ev li + li { margin-top: 4px; }
 .acts { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
 .mv { min-width: 200px; }
 p { margin: 0; }

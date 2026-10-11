@@ -11,7 +11,6 @@ from .jsonio import STATE_LOCK, read_json, write_json_atomic
 from .pools_routing import entry_key, match
 
 SAMPLE_LINES = 3
-EVIDENCE_ITEMS = 3
 DEFAULT_LIMIT = 50
 MAX_PAGE = 200
 SAMPLE_CHARS = 600
@@ -111,7 +110,7 @@ def _build_rows(cfg: Config) -> list[dict]:
             out.append({
                 "id": entry_key(conv["conversation"], e["id"]), "conversation": conv["conversation"], "entry": e["id"],
                 "name": e.get("name"), "label": e.get("label"), "gender": e.get("gender"), "species": e.get("species"),
-                "role": e.get("role"), "evidence": (e.get("evidence") or [])[:EVIDENCE_ITEMS], "lines": len(keys),
+                "role": e.get("role"), "evidence": list(e.get("evidence") or []), "lines": len(keys),
                 "samples": [text.get(k, "")[:SAMPLE_CHARS] for k in keys[:SAMPLE_LINES]],
                 "gaps": [pairs[i + 1][1] - pairs[i][1] > 1 for i in range(min(len(pairs), SAMPLE_LINES) - 1)],
                 "speaker": m["speaker"], "has_bank": bool(m["has_bank"]), "speaker_lines": m["lines"],

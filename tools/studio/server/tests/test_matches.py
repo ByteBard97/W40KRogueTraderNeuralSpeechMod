@@ -29,6 +29,16 @@ def test_rows_group_order_and_fields(pcfg):
     assert by["C1|a"]["evidence"] == ["a said something"]
 
 
+def test_every_evidence_item_is_returned(pcfg):
+    with_flagged(pcfg)
+    path = pcfg.data / "npc_profile/roster_35b_all.json"
+    roster = json.loads(path.read_text(encoding="utf-8"))
+    ev = [f"clue {i}" for i in range(8)]
+    next(x for x in roster[0]["roster"] if x["id"] == "a")["evidence"] = ev
+    put(path, roster)
+    assert {r["id"]: r for r in matches.rows(pcfg)}["C1|a"]["evidence"] == ev
+
+
 def test_effective_defaults_clean_accepted_flagged_undecided(pcfg):
     with_flagged(pcfg)
     by = {r["id"]: r for r in matches.rows(pcfg)}

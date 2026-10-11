@@ -61,6 +61,11 @@ describe('QueuePanel', () => {
     expect(labels).toEqual(['Male human', 'Female human', 'Idira (game voice)', 'Narrator', 'New designed voice…'])
   })
 
+  it('lists every evidence item on its own line', async () => {
+    const { w } = await mountWith([entryOf('a', { evidence: ['one', 'two', 'three', 'four', 'five'] })])
+    expect(w.findAll('[data-evidence] li').map((l) => l.text())).toEqual(['one', 'two', 'three', 'four', 'five'])
+  })
+
   it('"New designed voice" opens the form, then creates the slot and moves the entry', async () => {
     const { w } = await mountWith()
     vi.mocked(api.poolCreateSlot).mockResolvedValue(slot('custom_boss', 'Boss', { custom: true }))

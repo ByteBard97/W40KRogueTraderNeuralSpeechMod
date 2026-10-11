@@ -56,7 +56,7 @@ const samples = computed(() => props.row.samples.map((text, i) => ({ text, gap: 
       <p v-if="!samples.length" class="muted sample">No sample text for this entry.</p>
       <details v-if="row.evidence.length">
         <summary class="muted">Evidence</summary>
-        <div class="muted evidence">{{ row.evidence.join('; ') }}</div>
+        <ul class="evidence"><li v-for="(e, i) in row.evidence" :key="i">{{ e }}</li></ul>
       </details>
     </div>
 
@@ -97,7 +97,8 @@ const samples = computed(() => props.row.samples.map((text, i) => ({ text, gap: 
 .sample { font-size: 15px; line-height: 1.55; padding: 10px 0; margin: 0; border-top: 1px solid var(--line); }
 .gap { font-size: var(--fs-sm); padding-top: var(--s-2); }
 summary { cursor: pointer; font-size: var(--fs-sm); padding-top: 6px; }
-.evidence { font-size: 13px; padding-top: var(--s-1); }
+.evidence { font-size: var(--fs-md); color: var(--text-2); margin: 0; padding: var(--s-1) 0 0 18px; }
+.evidence li + li { margin-top: 4px; }
 .judge { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); margin-top: var(--s-1); }
 .big { min-height: var(--hit-xl); font-size: 17px; font-weight: 600; border-width: 1.5px; border-radius: var(--r-lg); }
 .big.v-good { background: var(--good-tint); }

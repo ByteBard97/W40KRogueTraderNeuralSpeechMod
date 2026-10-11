@@ -226,7 +226,7 @@ def queue(cfg: Config) -> list[dict]:
                                       "name": x.get("name"), "role": x.get("role"), "attr": r.get("attr"), "reasons": [], "lines": 0,
                                       "samples": [], "sample_items": [],
                                       "to": r["to"], "slot": r.get("slot"), "speaker": r.get("speaker"),
-                                      "evidence": (x.get("evidence") or [])[:QUEUE_SAMPLES]})
+                                      "evidence": list(x.get("evidence") or [])})
         grp["lines"] += 1
         grp["reasons"] = sorted(set(grp["reasons"]) | set(r["reasons"]))
         if len(grp["samples"]) < QUEUE_SAMPLES:

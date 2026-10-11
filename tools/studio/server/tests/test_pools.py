@@ -96,6 +96,16 @@ def test_routes_page_filters_pages_and_caps_the_limit(pcfg):
     assert pools.routes_page(pcfg, limit=10_000)["limit"] == pools.MAX_PAGE
 
 
+def test_queue_returns_every_evidence_item(pcfg):
+    path = pcfg.data / "npc_profile/roster_35b_all.json"
+    roster = json.loads(path.read_text(encoding="utf-8"))
+    ev = [f"clue {i}" for i in range(8)]
+    next(x for c in roster for x in c["roster"] if x["id"] == "q")["evidence"] = ev
+    put(path, roster)
+    built(pcfg)
+    assert {g["key"]: g for g in pools.queue(pcfg)}[" C2|q"]["evidence"] == ev
+
+
 def test_queue_groups_by_roster_entry_with_evidence_and_samples(pcfg):
     built(pcfg)
     q = pools.queue(pcfg)
