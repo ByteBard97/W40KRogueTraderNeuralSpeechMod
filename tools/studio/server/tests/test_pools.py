@@ -29,8 +29,16 @@ def test_rebuild_routes_every_unnamed_line_and_counts_destinations(pcfg):
     assert s["total"] == 15
     assert s["destinations"] == {"narrator": 1, "speaker_bank": 2, "speaker_nobank": 1, "slot": 11}
     ids = {x["id"]: x["lines"] for x in s["slots"]}
-    assert ids == {"male_human": 8, "female_human": 3}     # u13-u15 (unknown gender, no entry) join the male majority
+    assert ids == {"male_human": 8, "female_human": 3, "female_machine": 0}     # u13-u15 (unknown gender, no entry) join the male majority
     assert s["queue_lines"] == 3 and s["queue_entries"] == 2
+
+
+def test_a_female_machine_slot_always_exists_even_with_no_lines(pcfg):
+    s = built(pcfg)
+    fm = next(x for x in s["slots"] if x["id"] == "female_machine")
+    assert fm["lines"] == 0 and fm["name"] == "Female machine" and fm["gender"] == "female" and fm["species"] == "machine"
+    manifest = read_json(pcfg.voice_design / "design_manifest.json", {})
+    assert manifest["pool_female_machine"]["gender"] == "Female" and "cyborg" in manifest["pool_female_machine"]["description"].lower()
 
 
 def test_rebuild_registers_each_slot_as_a_designed_speaker_once(pcfg):
@@ -39,7 +47,7 @@ def test_rebuild_registers_each_slot_as_a_designed_speaker_once(pcfg):
     manifest = read_json(pcfg.voice_design / "design_manifest.json", {})
     assert manifest["pool_male_human"]["slug"] == "pool_male_human" and manifest["pool_male_human"]["candidates"] == []
     assert manifest["pool_male_human"]["description"] and manifest["pool_male_human"]["text"] == pools.SAMPLE_TEXT
-    assert "Muaran" in manifest and len([k for k in manifest if k.startswith("pool_")]) == 2
+    assert "Muaran" in manifest and len([k for k in manifest if k.startswith("pool_")]) == 3
     from studio_server import speakers
     names = {s["name"]: s for s in speakers.list_speakers(pcfg)}
     assert names["pool_male_human"]["origin"] == "designed"

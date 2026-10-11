@@ -10,6 +10,15 @@ OTHER_ID = "other"
 DEFAULT_GENDER = "male"
 
 
+# Voices that always exist, even when too few lines fit them to form a slot on their own.
+STANDARD_SLOTS: dict[str, dict] = {
+    "female_machine": {"id": "female_machine", "name": "Female machine", "speaker_key": SLOT_PREFIX + "female_machine",
+                       "gender": "female", "species": "machine", "age": None, "lines": 0,
+                       "description": "A woman, cyborg: a feminine voice with a modulated, vox-caster or mechanical timbre, "
+                                      "British English accent, clear and measured."},
+}
+
+
 def _slot_record(slot_id: str, gender: str, species: str, age: str | None, lines: int) -> dict:
     if slot_id == OTHER_ID:
         name = "Other (mixed)"

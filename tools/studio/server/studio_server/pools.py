@@ -11,7 +11,7 @@ from .config import Config
 from .errors import ApiError
 from .jsonio import STATE_LOCK, read_json, write_json_atomic
 from .pools_routing import DEFAULT_THRESHOLD, build_known, route_lines
-from .pools_slots import MIN_SLOT_LINES, SLOT_PREFIX, assign_slots
+from .pools_slots import MIN_SLOT_LINES, SLOT_PREFIX, STANDARD_SLOTS, assign_slots
 
 ROSTER = "data/npc_profile/roster_35b_all.json"
 CONVERSATIONS = "data/conversations.enGB.json"
@@ -101,6 +101,8 @@ def rebuild(cfg: Config, threshold: float | None = None, min_slot_lines: int | N
         prev_slots = prev.get("slots") or {}
         custom = dict(prev.get("custom_slots") or {})
         for sid, rec in custom.items():                            # hand-made slots exist whether or not any line routes to them
+            slots.setdefault(sid, dict(rec))
+        for sid, rec in STANDARD_SLOTS.items():
             slots.setdefault(sid, dict(rec))
         for sid, s in slots.items():
             if prev_slots.get(sid, {}).get("renamed"):
