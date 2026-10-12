@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Abelard TTS - Vote</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #12121a; --panel: #1c1c28; --panel-border: #33334a;
+    --text: #e8e8f0; --muted: #8a8aa0; --accent: #c9a227;
+    --neutral-btn: #2d303e;
+    --rank1: #3c7a54; --rank2: #3a6f8f; --rank3: #7a5b3c;
+    --tie-selected: #5b5f73;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Segoe UI, sans-serif;
+    max-width: 780px; margin: 40px auto; padding: 0 16px 60px;
+    background: var(--bg); color: var(--text);
+  }
+  h1 { font-size: 1.3em; }
+  p { color: var(--muted); line-height: 1.5; }
+  #tally {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 18px; font-size: 0.9em;
+  }
+  #tally h2 { font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 8px; }
+  #tally-rows { display: flex; flex-direction: column; gap: 4px; }
+  .tally-row { display: flex; align-items: center; gap: 10px; }
+  .tally-row .engine { width: 150px; flex-shrink: 0; }
+  .tally-row .bar-track { flex: 1; background: var(--bg); border-radius: 4px; overflow: hidden; height: 10px; }
+  .tally-row .bar-fill { height: 100%; background: var(--accent); }
+  .tally-row .stats { width: 150px; flex-shrink: 0; text-align: right; color: var(--muted); font-size: 0.85em; }
+  #tally-meta { margin-top: 8px; color: var(--muted); font-size: 0.85em; }
+  #nav-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  #nav-row button {
+    background: var(--neutral-btn); color: var(--text); border: 1px solid var(--panel-border);
+    border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 0.9em;
+  }
+  #nav-row button:hover:not(:disabled) { border-color: var(--accent); }
+  #nav-row button:disabled { opacity: 0.4; cursor: default; }
+  #progress { color: var(--muted); }
+  #text {
+    font-size: 1.15em; line-height: 1.5; margin: 6px 0 6px; padding: 14px;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
+  }
+  #direction {
+    font-size: 0.9em; line-height: 1.4; margin: 0 0 20px; padding: 8px 14px;
+    background: transparent; border-left: 3px solid var(--accent); color: var(--muted);
+    font-style: italic;
+  }
+  #direction .tags { font-style: normal; color: var(--accent); margin-right: 8px; }
+  #reference {
+    margin: 4px 0 16px; padding: 10px 14px;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
+  }
+  #reference h4 { margin: 0 0 6px; font-size: 0.85em; color: var(--accent); font-weight: 600; }
+  audio { filter: invert(88%) hue-rotate(180deg); width: 100%; }
+  .ref-clip audio { display: block; }
+  .ref-clip .ref-text { font-size: 0.85em; color: var(--muted); font-style: italic; margin-top: 8px; }
+  #rank-hint { font-size: 0.85em; color: var(--muted); margin-bottom: 10px; }
+  .clip-card {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 14px;
+  }
+  .clip-instruct {
+    font-size: 0.8em; color: var(--muted); font-style: italic; margin: 2px 0 6px;
+  }
+  .clip-card.ranked-1 { border-color: var(--rank1); }
+  .clip-card.ranked-2 { border-color: var(--rank2); }
+  .clip-card.ranked-3 { border-color: var(--rank3); }
+  .rank-badge {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-weight: bold;
+    background: var(--neutral-btn); border: 2px solid var(--panel-border); color: var(--text);
+    font-size: 1.1em;
+  }
+  .rank-badge.ranked-1 { background: var(--rank1); border-color: var(--rank1); }
+  .rank-badge.ranked-2 { background: var(--rank2); border-color: var(--rank2); }
+  .rank-badge.ranked-3 { background: var(--rank3); border-color: var(--rank3); }
+  .rank-badge.disabled { opacity: 0.35; cursor: default; }
+  .clip-body { flex: 1; min-width: 0; }
+  .clip-label { font-size: 0.9em; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .clip-body audio { width: 100%; }
+  .errors { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: 0.85em; color: var(--muted); }
+  .errors label { display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; }
+  .other-note { margin-top: 6px; }
+  .other-note input {
+    width: 90%; font-size: 0.85em; padding: 5px 7px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--panel-border); border-radius: 4px;
+  }
+  #action-row { display: flex; gap: 10px; margin-top: 4px; }
+  #action-row button {
+    font-size: 1em; padding: 10px 18px; cursor: pointer;
+    background: var(--neutral-btn); color: var(--text); border: 1px solid var(--panel-border); border-radius: 6px;
+  }
+  #tie.selected { background: var(--tie-selected); border-color: var(--tie-selected); }
+  #submit-btn { background: var(--accent); color: #17140a; border-color: var(--accent); font-weight: 600; }
+  #submit-btn:disabled { opacity: 0.4; cursor: default; background: var(--neutral-btn); color: var(--text); }
+  #done { display: none; }
+  #reset { margin-top: 24px; font-size: 0.85em; color: var(--muted); cursor: pointer; text-decoration: underline; }
+  #export { margin-top: 16px; font-size: 0.9em; }
+  #export a { color: var(--accent); }
+</style>
+</head>
+<body>
+<h1>Abelard TTS - Vote</h1>
+<p>For each line, listen to the reference clip (the real voice actor) and all the engine clips.
+Click the number circle on your favorites in order - first click is your #1 pick, next is #2,
+then #3 (click a picked circle again to undo it). Voting auto-submits once you've picked 3, or
+click "Done" to submit with fewer. While you listen, you can check off any errors you hear in
+each clip.</p>
+
+<div id="tally">
+  <h2>Standings so far</h2>
+  <div id="tally-rows"></div>
+  <div id="tally-meta"></div>
+</div>
+
+<div id="test">
+  <div id="nav-row">
+    <button id="prev-btn" onclick="goPrev()">&#9664; Prev</button>
+    <button id="next-btn" onclick="goNext()">Next &#9654;</button>
+    <div id="progress"></div>
+  </div>
+  <div id="reference">
+    <h4 id="reference-note">Reference clip used for this line</h4>
+    <div id="reference-clips"></div>
+  </div>
+  <div id="text"></div>
+  <div id="direction"></div>
+  <div id="rank-hint"></div>
+  <div id="clips"></div>
+  <div id="action-row">
+    <button id="tie" onclick="voteTie()">Tie / can't pick</button>
+    <button id="submit-btn" onclick="submitPicks()" disabled>Done (submit picks)</button>
+  </div>
+</div>
+<div id="done"><h2>All done - thank you!</h2><p>Download the results below.</p></div>
+<div id="export"><a href="/export" download="abelard_votes.json">Download results (JSON)</a></div>
+<div id="reset" onclick="jumpToStart()">Jump back to line 1</div>
+
+<script>
+let items = [];
+let i = 0;
+let rankOrder = [];  // clip indices, best to worst, in click order (max 3)
+const STORAGE_KEY = "abelard_vote_progress_v1";
+const ERROR_TAGS = [
+  ["mispronunciation", "Mispronunciation"],
+  ["wrong_words", "Wrong/missing words"],
+  ["garbled", "Garbled/unintelligible"],
+  ["wrong_emotion", "Wrong emotion/tone"],
+  ["voice_mismatch", "Doesn't match reference voice"],
+  ["artifact", "Audio glitch (click/pop/static)"],
+];
+
+async function load() {
+  const res = await fetch("/items");
+  const data = await res.json();
+  items = data.items;
+  const saved = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+  i = Math.min(Math.max(saved, 0), Math.max(items.length - 1, 0));
+  render();
+  loadTally();
+}
+
+async function loadTally() {
+  const res = await fetch("/tally");
+  const data = await res.json();
+  const maxPts = Math.max(1, ...data.standings.map(s => s.points));
+  const rows = document.getElementById("tally-rows");
+  rows.innerHTML = "";
+  data.standings.forEach(s => {
+    const row = document.createElement("div");
+    row.className = "tally-row";
+    row.innerHTML = `
+      <div class="engine">${s.engine}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(s.points / maxPts) * 100}%"></div></div>
+      <div class="stats">${s.points} pts &middot; ${s.first_place} firsts</div>
+    `;
+    rows.appendChild(row);
+  });
+  document.getElementById("tally-meta").textContent =
+    `${data.n_votes} lines voted (${data.ties} ties)`;
+}
+
+function render() {
+  if (items.length === 0 || i >= items.length) {
+    document.getElementById("test").style.display = "none";
+    document.getElementById("done").style.display = "block";
+    return;
+  }
+  document.getElementById("test").style.display = "block";
+  document.getElementById("done").style.display = "none";
+
+  const item = items[i];
+  const saved = item.saved || null;
+
+  if (saved && saved.picks) {
+    rankOrder = saved.picks.map(engine => item.clips.findIndex(c => c.engine === engine));
+  } else {
+    rankOrder = [];
+  }
+
+  document.getElementById("progress").textContent =
+    `Line ${i + 1} of ${items.length}${saved ? "  (voted)" : ""}`;
+
+  const refClips = document.getElementById("reference-clips");
+  refClips.innerHTML = "";
+  const row = document.createElement("div");
+  row.className = "ref-clip";
+  const audioEl = document.createElement("audio");
+  audioEl.controls = true;
+  audioEl.src = item.reference.url;
+  const textEl = document.createElement("span");
+  textEl.className = "ref-text";
+  textEl.textContent = `"${item.reference.text}" (${item.reference.match_note})`;
+  row.appendChild(audioEl);
+  row.appendChild(textEl);
+  refClips.appendChild(row);
+
+  document.getElementById("text").textContent = `"${item.text}"`;
+
+  const directionEl = document.getElementById("direction");
+  const d = item.direction;
+  directionEl.innerHTML = "";
+  if (d && d.instruct) {
+    const tags = [d.emotion, d.intensity != null ? `intensity ${d.intensity}` : null, ...(d.nonverbal || [])]
+      .filter(Boolean).join(" · ");
+    if (tags) {
+      const tagsEl = document.createElement("span");
+      tagsEl.className = "tags";
+      tagsEl.textContent = `[${tags}]`;
+      directionEl.appendChild(tagsEl);
+    }
+    directionEl.appendChild(document.createTextNode(d.instruct));
+    directionEl.style.display = "block";
+  } else {
+    directionEl.style.display = "none";
+  }
+
+  document.getElementById("rank-hint").textContent =
+    `Click your top pick(s), best first (up to 3). ${item.clips.length} clips available.`;
+  document.getElementById("prev-btn").disabled = i === 0;
+  document.getElementById("next-btn").disabled = i === items.length - 1;
+
+  const tieBtn = document.getElementById("tie");
+  tieBtn.classList.toggle("selected", !!(saved && saved.tie));
+
+  const savedErrorsByEngine = {};
+  if (saved) {
+    for (const entry of saved.clip_errors || []) savedErrorsByEngine[entry.engine] = entry;
+  }
+
+  const container = document.getElementById("clips");
+  container.innerHTML = "";
+  item.clips.forEach((clip, idx) => {
+    const savedEntry = savedErrorsByEngine[clip.engine];
+    const card = document.createElement("div");
+    card.className = "clip-card";
+    card.id = `clip-card-${idx}`;
+
+    const badge = document.createElement("div");
+    badge.className = "rank-badge";
+    badge.id = `rank-badge-${idx}`;
+    badge.onclick = () => toggleRank(idx);
+
+    const body = document.createElement("div");
+    body.className = "clip-body";
+    const labelEl = document.createElement("div");
+    labelEl.className = "clip-label";
+    labelEl.textContent = clip.engine;
+    body.appendChild(labelEl);
+    if (clip.instruct) {
+      const instructEl = document.createElement("div");
+      instructEl.className = "clip-instruct";
+      instructEl.textContent = `instruct: "${clip.instruct}"`;
+      body.appendChild(instructEl);
+    }
+    const clipAudio = document.createElement("audio");
+    clipAudio.controls = true;
+    clipAudio.src = clip.url;
+    body.appendChild(clipAudio);
+
+    const errorsRow = document.createElement("div");
+    errorsRow.className = "errors";
+    ERROR_TAGS.forEach(([key, tagLabel]) => {
+      const cbLabel = document.createElement("label");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.dataset.clipIdx = idx;
+      cb.dataset.errorKey = key;
+      cb.checked = !!(savedEntry && savedEntry.tags.includes(key));
+      cbLabel.appendChild(cb);
+      cbLabel.appendChild(document.createTextNode(tagLabel));
+      errorsRow.appendChild(cbLabel);
+    });
+    const otherLabel = document.createElement("label");
+    const otherCb = document.createElement("input");
+    otherCb.type = "checkbox";
+    otherCb.dataset.clipIdx = idx;
+    otherCb.dataset.errorKey = "other";
+    otherCb.checked = !!(savedEntry && savedEntry.tags.includes("other"));
+    otherLabel.appendChild(otherCb);
+    otherLabel.appendChild(document.createTextNode("Other"));
+    errorsRow.appendChild(otherLabel);
+    body.appendChild(errorsRow);
+
+    const noteRow = document.createElement("div");
+    noteRow.className = "other-note";
+    noteRow.style.display = otherCb.checked ? "block" : "none";
+    const noteInput = document.createElement("input");
+    noteInput.type = "text";
+    noteInput.id = `other-note-${idx}`;
+    noteInput.placeholder = "describe the error";
+    noteInput.value = (savedEntry && savedEntry.note) || "";
+    noteRow.appendChild(noteInput);
+    body.appendChild(noteRow);
+    otherCb.onchange = () => { noteRow.style.display = otherCb.checked ? "block" : "none"; };
+
+    card.appendChild(badge);
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+
+  renderRankBadges();
+}
+
+function renderRankBadges() {
+  const item = items[i];
+  item.clips.forEach((clip, idx) => {
+    const badge = document.getElementById(`rank-badge-${idx}`);
+    const card = document.getElementById(`clip-card-${idx}`);
+    badge.className = "rank-badge";
+    card.className = "clip-card";
+    const pos = rankOrder.indexOf(idx);
+    if (pos === -1) {
+      badge.textContent = "?";
+      badge.classList.toggle("disabled", rankOrder.length >= 3);
+    } else {
+      const rankClass = `ranked-${pos + 1}`;
+      badge.textContent = `#${pos + 1}`;
+      badge.title = `${rankOrder.length - pos} pts`;
+      badge.classList.add(rankClass);
+      card.classList.add(rankClass);
+    }
+  });
+  document.getElementById("submit-btn").disabled = rankOrder.length === 0;
+}
+
+function toggleRank(idx) {
+  const pos = rankOrder.indexOf(idx);
+  if (pos === -1) {
+    if (rankOrder.length >= 3) return;  // top 3 only
+    rankOrder.push(idx);
+  } else {
+    rankOrder.splice(pos, 1);
+  }
+  renderRankBadges();
+  document.getElementById("tie").classList.remove("selected");
+  if (rankOrder.length === 3) {
+    submitPicks();
+  }
+}
+
+function collectClipErrors(item) {
+  return item.clips.map((clip, idx) => {
+    const checked = Array.from(
+      document.querySelectorAll(`input[type=checkbox][data-clip-idx="${idx}"]:checked`)
+    ).map(cb => cb.dataset.errorKey);
+    const noteInput = document.getElementById(`other-note-${idx}`);
+    const note = checked.includes("other") && noteInput ? noteInput.value.trim() : "";
+    return { engine: clip.engine, tags: checked, note };
+  });
+}
+
+async function submitVote(vote) {
+  const item = items[i];
+  item.saved = vote;
+  await fetch("/vote", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(vote),
+  });
+  loadTally();
+  i = i + 1;
+  localStorage.setItem(STORAGE_KEY, String(Math.min(i, items.length - 1)));
+  render();
+}
+
+function submitPicks() {
+  if (rankOrder.length === 0) return;
+  const item = items[i];
+  const picks = rankOrder.map(idx => item.clips[idx].engine);
+  submitVote({
+    id: item.id, order: item.clips.map(c => c.engine),
+    picks, tie: false, clip_errors: collectClipErrors(item),
+  });
+}
+
+function voteTie() {
+  const item = items[i];
+  submitVote({
+    id: item.id, order: item.clips.map(c => c.engine),
+    picks: null, tie: true, clip_errors: collectClipErrors(item),
+  });
+}
+
+function goNext() {
+  i = Math.min(i + 1, items.length - 1);
+  localStorage.setItem(STORAGE_KEY, String(i));
+  render();
+}
+
+function goPrev() {
+  i = Math.max(i - 1, 0);
+  localStorage.setItem(STORAGE_KEY, String(i));
+  render();
+}
+
+function jumpToStart() {
+  i = 0;
+  localStorage.setItem(STORAGE_KEY, "0");
+  render();
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,701 @@
+{
+ "_note": "Starting points, not tuned by ear. Keys under params are the control shortnames (see the page: hover a knob label). Anything not listed stays at its default. 'tag' is the FX category from tools/npc_profile/roster.py. At most two tags are stacked per line there; stacking here means loading one then adjusting, or a combo entry.",
+ "scenarios": [
+  {
+   "name": "Clean",
+   "tag": "none",
+   "desc": "No processing.",
+   "params": {}
+  },
+  {
+   "name": "Machine: servitor",
+   "tag": "machine",
+   "desc": "Thin, crushed, slow buzz: a lobotomised drone. Mix below 1 keeps the words readable.",
+   "params": {
+    "Mix_0_raw_1_processed": 0.8,
+    "Highpass_Hz_0_off": 150,
+    "Lowpass_Hz_0_off": 3500,
+    "Crush_bits_16_off": 8,
+    "Crush_hold_samples": 3,
+    "Ring_Hz": 35,
+    "Ring_mix": 0.7
+   }
+  },
+  {
+   "name": "Machine: cogitator / tech-priest",
+   "tag": "machine",
+   "desc": "Light metallic ring plus a short echo: a human voice with machine in it.",
+   "params": {
+    "Lowpass_Hz_0_off": 6000,
+    "Drive": 0.2,
+    "Ring_Hz": 70,
+    "Ring_mix": 0.35,
+    "Echo_ms": 35,
+    "Echo_feedback": 0.3,
+    "Echo_mix": 0.3
+   }
+  },
+  {
+   "name": "Machine: machine spirit",
+   "tag": "machine",
+   "desc": "Higher ring rate and a tight ringing echo: an inhuman presence in the machine.",
+   "params": {
+    "Lowpass_Hz_0_off": 7000,
+    "Ring_Hz": 110,
+    "Ring_mix": 0.5,
+    "Echo_ms": 18,
+    "Echo_feedback": 0.55,
+    "Echo_mix": 0.5
+   }
+  },
+  {
+   "name": "Vox channel: vox-caster",
+   "tag": "vox_channel",
+   "desc": "Band-limited, driven, slightly crushed: a vox transmission.",
+   "params": {
+    "Highpass_Hz_0_off": 400,
+    "Lowpass_Hz_0_off": 3200,
+    "Drive": 0.35,
+    "Crush_bits_16_off": 12
+   }
+  },
+  {
+   "name": "Vox channel: ship intercom",
+   "tag": "vox_channel",
+   "desc": "Narrow and crunchy, a little tremolo for a dropping signal.",
+   "params": {
+    "Highpass_Hz_0_off": 500,
+    "Lowpass_Hz_0_off": 2800,
+    "Drive": 0.2,
+    "Crush_bits_16_off": 10,
+    "Crush_hold_samples": 2,
+    "Tremolo_Hz": 9,
+    "Tremolo_depth": 0.1
+   }
+  },
+  {
+   "name": "Helmet: sealed suit",
+   "tag": "helmet",
+   "desc": "Boxy mid-range, a little bass build-up, a tiny resonant echo like a small shell.",
+   "params": {
+    "Highpass_Hz_0_off": 200,
+    "Lowpass_Hz_0_off": 5000,
+    "Low_shelf_dB_200_Hz": 3,
+    "Drive": 0.1,
+    "Echo_ms": 7,
+    "Echo_feedback": 0.35,
+    "Echo_mix": 0.3,
+    "Reverb_size": 0.2,
+    "Reverb_damping": 0.7,
+    "Reverb_mix": 0.12
+   }
+  },
+  {
+   "name": "Helmet + vox (astartes over comms)",
+   "tag": "helmet+vox_channel",
+   "desc": "The helmet box then a narrower, driven channel on top.",
+   "params": {
+    "Highpass_Hz_0_off": 350,
+    "Lowpass_Hz_0_off": 3800,
+    "Low_shelf_dB_200_Hz": 2,
+    "Drive": 0.3,
+    "Crush_bits_16_off": 12,
+    "Echo_ms": 7,
+    "Echo_feedback": 0.3,
+    "Echo_mix": 0.25,
+    "Output_dB": -2
+   }
+  },
+  {
+   "name": "Ethereal: ghost / psyker",
+   "tag": "ethereal",
+   "desc": "Long soft reverb, faint waver, a slow echo. The true 'rises before the word' swell is the offline reverse reverb, not in this page.",
+   "params": {
+    "Highpass_Hz_0_off": 150,
+    "Tremolo_Hz": 5,
+    "Tremolo_depth": 0.15,
+    "Echo_ms": 140,
+    "Echo_feedback": 0.4,
+    "Echo_mix": 0.25,
+    "Reverb_size": 0.88,
+    "Reverb_damping": 0.4,
+    "Reverb_mix": 0.5,
+    "Output_dB": -2.5
+   }
+  },
+  {
+   "name": "Monstrous: daemon / huge creature",
+   "tag": "monstrous",
+   "desc": "Pitched down, heavy lows, driven, a touch of ring and small-room reverb. Mix stays 1 because pitch shifting delays the wet path.",
+   "params": {
+    "Pitch_semitones": -5,
+    "Low_shelf_dB_200_Hz": 6,
+    "Lowpass_Hz_0_off": 5500,
+    "Drive": 0.4,
+    "Ring_Hz": 40,
+    "Ring_mix": 0.15,
+    "Reverb_size": 0.35,
+    "Reverb_damping": 0.6,
+    "Reverb_mix": 0.2,
+    "Output_dB": -3.5
+   }
+  },
+  {
+   "name": "Cavernous: vast hall",
+   "tag": "cavernous",
+   "desc": "Big bright-then-dark reverb and a slap echo so the room itself rings.",
+   "params": {
+    "Highpass_Hz_0_off": 80,
+    "Echo_ms": 220,
+    "Echo_feedback": 0.35,
+    "Echo_mix": 0.2,
+    "Reverb_size": 0.92,
+    "Reverb_damping": 0.45,
+    "Reverb_mix": 0.5,
+    "Output_dB": -4
+   }
+  },
+  {
+   "name": "v2 Machine: tech-priest (partly human)",
+   "tag": "machine",
+   "desc": "Voice-box buzz under a human voice: band-limited, squeezed, 60 Hz ring at low mix, a tiny slapback. Reports 1-3. Starting point.",
+   "params": {
+    "Mix_0_raw_1_processed": 0.9,
+    "Highpass_Hz_0_off": 300,
+    "Lowpass_Hz_0_off": 6000,
+    "Compressor_ratio_1_off": 4,
+    "Compressor_threshold_dB": -22,
+    "Compressor_makeup_dB": 3,
+    "Drive": 0.15,
+    "Ring_Hz": 60,
+    "Ring_mix": 0.3,
+    "Echo_ms": 20,
+    "Echo_feedback": 0.1,
+    "Echo_mix": 0.12,
+    "Output_dB": -0.7
+   }
+  },
+  {
+   "name": "v2 Machine: servitor (flat buzz)",
+   "tag": "machine",
+   "desc": "Dalek-style 30 Hz ring at near full mix, hard compression, thin band. Fully mechanical. Pair with a flat monotone TTS delivery.",
+   "params": {
+    "Highpass_Hz_0_off": 200,
+    "Lowpass_Hz_0_off": 4000,
+    "Compressor_ratio_1_off": 10,
+    "Compressor_threshold_dB": -26,
+    "Compressor_makeup_dB": 6,
+    "Ring_Hz": 30,
+    "Ring_mix": 0.9,
+    "Drive": 0.3,
+    "Crush_bits_16_off": 11,
+    "Output_dB": -0.5
+   }
+  },
+  {
+   "name": "v2 Machine: Dalek (1963 recipe)",
+   "tag": "machine",
+   "desc": "The documented one: 30 Hz ring at 100%, mid band, diode-ish distortion. Keep vowels long in the source line.",
+   "params": {
+    "Highpass_Hz_0_off": 300,
+    "Lowpass_Hz_0_off": 3000,
+    "Ring_Hz": 30,
+    "Ring_mix": 1,
+    "Drive": 0.35,
+    "Output_dB": -3.8
+   }
+  },
+  {
+   "name": "v2 Machine: Necron (cold, ancient)",
+   "tag": "machine",
+   "desc": "Down two semitones, tight resonant comb (7 ms, rings near 140 Hz), faint high ring, subtle crush, long dark tomb reverb. Check the comb does not howl on vowels.",
+   "params": {
+    "Pitch_semitones": -2,
+    "Highpass_Hz_0_off": 120,
+    "Compressor_ratio_1_off": 3,
+    "Compressor_threshold_dB": -22,
+    "Compressor_makeup_dB": 2,
+    "Ring_Hz": 150,
+    "Ring_mix": 0.15,
+    "Crush_bits_16_off": 11,
+    "Echo_ms": 7,
+    "Echo_feedback": 0.65,
+    "Echo_mix": 0.45,
+    "Reverb_size": 0.92,
+    "Reverb_damping": 0.7,
+    "Reverb_mix": 0.18,
+    "Lowpass_Hz_0_off": 7000,
+    "Output_dB": 0.5
+   }
+  },
+  {
+   "name": "v2 Vox: ship intercom",
+   "tag": "vox_channel",
+   "desc": "Clean-ish ship comm: 500 Hz to 8 kHz, radio-AGC squeeze (14:1), light drive, faint voice-gated hiss. Middleware-style numbers.",
+   "params": {
+    "Highpass_Hz_0_off": 500,
+    "Lowpass_Hz_0_off": 8000,
+    "Compressor_ratio_1_off": 14,
+    "Compressor_threshold_dB": -36,
+    "Compressor_makeup_dB": 6,
+    "Drive": 0.25,
+    "Static_level_dB_60_off": -38,
+    "Limiter_threshold_dB_0_off": -3,
+    "Output_dB": -0.8,
+    "Static_tail_ms": 1200
+   }
+  },
+  {
+   "name": "v2 Vox: field radio",
+   "tag": "vox_channel",
+   "desc": "Walkie-talkie: 300 Hz to 3 kHz, hard squeeze, grit, 10-bit crunch, hiss that ducks under the voice.",
+   "params": {
+    "Highpass_Hz_0_off": 300,
+    "Lowpass_Hz_0_off": 3000,
+    "Compressor_ratio_1_off": 14,
+    "Compressor_threshold_dB": -34,
+    "Compressor_makeup_dB": 6,
+    "Drive": 0.4,
+    "Crush_bits_16_off": 10,
+    "Crush_hold_samples": 2,
+    "Static_level_dB_60_off": -28,
+    "Static_tail_ms": 1500,
+    "Limiter_threshold_dB_0_off": -3,
+    "Output_dB": -0.9
+   }
+  },
+  {
+   "name": "v2 Vox: long range, noisy",
+   "tag": "vox_channel",
+   "desc": "Narrow, crushed, a lot of hiss: a distant or degraded transmission. Hurts clarity, use sparingly.",
+   "params": {
+    "Highpass_Hz_0_off": 400,
+    "Lowpass_Hz_0_off": 2500,
+    "Compressor_ratio_1_off": 12,
+    "Compressor_threshold_dB": -34,
+    "Compressor_makeup_dB": 6,
+    "Drive": 0.35,
+    "Crush_bits_16_off": 8,
+    "Crush_hold_samples": 4,
+    "Static_level_dB_60_off": -20,
+    "Static_tail_ms": 2000,
+    "Limiter_threshold_dB_0_off": -3,
+    "Output_dB": -1.2
+   }
+  },
+  {
+   "name": "v2 Vox: data-slate / hologram",
+   "tag": "vox_channel",
+   "desc": "Archival playback: band-limited, slow wobble, crunch, steady hiss, a touch of overdrive. Wow/flutter is only approximated by tremolo for now.",
+   "params": {
+    "Highpass_Hz_0_off": 400,
+    "Lowpass_Hz_0_off": 4500,
+    "Compressor_ratio_1_off": 6,
+    "Compressor_threshold_dB": -28,
+    "Compressor_makeup_dB": 4,
+    "Drive": 0.2,
+    "Crush_bits_16_off": 9,
+    "Crush_hold_samples": 2,
+    "Tremolo_Hz": 3.5,
+    "Tremolo_depth": 0.18,
+    "Static_level_dB_60_off": -24,
+    "Static_tail_ms": 2500,
+    "Limiter_threshold_dB_0_off": -3,
+    "Output_dB": -0.1
+   }
+  },
+  {
+   "name": "v2 Helmet: Astartes",
+   "tag": "helmet",
+   "desc": "Down two semitones with a low shelf for chest weight, a short tight slap and a small boxy reverb: sealed helmet, not a room. Reports advise 1-3 semitones only.",
+   "params": {
+    "Pitch_semitones": -2,
+    "Highpass_Hz_0_off": 80,
+    "Lowpass_Hz_0_off": 7500,
+    "Low_shelf_dB_200_Hz": 3,
+    "Compressor_ratio_1_off": 4,
+    "Compressor_threshold_dB": -22,
+    "Compressor_makeup_dB": 3,
+    "Drive": 0.15,
+    "Echo_ms": 3,
+    "Echo_feedback": 0.5,
+    "Echo_mix": 0.25,
+    "Reverb_size": 0.2,
+    "Reverb_damping": 0.8,
+    "Reverb_mix": 0.12,
+    "Output_dB": -2.9
+   }
+  },
+  {
+   "name": "v2 Helmet + vox (heard over the comm)",
+   "tag": "helmet",
+   "desc": "Astartes helmet voice then pushed through a comm band with a little hiss.",
+   "params": {
+    "Pitch_semitones": -2,
+    "Highpass_Hz_0_off": 300,
+    "Lowpass_Hz_0_off": 3600,
+    "Low_shelf_dB_200_Hz": 3,
+    "Compressor_ratio_1_off": 8,
+    "Compressor_threshold_dB": -28,
+    "Compressor_makeup_dB": 5,
+    "Drive": 0.3,
+    "Echo_ms": 3,
+    "Echo_feedback": 0.5,
+    "Echo_mix": 0.2,
+    "Static_level_dB_60_off": -30,
+    "Limiter_threshold_dB_0_off": -3,
+    "Output_dB": -1.9,
+    "Static_tail_ms": 1200
+   }
+  },
+  {
+   "name": "v2 Ethereal: psyker",
+   "tag": "ethereal",
+   "desc": "A doubled, drifting voice in a big dark space with a slow phase sweep and a long echo. Reverse reverb is not in this chain yet.",
+   "params": {
+    "Lowpass_Hz_0_off": 9000,
+    "Chorus_mix_0_off": 0.5,
+    "Chorus_depth_ms": 4,
+    "Chorus_rate_Hz": 0.5,
+    "Phaser_mix_0_off": 0.6,
+    "Phaser_rate_Hz": 0.2,
+    "Phaser_feedback": 0.3,
+    "Echo_ms": 380,
+    "Echo_feedback": 0.3,
+    "Echo_mix": 0.25,
+    "Reverb_size": 0.92,
+    "Reverb_damping": 0.55,
+    "Reverb_mix": 0.3,
+    "Output_dB": -7.8,
+    "Phaser_stages_2_4_6_8": 4
+   }
+  },
+  {
+   "name": "v2 Ethereal: Aeldari",
+   "tag": "ethereal",
+   "desc": "Subtle: de-essed, faint chorus, slow phaser, a bright hall at low mix. Formant shift is not available yet.",
+   "params": {
+    "De_ess_threshold_dB_0_off": -28,
+    "De_ess_frequency_Hz": 6000,
+    "Chorus_mix_0_off": 0.25,
+    "Chorus_depth_ms": 2,
+    "Chorus_rate_Hz": 0.4,
+    "Phaser_mix_0_off": 0.4,
+    "Phaser_rate_Hz": 0.15,
+    "Phaser_feedback": 0.3,
+    "Reverb_size": 0.8,
+    "Reverb_damping": 0.35,
+    "Reverb_mix": 0.18,
+    "Output_dB": -2.0,
+    "Phaser_stages_2_4_6_8": 4
+   }
+  },
+  {
+   "name": "v2 Monstrous: daemon (layered)",
+   "tag": "monstrous",
+   "desc": "Voice dropped seven semitones, mixed 75% with the raw voice (the pitch path is about 20 ms late, so the two layers double each other), drive, a short echo.",
+   "params": {
+    "Mix_0_raw_1_processed": 0.75,
+    "Pitch_semitones": -7,
+    "Highpass_Hz_0_off": 70,
+    "Low_shelf_dB_200_Hz": 5,
+    "Compressor_ratio_1_off": 6,
+    "Compressor_threshold_dB": -24,
+    "Compressor_makeup_dB": 4,
+    "Drive": 0.5,
+    "Chorus_mix_0_off": 0.4,
+    "Chorus_depth_ms": 4,
+    "Echo_ms": 35,
+    "Echo_feedback": 0.3,
+    "Echo_mix": 0.3,
+    "Reverb_size": 0.5,
+    "Reverb_mix": 0.12,
+    "Output_dB": -2.6
+   }
+  },
+  {
+   "name": "v2 Monstrous: brute (Ork, giant)",
+   "tag": "monstrous",
+   "desc": "Four semitones down, chest weight, heavy drive, compressed, with the top rolled off. Pitch shift is not formant-preserving, so check consonants.",
+   "params": {
+    "Pitch_semitones": -4,
+    "Highpass_Hz_0_off": 70,
+    "Lowpass_Hz_0_off": 6500,
+    "Low_shelf_dB_200_Hz": 4,
+    "Compressor_ratio_1_off": 6,
+    "Compressor_threshold_dB": -24,
+    "Compressor_makeup_dB": 4,
+    "Drive": 0.55,
+    "Output_dB": -8.3
+   }
+  },
+  {
+   "name": "v2 Cavernous: light hall",
+   "tag": "cavernous",
+   "desc": "Deliberately restrained: a short pre-echo and a modest hall. The game's own Wwise reverb will add more, so keep this light.",
+   "params": {
+    "Highpass_Hz_0_off": 120,
+    "Lowpass_Hz_0_off": 8000,
+    "Echo_ms": 60,
+    "Echo_feedback": 0.2,
+    "Echo_mix": 0.12,
+    "Reverb_size": 0.85,
+    "Reverb_damping": 0.6,
+    "Reverb_mix": 0.22,
+    "Output_dB": -6.8
+   }
+  },
+  {
+   "name": "Phaser test: classic 4-stage (Phase 90 style)",
+   "tag": "none",
+   "desc": "Four allpass stages, slow sweep, 50/50 blend, no feedback: the plain guitar phaser. Phasers show best on sustained, harmonically rich sounds, so speech needs a faster rate or more feedback to read as a phaser.",
+   "params": {
+    "Phaser_mix_0_off": 1,
+    "Phaser_rate_Hz": 0.5,
+    "Phaser_feedback": 0,
+    "Phaser_stages_2_4_6_8": 4,
+    "Phaser_sweep_low_Hz": 200,
+    "Phaser_sweep_high_Hz": 3500
+   }
+  },
+  {
+   "name": "Phaser test: 8-stage with feedback (Small Stone style)",
+   "tag": "none",
+   "desc": "Eight stages, positive feedback: a deeper, more resonant swirl.",
+   "params": {
+    "Phaser_mix_0_off": 1,
+    "Phaser_rate_Hz": 0.35,
+    "Phaser_feedback": 0.6,
+    "Phaser_stages_2_4_6_8": 8,
+    "Phaser_sweep_low_Hz": 150,
+    "Phaser_sweep_high_Hz": 4500
+   }
+  },
+  {
+   "name": "Phaser test: hollow (negative feedback)",
+   "tag": "none",
+   "desc": "Four stages with negative feedback: a nasal, hollow sweep.",
+   "params": {
+    "Phaser_mix_0_off": 1,
+    "Phaser_rate_Hz": 0.6,
+    "Phaser_feedback": -0.6,
+    "Phaser_stages_2_4_6_8": 4,
+    "Phaser_sweep_low_Hz": 200,
+    "Phaser_sweep_high_Hz": 3500
+   }
+  },
+  {
+   "name": "v3 Vocoder: servitor / Cylon (16 bands)",
+   "tag": "machine",
+   "desc": "Channel vocoder, 16 bands, 110 Hz pulse carrier with some noise for consonants, thin band, squeezed. The Cylon-style flat mechanical voice. Best with a monotone source line.",
+   "params": {
+    "Vocoder_mix_0_off": 1,
+    "Vocoder_bands_8_16_24_32": 16,
+    "Vocoder_carrier_Hz": 110,
+    "Vocoder_pulse_width": 0.3,
+    "Vocoder_carrier_noise": 0.15,
+    "Vocoder_consonant_pass_4_5_kHz": 0.3,
+    "Highpass_Hz_0_off": 150,
+    "Lowpass_Hz_0_off": 6000,
+    "Compressor_ratio_1_off": 6,
+    "Compressor_threshold_dB": -24,
+    "Compressor_makeup_dB": 3,
+    "Drive": 0.15,
+    "Output_dB": -3
+   }
+  },
+  {
+   "name": "v3 Vocoder: crude robot (8 bands, low carrier)",
+   "tag": "machine",
+   "desc": "Eight bands and an 80 Hz carrier: blunt, clearly synthetic, still readable.",
+   "params": {
+    "Vocoder_mix_0_off": 1,
+    "Vocoder_bands_8_16_24_32": 8,
+    "Vocoder_carrier_Hz": 80,
+    "Vocoder_pulse_width": 0.5,
+    "Vocoder_carrier_noise": 0.2,
+    "Vocoder_consonant_pass_4_5_kHz": 0.4,
+    "Highpass_Hz_0_off": 200,
+    "Lowpass_Hz_0_off": 5000,
+    "Drive": 0.2,
+    "Output_dB": -3
+   }
+  },
+  {
+   "name": "v3 Vocoder: tech-priest blend (24 bands, 60% wet)",
+   "tag": "machine",
+   "desc": "24 bands at 60% wet over the dry voice: a human voice with a machine layer on it, words stay clear. Carrier 70 Hz.",
+   "params": {
+    "Vocoder_mix_0_off": 0.6,
+    "Vocoder_bands_8_16_24_32": 24,
+    "Vocoder_carrier_Hz": 70,
+    "Vocoder_pulse_width": 0.3,
+    "Vocoder_carrier_noise": 0.15,
+    "Vocoder_consonant_pass_4_5_kHz": 0.2,
+    "Highpass_Hz_0_off": 250,
+    "Compressor_ratio_1_off": 4,
+    "Compressor_threshold_dB": -22,
+    "Compressor_makeup_dB": 2,
+    "Echo_ms": 18,
+    "Echo_feedback": 0.15,
+    "Echo_mix": 0.12,
+    "Output_dB": 3
+   }
+  },
+  {
+   "name": "v3 Vocoder: ghost whisper (noise carrier)",
+   "tag": "ethereal",
+   "desc": "Carrier is all noise: a breathy whisper with the words intact, plus reverb. For psychic / Veil voices.",
+   "params": {
+    "Vocoder_mix_0_off": 0.85,
+    "Vocoder_bands_8_16_24_32": 24,
+    "Vocoder_carrier_noise": 1,
+    "Vocoder_consonant_pass_4_5_kHz": 0.2,
+    "Vocoder_attack_ms": 8,
+    "Vocoder_release_ms": 60,
+    "Reverb_size": 0.85,
+    "Reverb_damping": 0.5,
+    "Reverb_mix": 0.25,
+    "Output_dB": 2
+   }
+  },
+  {
+   "name": "v4 Machine: Pasqal-style stack (starting point)",
+   "tag": "machine",
+   "desc": "Layers for a dense multi-voice texture: voice at -12 and +7 semitones, a 16-band vocoder at 60% on a 90 Hz carrier, a little metal-box ring, squeezed. A starting point for matching the in-game Pasqal sound, not matched yet. Mix 1 (the layers are delayed on purpose).",
+   "params": {
+    "Harmonizer_voice_1_semitones": -12,
+    "Harmonizer_voice_1_level": 0.5,
+    "Harmonizer_voice_2_semitones": 7,
+    "Harmonizer_voice_2_level": 0.35,
+    "Vocoder_mix_0_off": 0.6,
+    "Vocoder_bands_8_16_24_32": 16,
+    "Vocoder_carrier_Hz": 90,
+    "Vocoder_carrier_noise": 0.2,
+    "Resonator_mix_0_off": 0.25,
+    "Compressor_ratio_1_off": 5,
+    "Compressor_threshold_dB": -24,
+    "Compressor_makeup_dB": 3,
+    "Highpass_Hz_0_off": 150,
+    "Lowpass_Hz_0_off": 7000,
+    "Output_dB": 1.8
+   }
+  },
+  {
+   "name": "v4 Monstrous: daemon (harmonizer layers)",
+   "tag": "monstrous",
+   "desc": "The reports' daemon recipe: the voice with copies at -7 and -12 semitones under it, heavy drive, low-mid weight, a short echo. More menace than the single pitch shift.",
+   "params": {
+    "Harmonizer_voice_1_semitones": -7,
+    "Harmonizer_voice_1_level": 0.6,
+    "Harmonizer_voice_2_semitones": -12,
+    "Harmonizer_voice_2_level": 0.5,
+    "Drive": 0.5,
+    "EQ_low_freq_Hz": 160,
+    "EQ_low_gain_dB": 4,
+    "EQ_low_Q": 0.8,
+    "Compressor_ratio_1_off": 5,
+    "Compressor_threshold_dB": -22,
+    "Compressor_makeup_dB": 3,
+    "Echo_ms": 35,
+    "Echo_feedback": 0.3,
+    "Echo_mix": 0.25,
+    "Output_dB": -9.1
+   }
+  },
+  {
+   "name": "v4 Helmet: Astartes with EQ",
+   "tag": "helmet",
+   "desc": "Helmet voice with the reports' EQ fixes: down 2 semitones, mud cut around 300 Hz, +5 dB high shelf above 3 kHz to bring the consonants back, a little metal-box ring.",
+   "params": {
+    "Pitch_semitones": -2,
+    "Highpass_Hz_0_off": 80,
+    "EQ_low_freq_Hz": 300,
+    "EQ_low_gain_dB": -4,
+    "EQ_low_Q": 1,
+    "EQ_shelf_freq_Hz": 3000,
+    "EQ_shelf_gain_dB": 5,
+    "Resonator_mix_0_off": 0.2,
+    "Compressor_ratio_1_off": 4,
+    "Compressor_threshold_dB": -22,
+    "Compressor_makeup_dB": 3,
+    "Drive": 0.15,
+    "Reverb_size": 0.2,
+    "Reverb_damping": 0.8,
+    "Reverb_mix": 0.1,
+    "Output_dB": -4.8
+   }
+  },
+  {
+   "name": "v4 Machine: vox-grille servitor",
+   "tag": "machine",
+   "desc": "Vocoder voice through a box-like resonance with a small chance of dropout: a servitor speaking through a damaged grille.",
+   "params": {
+    "Vocoder_mix_0_off": 1,
+    "Vocoder_bands_8_16_24_32": 16,
+    "Vocoder_carrier_Hz": 100,
+    "Vocoder_carrier_noise": 0.2,
+    "Resonator_mix_0_off": 0.5,
+    "Resonator_Q": 10,
+    "EQ_mid_freq_Hz": 2500,
+    "EQ_mid_gain_dB": 4,
+    "EQ_mid_Q": 1,
+    "Highpass_Hz_0_off": 200,
+    "Lowpass_Hz_0_off": 5500,
+    "Compressor_ratio_1_off": 6,
+    "Compressor_threshold_dB": -24,
+    "Compressor_makeup_dB": 3,
+    "Dropout_amount_0_off": 0.15,
+    "Dropout_rate_per_s": 5,
+    "Dropout_length_ms": 50,
+    "Output_dB": -1.2
+   }
+  },
+  {
+   "name": "v4 Vox: hologram / failing recording",
+   "tag": "vox_channel",
+   "desc": "Wow and flutter for the failing tape or projector, narrow band, crunch, hiss and random dropouts.",
+   "params": {
+    "Wow_cents": 25,
+    "Wow_rate_Hz": 0.5,
+    "Flutter_cents": 10,
+    "Flutter_rate_Hz": 9,
+    "Dropout_amount_0_off": 0.3,
+    "Dropout_rate_per_s": 4,
+    "Dropout_length_ms": 70,
+    "Highpass_Hz_0_off": 400,
+    "Lowpass_Hz_0_off": 4500,
+    "Crush_bits_16_off": 10,
+    "Crush_hold_samples": 2,
+    "Compressor_ratio_1_off": 6,
+    "Compressor_threshold_dB": -28,
+    "Compressor_makeup_dB": 4,
+    "Static_level_dB_60_off": -24,
+    "Static_tail_ms": 1500,
+    "Output_dB": 0.4
+   }
+  },
+  {
+   "name": "v4 Vox: field radio with dropouts",
+   "tag": "vox_channel",
+   "desc": "The v2 field radio with the transmission cutting out now and then (after the speaker sim, as the reports advise).",
+   "params": {
+    "Highpass_Hz_0_off": 300,
+    "Lowpass_Hz_0_off": 3000,
+    "Compressor_ratio_1_off": 14,
+    "Compressor_threshold_dB": -34,
+    "Compressor_makeup_dB": 6,
+    "Drive": 0.4,
+    "Crush_bits_16_off": 10,
+    "Crush_hold_samples": 2,
+    "Dropout_amount_0_off": 0.25,
+    "Dropout_rate_per_s": 6,
+    "Dropout_length_ms": 60,
+    "Static_level_dB_60_off": -28,
+    "Static_tail_ms": 1500,
+    "Limiter_threshold_dB_0_off": -3,
+    "Output_dB": -0.8
+   }
+  }
+ ]
+}

@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from lexicon import respell  # noqa: E402
 from annotation_bridge import route  # noqa: E402
+from prerendered import load_index, lookup  # noqa: E402
 
 ENGINE_NAME = os.environ.get("TTS_ENGINE", "chatterbox_turbo")
 CACHE_DIR = ROOT / "data/tts_cache" / ENGINE_NAME
@@ -46,6 +47,7 @@ PROMPTS_PATH = ROOT / "data/voices/prompts/prompts.json"
 app = FastAPI(title="RT Neural Speech sidecar")
 _engine = None
 _prompts: dict = {}
+_prerendered: dict = {}
 
 
 class Annotation(BaseModel):
@@ -66,7 +68,7 @@ class SynthRequest(BaseModel):
 
 @app.on_event("startup")
 def load_engine() -> None:
-    global _engine, _prompts
+    global _engine, _prompts, _prerendered
     import importlib
     mod = importlib.import_module(f"tts_engines.{ENGINE_NAME}")
     t0 = time.time()
@@ -75,6 +77,9 @@ def load_engine() -> None:
     if PROMPTS_PATH.exists():
         _prompts = json.load(open(PROMPTS_PATH, encoding="utf-8"))
     print(f"[sidecar] {len(_prompts)} speaker prompt banks loaded", file=sys.stderr)
+    if os.environ.get("TTS_PRERENDERED", "1") != "0":
+        _prerendered = load_index(ROOT / "data/bon", ROOT / "data/render")
+        print(f"[sidecar] {len(_prerendered)} pre-rendered lines available", file=sys.stderr)
 
 
 def _pcm_wav_bytes(x: np.ndarray, sr: int) -> bytes:
@@ -117,6 +122,9 @@ def voices():
 
 @app.post("/synth")
 def synth(req: SynthRequest):
+    pre = lookup(_prerendered, req.cue_guid, req.text)
+    if pre is not None:
+        return Response(pre.read_bytes(), media_type="audio/wav", headers={"X-Cache": "prerendered"})
     if _engine is None:
         raise HTTPException(503, "engine not loaded")
     synth_fn, ctx = _engine

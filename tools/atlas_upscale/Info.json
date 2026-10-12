@@ -1,0 +1,10 @@
+{
+  "Id": "AtlasUpscale",
+  "DisplayName": "Character Atlas Upscale",
+  "Author": "bytebard97",
+  "Version": "0.1.0",
+  "ManagerVersion": "0.25.0",
+  "Requirements": [],
+  "AssemblyName": "AtlasUpscale.dll",
+  "EntryMethod": "AtlasUpscale.Main.Load"
+}

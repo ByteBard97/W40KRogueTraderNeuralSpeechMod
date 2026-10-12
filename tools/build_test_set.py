@@ -23,19 +23,51 @@ N_PER_SPEAKER = 10
 N_NARRATOR = 12
 
 NARR_SEG = re.compile(r"\{n\}.*?\{/n\}", re.S)
-TAG = re.compile(r"\{[^}]*\}|<[^>]*>")
+TAG_OPEN = re.compile(r"\{([a-zA-Z]+)(?:\|([^}]*))?\}")
+TAG_CLOSE = re.compile(r"\{/[a-zA-Z]+\}|<[^>]*>")
+# The game addresses the player character as "Lord Captain" throughout (confirmed in-corpus,
+# e.g. plain dialogue lines like "Lord Captain, wait!") - {name}/{petName} placeholders are
+# normally filled with the player's chosen name at runtime; since no name exists here, dropping
+# the tag entirely leaves an audible gap/stray punctuation (e.g. "Very well, . I shall..."), so
+# substitute the same generic address the game itself falls back to instead.
+PLAYER_ADDRESS = "Lord Captain"
+# {petName} is the name the player gave their pet, which is a raven or a (cybernetic) dog depending on the player's
+# choice; the two pets have separate lines. No name exists in the data and the audio is baked, so the placeholder is
+# spoken as a noun picked from the line's own wording, and as "your pet" when the line does not say.
+PET_RAVEN = re.compile(r"\b(raven|bird|feathers?|beak|croak\w*|wings?|talons?|perch)\b", re.I)
+PET_DOG = re.compile(r"\b(dog|hound|mastiff|tail|wag\w*|all fours|growl\w*|paws?|fangs?|snout|jaws?|bark\w*|mauled|servo-protocols?|visors?)\b", re.I)
+
+
+def pet_noun(line: str) -> str:
+    raven, dog = bool(PET_RAVEN.search(line)), bool(PET_DOG.search(line))
+    return "the raven" if raven and not dog else "the dog" if dog and not raven else "your pet"
+
+
+def _tag_open_sub(m: re.Match) -> str:
+    kind, arg = m.group(1).lower(), m.group(2)
+    if kind == "petname":
+        before = re.sub(r"\{[^}]*\}|<[^>]*>", "", m.string[:m.start()])
+        noun = pet_noun(re.sub(r"\{[^}]*\}|<[^>]*>", "", m.string))
+        return noun[0].upper() + noun[1:] if re.search(r"(^|[.!?…:]['\"”)]*)\s*$", before) else noun
+    if kind == "name":
+        return PLAYER_ADDRESS
+    if kind == "mf" and arg:  # {mf|male|female} gender variant - keep the first form
+        return arg.split("|")[0]
+    return ""  # {g|..}, {d}, {nc}, {br} etc. wrap/format visible text; carries nothing to speak
 
 
 def speech_only(text: str) -> str:
     """Drop narration segments, keep quoted/spoken text, strip markup and quotes."""
     t = NARR_SEG.sub(" ", text)
-    t = TAG.sub("", t)
-    t = t.replace("—", ", ").replace('"', " ")
+    t = TAG_OPEN.sub(_tag_open_sub, t)
+    t = TAG_CLOSE.sub("", t)
+    t = re.sub(r"\s*—\s*", ", ", t).replace('"', " ")  # absorb spaces around the dash, else "a — b" gives "a , b"
     return re.sub(r"\s+", " ", t).strip()
 
 
 def narration_only(text: str) -> str:
-    t = TAG.sub("", text)
+    t = TAG_OPEN.sub(_tag_open_sub, text)
+    t = TAG_CLOSE.sub("", t)
     return re.sub(r"\s+", " ", t).strip()
 
 

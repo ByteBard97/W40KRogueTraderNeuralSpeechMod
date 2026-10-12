@@ -1,0 +1,207 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pasqal clone lab</title>
+<style>
+:root{--bg:#14161a;--card:#1e2430;--line:#2c3444;--fg:#e8e8e8;--dim:#98a2b3;--ok:#3fb68b;--bad:#e5645b;--acc:#6aa5ff}
+@media (prefers-color-scheme: light){:root{--bg:#f4f5f7;--card:#fff;--line:#d5d9e0;--fg:#1b1f27;--dim:#5b6472;--acc:#1f5fd1}}
+*{box-sizing:border-box}
+body{font:14px system-ui,sans-serif;background:var(--bg);color:var(--fg);margin:0}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bar h1{font-size:16px;margin:0 8px 0 0}
+select,button,input,textarea{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:5px 9px}
+button{cursor:pointer}button.on,button.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+button:disabled{opacity:.5;cursor:default}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 320px;gap:12px;padding:12px 16px;align-items:start}
+@media (max-width:1100px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.card h2{font-size:14px;margin:0 0 6px}
+.list{max-height:62vh;overflow:auto;border-top:1px solid var(--line)}
+.item{display:grid;grid-template-columns:22px 30px 1fr;gap:6px;align-items:start;padding:6px 0;border-bottom:1px solid var(--line)}
+.item.sel{background:rgba(106,165,255,.12)}
+.play{width:28px;height:28px;padding:0;border-radius:50%;line-height:1}
+.dim{color:var(--dim);font-size:12px}.chip{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:0 7px;font-size:11px;margin-right:4px;color:var(--dim)}
+.chip.on{border-color:var(--acc);color:var(--acc)}
+.opt{display:grid;grid-template-columns:110px 1fr;gap:6px;align-items:center;margin:5px 0}
+.opt input[type=number],.opt input[type=text]{width:100%}
+.take{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0;font-size:13px}
+.star{background:none;border:0;padding:0 1px;color:var(--dim);font-size:16px}.star.on{color:#f0b400}
+.line{border-top:1px solid var(--line);padding:8px 0}
+#msg{color:var(--ok);font-size:13px}#msg.err{color:var(--bad)}
+</style>
+<div class="bar">
+  <h1>Pasqal clone lab</h1>
+  <select id="prof"><option value="">profiles…</option></select>
+  <button id="loadprof">Load</button>
+  <input id="profname" placeholder="profile name" style="width:150px">
+  <button id="saveprof">Save profile</button>
+  <button id="setactive" title="Copy the loaded/saved profile to data/voices/prompts/Pasqal/clone_settings.json">Set active</button>
+  <span class="dim" id="health"></span><span id="msg"></span>
+</div>
+<div class="grid">
+  <div class="card"><h2>1. Reference clip <span class="dim" id="refcount"></span></h2>
+    <div class="dim">Tick one or more to compare. The first ticked clip is the "current" one saved in a profile.</div>
+    <div class="list" id="refs"></div>
+    <div class="opt"><span>Other wav</span><input type="text" id="otherwav" placeholder="data/... .wav (e.g. a clean base voice)"></div>
+    <div class="opt"><span>Its transcript</span><input type="text" id="othertext"></div>
+    <button id="addother">Add as reference</button>
+  </div>
+  <div class="card"><h2>2. Lines <span class="dim" id="linecount"></span></h2>
+    <div class="row"><input id="q" placeholder="search text" style="width:100%"></div>
+    <div id="emochips" style="margin:6px 0"></div>
+    <div><button id="spread">Pick 6 spread across emotions</button> <button id="clearsel">Clear</button></div>
+    <div class="list" id="lines"></div>
+  </div>
+  <div>
+    <div class="card"><h2>3. Model options</h2>
+      <div class="opt"><span>cfg</span><input type="number" id="cfg" step="0.5"></div>
+      <div class="opt"><span>timesteps</span><input type="number" id="timesteps" step="1"></div>
+      <div class="opt"><span>seed</span><input type="text" id="seed" placeholder="blank = new random per line"></div>
+      <div class="opt"><span>style prefix</span><label><input type="checkbox" id="use_instruct"> use the line's annotation style</label></div>
+      <div class="opt"><span>retry bad takes</span><label><input type="checkbox" id="retry_badcase"> on</label></div>
+      <div class="opt"><span>normalize text</span><label><input type="checkbox" id="normalize"> on</label></div>
+      <div class="opt"><span>continuation</span><label><input type="checkbox" id="continuation"> also pass transcript as prompt</label></div>
+      <div class="dim">Continuation can echo the reference audio at the start (see tools/tts_engines/voxcpm2.py). The bank was rendered with it off.</div>
+    </div>
+    <div class="card" style="margin-top:12px"><h2>4. Post-processing</h2>
+      <div class="dim">FX Lab presets run in series on the raw clone. The real clips are already processed, so a clone from one may be doubly processed.</div>
+      <select id="fxsel" multiple size="6" style="width:100%;margin-top:6px"></select>
+      <div class="dim">Ctrl-click for several. None selected = raw only. Tune the presets themselves in the FX Lab (:8908).</div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <button class="primary" id="gen" style="width:100%">Generate</button>
+      <div class="dim" id="genstat" style="margin-top:6px"></div>
+    </div>
+  </div>
+</div>
+<div style="padding:0 16px 24px"><div class="card"><h2>Results <span class="dim" id="takecount"></span></h2><div id="results"></div></div></div>
+<audio id="player"></audio>
+<script>
+let S = {}, T = {}, refs = [], selRefs = new Set(), selLines = new Set(), emo = null, busy = false;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const post = async (p, b) => (await fetch(p, {method: 'POST', body: JSON.stringify(b)})).json();
+const say = (t, err) => { const m = $('msg'); m.textContent = t; m.className = err ? 'err' : ''; setTimeout(() => { if (m.textContent === t) m.textContent = ''; }, 5000); };
+const player = $('player');
+function play(path) { const [p, v] = path.split('?'); player.src = '/file?p=' + encodeURIComponent(p) + (v ? '&' + v : ''); player.play(); }
+const OPTS = ['cfg', 'timesteps', 'seed', 'use_instruct', 'retry_badcase', 'normalize', 'continuation'];
+function getOpts() {
+  const o = {};
+  for (const k of OPTS) { const e = $(k); o[k] = e.type === 'checkbox' ? e.checked : e.type === 'number' ? +e.value : e.value.trim(); }
+  o.fx = [...$('fxsel').selectedOptions].map(x => x.value);
+  return o;
+}
+function setOpts(o) {
+  for (const k of OPTS) { const e = $(k); if (e.type === 'checkbox') e.checked = !!o[k]; else e.value = o[k] ?? ''; }
+  for (const x of $('fxsel').options) x.selected = (o.fx || []).includes(x.value);
+}
+function renderRefs() {
+  $('refcount').textContent = `${refs.length} clips, ${selRefs.size} ticked`;
+  $('refs').innerHTML = refs.map(r => `<div class="item ${selRefs.has(r.wav) ? 'sel' : ''}">
+    <input type="checkbox" data-ref="${esc(r.wav)}" ${selRefs.has(r.wav) ? 'checked' : ''}>
+    <button class="play" data-play="${esc(r.wav)}">▶</button>
+    <div><span class="chip ${r.curated_rank ? 'on' : ''}">${r.curated_rank ? 'curated #' + r.curated_rank : 'uncurated'}</span><span class="chip">${r.duration.toFixed(1)}s</span>${r.noise_db != null ? `<span class="chip">noise ${r.noise_db} dB</span>` : ''}
+    <span class="chip">${esc(r.id)}</span><div class="dim">${esc(r.text.slice(0, 200))}</div></div></div>`).join('');
+}
+function renderLines() {
+  const q = $('q').value.toLowerCase();
+  const rows = S.lines.filter(l => (!emo || l.emotion === emo) && (!q || l.text.toLowerCase().includes(q)));
+  $('linecount').textContent = `${rows.length} of ${S.lines.length}, ${selLines.size} ticked`;
+  const emos = [...new Set(S.lines.map(l => l.emotion))].sort();
+  $('emochips').innerHTML = `<button class="chip ${emo ? '' : 'on'}" data-emo="">all</button>` + emos.map(e => `<button class="chip ${emo === e ? 'on' : ''}" data-emo="${esc(e)}">${esc(e)}</button>`).join('');
+  $('lines').innerHTML = rows.slice(0, 300).map(l => `<div class="item ${selLines.has(l.guid) ? 'sel' : ''}">
+    <input type="checkbox" data-line="${l.guid}" ${selLines.has(l.guid) ? 'checked' : ''}>
+    <button class="play" data-play="${esc(l.baseline || '')}" title="the bank's current render">▶</button>
+    <div><span class="chip">${esc(l.emotion)} ${l.intensity ?? ''}</span><span class="chip">${esc(l.pace)}</span><div>${esc(l.text)}</div>${l.instruct ? `<div class="dim">style: ${esc(l.instruct)}</div>` : ''}</div></div>`).join('')
+    + (rows.length > 300 ? `<div class="dim" style="padding:6px">first 300 shown; search or filter to narrow</div>` : '');
+}
+function renderResults() {
+  const byLine = {};
+  for (const t of Object.values(T)) (byLine[t.guid || t.text] = byLine[t.guid || t.text] || []).push(t);
+  const keys = Object.keys(byLine).sort((a, b) => Math.max(...byLine[b].map(t => +t.id.slice(1))) - Math.max(...byLine[a].map(t => +t.id.slice(1))));
+  $('takecount').textContent = `${Object.keys(T).length} takes`;
+  $('results').innerHTML = keys.map(k => {
+    const ts = byLine[k].sort((a, b) => +b.id.slice(1) - +a.id.slice(1)), l = S.lines.find(x => x.guid === k);
+    return `<div class="line"><div>${esc(ts[0].text)}</div>
+      <div class="take">${l && l.baseline ? `<button class="play" data-play="${esc(l.baseline)}" title="bank render">▶</button><span class="dim">bank</span>` : ''}</div>` +
+      ts.map(t => `<div class="take"><button class="play" data-play="${esc(t.raw)}" title="raw clone">▶</button><span>raw</span>
+        ${t.fx ? `<button class="play" data-play="${esc(t.fx.wav)}?v=${t.fx.v}" title="after FX">▶</button><span>fx: ${esc(t.fx.presets.join(' + '))}</span>` : ''}
+        <button data-applyfx="${t.id}">${t.fx ? 're-apply' : 'apply'} FX</button>
+        <span class="dim">${esc(t.reference.split('/').pop().replace('.wav', ''))} · seed ${t.seed} · cfg ${t.options.cfg} · ${t.options.timesteps} st · ${t.audio_s ?? '?'}s audio</span>
+        ${[1, 2, 3, 4, 5].map(n => `<button class="star ${t.rating >= n ? 'on' : ''}" data-rate="${t.id}" data-n="${n}">★</button>`).join('')}</div>`).join('') + '</div>';
+  }).join('');
+}
+async function refreshHealth() {
+  const h = await (await fetch('/api/health')).json();
+  $('health').textContent = h.ok ? 'model ready' : (h.error || 'model not ready');
+}
+async function load() {
+  S = await (await fetch('/api/state')).json(); T = S.takes; refs = S.sources;
+  if (!selRefs.size && refs.length) selRefs.add(refs[0].wav);
+  $('fxsel').innerHTML = S.fx_presets.map(n => `<option>${esc(n)}</option>`).join('');
+  $('prof').innerHTML = '<option value="">profiles…</option>' + S.profiles.map(n => `<option>${esc(n)}</option>`).join('');
+  setOpts(S.defaults); renderRefs(); renderLines(); renderResults(); refreshHealth();
+}
+async function generate() {
+  if (busy) return;
+  const rs = refs.filter(r => selRefs.has(r.wav)), ls = S.lines.filter(l => selLines.has(l.guid));
+  if (!rs.length || !ls.length) return say('tick at least one reference and one line', true);
+  busy = true; $('gen').disabled = true; const o = getOpts(); let n = 0; const total = rs.length * ls.length;
+  for (const l of ls) {
+    const seed = o.seed || String(Math.floor(Math.random() * 2 ** 31));   // one seed per line, shared by every reference
+    for (const r of rs) {
+      $('genstat').textContent = `generating ${++n} / ${total}…`;
+      const t = await post('/api/generate', {text: l.text, guid: l.guid, instruct: l.instruct, reference: {wav: r.wav, text: r.text}, options: {...o, seed}});
+      if (t.error) { $('genstat').textContent = t.error; busy = false; $('gen').disabled = false; return; }
+      T[t.id] = t;
+      if (o.fx.length) { const f = await post('/api/fx', {id: t.id, presets: o.fx}); if (f.error) say(f.error, true); else T[t.id] = f; }
+      renderResults();
+    }
+  }
+  $('genstat').textContent = `done, ${total} takes`; busy = false; $('gen').disabled = false;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.play !== undefined) return b.dataset.play && play(b.dataset.play);
+  if (b.dataset.emo !== undefined) { emo = b.dataset.emo || null; return renderLines(); }
+  if (b.dataset.rate) { const t = T[b.dataset.rate], n = +b.dataset.n; t.rating = t.rating === n ? 0 : n; await post('/api/rate', {id: t.id, rating: t.rating}); return renderResults(); }
+  if (b.dataset.applyfx) { const names = getOpts().fx; b.disabled = true; const f = await post('/api/fx', {id: b.dataset.applyfx, presets: names}); if (f.error) say(f.error, true); else T[f.id] = f; return renderResults(); }
+  if (b.id === 'gen') return generate();
+  if (b.id === 'clearsel') { selLines.clear(); return renderLines(); }
+  if (b.id === 'spread') {
+    const by = {}; for (const l of S.lines) (by[l.emotion] = by[l.emotion] || []).push(l);
+    const pick = []; for (const k of Object.keys(by).sort((a, c) => by[c].length - by[a].length)) { const arr = by[k].filter(l => l.text.length > 50 && l.text.length < 220); if (arr.length) pick.push(arr[Math.floor(arr.length / 2)]); if (pick.length === 6) break; }
+    selLines = new Set(pick.map(l => l.guid)); return renderLines();
+  }
+  if (b.id === 'addother') {
+    const wav = $('otherwav').value.trim(); if (!wav) return;
+    if (!refs.find(r => r.wav === wav)) refs.unshift({id: wav.split('/').pop(), wav, duration: 0, text: $('othertext').value.trim(), curated_rank: null});
+    selRefs.add(wav); return renderRefs();
+  }
+  if (b.id === 'loadprof') {
+    const n = $('prof').value; if (!n) return;
+    const p = await (await fetch('/api/profile?name=' + encodeURIComponent(n))).json();
+    const r = p.reference; if (!refs.find(x => x.wav === r.wav)) refs.unshift({id: r.wav.split('/').pop(), wav: r.wav, duration: 0, text: r.text, curated_rank: null});
+    selRefs = new Set([r.wav]); selLines = new Set(p.test_lines); setOpts(p.options); $('profname').value = p.name;
+    renderRefs(); renderLines(); return say('loaded ' + n);
+  }
+  if (b.id === 'saveprof') {
+    const name = $('profname').value.trim(); if (!name) return say('name the profile first', true);
+    const r = refs.find(x => selRefs.has(x.wav)); if (!r) return say('tick a reference first', true);
+    const res = await post('/api/profile', {name, reference: {wav: r.wav, text: r.text}, options: getOpts(), test_lines: [...selLines]});
+    S.profiles = [...new Set([...S.profiles, res.saved.replace('.json', '')])]; $('prof').innerHTML = '<option value="">profiles…</option>' + S.profiles.map(n => `<option>${esc(n)}</option>`).join('');
+    return say('saved ' + res.saved);
+  }
+  if (b.id === 'setactive') {
+    const n = $('profname').value.trim(); const res = await post('/api/active', {name: n});
+    return res.error ? say(res.error, true) : say('active settings: ' + res.active);
+  }
+});
+document.addEventListener('change', e => {
+  if (e.target.dataset.ref) { e.target.checked ? selRefs.add(e.target.dataset.ref) : selRefs.delete(e.target.dataset.ref); renderRefs(); }
+  if (e.target.dataset.line) { e.target.checked ? selLines.add(e.target.dataset.line) : selLines.delete(e.target.dataset.line); renderLines(); }
+});
+$('q').addEventListener('input', renderLines);
+setInterval(() => { if (!busy) refreshHealth(); }, 15000);
+load();
+</script>

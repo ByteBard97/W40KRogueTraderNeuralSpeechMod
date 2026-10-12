@@ -1,0 +1,10 @@
+{
+  "Id": "AudioTest",
+  "DisplayName": "Audio Test (hotkeys)",
+  "Author": "bytebard97",
+  "Version": "0.1.0",
+  "ManagerVersion": "0.25.0",
+  "Requirements": [],
+  "AssemblyName": "AudioTest.dll",
+  "EntryMethod": "AudioTest.Main.Load"
+}

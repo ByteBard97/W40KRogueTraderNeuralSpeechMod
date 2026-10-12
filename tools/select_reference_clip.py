@@ -55,6 +55,12 @@ class ReferenceLibrary:
             raise SystemExit(f"no ear-verified emotion-labeled clips found for {speaker!r} "
                               f"in {CURATION_PATH}")
 
+    def all_clips(self) -> list[dict]:
+        return [c for clips in self.clips_by_emotion.values() for c in clips]
+
+    def by_event(self, event: str) -> dict | None:
+        return next((c for c in self.all_clips() if c["event"] == event), None)
+
     def _best_of(self, clips: list[dict]) -> dict:
         """Prefer human-accepted clips, then longer ones (more robust zero-shot prompt,
         matching prompts.json's own >=5.5s preference elsewhere in this project)."""

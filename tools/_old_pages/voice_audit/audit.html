@@ -1,0 +1,315 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NPC voice audition</title>
+<style>
+:root{--bg:#14161a;--card:#1e2430;--line:#2c3444;--fg:#e8e8e8;--dim:#98a2b3;--ok:#3fb68b;--bad:#e5645b;--acc:#6aa5ff}
+@media (prefers-color-scheme: light){:root{--bg:#f4f5f7;--card:#fff;--line:#d5d9e0;--fg:#1b1f27;--dim:#5b6472;--acc:#1f5fd1}}
+*{box-sizing:border-box}
+body{font:15px system-ui,sans-serif;background:var(--bg);color:var(--fg);margin:0}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bar h1{font-size:17px;margin:0 8px 0 0}
+select,button,input[type=number]{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+select#who{min-width:300px;font-weight:600}
+button{cursor:pointer}button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+button.pick.on{background:var(--ok);border-color:var(--ok)}button.rej.on{background:var(--bad);border-color:var(--bad)}
+button.primary{background:var(--ok);border-color:var(--ok);color:#fff}
+.dim{color:var(--dim);font-size:13px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;padding:16px;max-width:1280px;margin:auto;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card h2{font-size:17px;margin:0 0 2px}
+textarea{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px;font:inherit;margin:8px 0 4px}
+.cand{display:grid;grid-template-columns:34px 1fr;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line)}
+.cand.picked{outline:2px solid var(--ok);outline-offset:-2px;border-radius:6px}
+.cand[draggable=true]{cursor:grab}.cand.dragging{opacity:.4}.cand.over{border-top:3px solid var(--acc)}
+.rank{font-weight:700;color:var(--acc);margin-right:4px}.grip{color:var(--dim);cursor:grab;margin-right:6px}
+.live{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:10px}
+.live input{width:84px}.take{display:flex;gap:8px;align-items:center;margin-top:6px;font-size:13px}.take .seed{cursor:pointer;color:var(--acc)}
+.play{width:34px;height:34px;padding:0;border-radius:50%;line-height:1}
+.chips span{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;margin:0 6px 4px 0;background:var(--bg);border:1px solid var(--line)}
+.chips .us{border-color:var(--bad);color:var(--bad)}.chips .good{border-color:var(--ok);color:var(--ok)}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.chk{flex-wrap:nowrap}
+.clone{display:flex;gap:8px;align-items:flex-start;margin-top:6px}.clone .dim{max-width:560px}
+.fxp{position:sticky;top:64px}
+.fxp h3{font-size:15px;margin:0 0 8px}
+.ctl{display:grid;grid-template-columns:104px 1fr 54px;gap:6px;align-items:center;margin:5px 0;font-size:13px}
+.ctl input[type=range]{width:100%}.ctl .v{text-align:right;color:var(--dim)}
+.sec{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.starters{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+#msg{color:var(--ok);font-size:13px}
+</style>
+<div class="bar">
+  <h1>NPC voice audition</h1>
+  <button id="prev" title="previous character">&#9664;</button>
+  <select id="who"></select>
+  <button id="next" title="next character">&#9654;</button>
+  <span class="dim" id="progress"></span>
+  <button id="reg">Register picks</button>
+  <span id="msg"></span>
+</div>
+<div class="grid">
+  <div id="main"></div>
+  <div class="card fxp" id="fxp"></div>
+</div>
+<script src="/dsp.js"></script>
+<script>
+let S = {}, PRESETS = {}, cur = null, draft = {fx: {}, speed: 1}, dirty = false;
+const FX = () => VoiceFx.withDefaults(draft.fx);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const url = p => '/file?p=' + encodeURIComponent(p);
+const post = (path, body) => fetch(path, {method: 'POST', body: JSON.stringify(body)});
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const say = t => { const m = document.getElementById('msg'); m.textContent = t; setTimeout(() => { if (m.textContent === t) m.textContent = ''; }, 4000); };
+
+/* Built-in starting points: educated guesses from sound-design write-ups (Dalek = 1963 BBC recipe of a mid-range EQ boost
+   plus a 30 Hz ring modulator), not tuned by ear. Tweak, then "Save as preset" to keep your own version. */
+const BUILTIN = {
+  'Clean': {desc: 'No processing.', fx: {}, speed: 1.0},
+  'Faster 12%': {desc: 'Only a 12% pitch-preserving speed-up.', fx: {}, speed: 1.12},
+  'Dalek (1963 recipe)': {desc: 'Mid-range band plus a 30 Hz ring modulator at full mix: the original Doctor Who Dalek chain, approximated.', fx: {hp: 300, lp: 3000, ring: {hz: 30, mix: 1}}, speed: 1.0},
+  'Servitor': {desc: 'Thin, crushed, slow-buzzing: a lobotomised drone.', fx: {hp: 150, lp: 3500, crush: {bits: 8, hold: 3}, ring: {hz: 35, mix: 0.7}}, speed: 1.0},
+  'Tech-priest': {desc: 'Light metallic ring plus a short echo: a human voice with machine in it.', fx: {lp: 6000, drive: 0.2, ring: {hz: 70, mix: 0.35}, echo: {ms: 35, fb: 0.3, mix: 0.3}}, speed: 1.0},
+  'Machine spirit': {desc: 'Higher ring rate and a tight, ringing echo: an inhuman presence speaking through the machine.', fx: {lp: 7000, ring: {hz: 110, mix: 0.5}, echo: {ms: 18, fb: 0.55, mix: 0.5}}, speed: 1.0},
+  'Vox-caster': {desc: 'Band-limited, driven, slightly crushed: a vox transmission.', fx: {hp: 400, lp: 3200, drive: 0.35, crush: {bits: 12, hold: 1}}, speed: 1.0},
+  'Intercom': {desc: 'Narrow, crunchy ship intercom.', fx: {hp: 500, lp: 2800, drive: 0.2, crush: {bits: 10, hold: 2}}, speed: 1.0},
+  'Chorus (doubled voice)': {desc: 'Three slightly detuned copies mixed under the voice: a choir-like thickening.', fx: {chorus: {ms: 3, hz: 0.8, mix: 0.6}}, speed: 1.0},
+  'Ghostly (reverse reverb)': {desc: 'A swell that rises before each sound, with a faint waver.', fx: {trem: {hz: 5, depth: 0.15}, rrev: {decay: 0.7, mix: 0.5}}, speed: 1.0},
+  'Mutant warble': {desc: 'Wavering, slightly doubled, with a short pre-swell: something wrong with the voice.', fx: {trem: {hz: 6, depth: 0.25}, ring: {hz: 45, mix: 0.2}, echo: {ms: 22, fb: 0.2, mix: 0.25}, rrev: {decay: 0.35, mix: 0.3}}, speed: 1.0},
+  'Servitor, half blended': {desc: 'The Servitor chain mixed 55% wet with the original voice, so the words stay clear.', fx: {mix: 0.55, hp: 150, lp: 3500, crush: {bits: 8, hold: 3}, ring: {hz: 35, mix: 0.7}}, speed: 1.0},
+};
+let LIB = {}, libPick = '';
+/* [label, path in fx, min, max, step, format] */
+const CTLS = [
+  ['Wet / dry', 'mix', 0, 1, 0.05, v => Math.round(v * 100) + '% wet', 'Blend'],
+  ['Speed', 'speed', 1, 1.4, 0.01, v => v.toFixed(2) + 'x', 'Timing'],
+  ['High-pass', 'hp', 0, 800, 10, v => v ? v + ' Hz' : 'off', 'Tone'],
+  ['Low-pass', 'lp', 0, 12000, 100, v => v ? v + ' Hz' : 'off'],
+  ['Drive', 'drive', 0, 1, 0.05, v => v ? v.toFixed(2) : 'off'],
+  ['Crush bits', 'crush.bits', 4, 16, 1, v => v >= 16 ? 'off' : v + ' bit', 'Digital'],
+  ['Crush hold', 'crush.hold', 1, 16, 1, v => v <= 1 ? 'off' : v + ' smp'],
+  ['Ring Hz', 'ring.hz', 0, 400, 5, v => v ? v + ' Hz' : 'off', 'Modulation'],
+  ['Ring mix', 'ring.mix', 0, 1, 0.05, v => v ? v.toFixed(2) : 'off'],
+  ['Tremolo Hz', 'trem.hz', 0, 20, 0.5, v => v ? v + ' Hz' : 'off'],
+  ['Tremolo depth', 'trem.depth', 0, 1, 0.05, v => v ? v.toFixed(2) : 'off'],
+  ['Chorus depth', 'chorus.ms', 0, 8, 0.5, v => v ? v + ' ms' : 'off', 'Chorus'],
+  ['Chorus rate', 'chorus.hz', 0.1, 3, 0.1, v => v.toFixed(1) + ' Hz'],
+  ['Chorus mix', 'chorus.mix', 0, 1, 0.05, v => v ? v.toFixed(2) : 'off'],
+  ['Echo ms', 'echo.ms', 0, 400, 5, v => v ? v + ' ms' : 'off', 'Echo'],
+  ['Echo feedback', 'echo.fb', 0, 0.9, 0.05, v => v.toFixed(2)],
+  ['Echo mix', 'echo.mix', 0, 1, 0.05, v => v ? v.toFixed(2) : 'off'],
+  ['Rev-reverb time', 'rrev.decay', 0, 1.5, 0.05, v => v ? v.toFixed(2) + ' s' : 'off', 'Reverse reverb'],
+  ['Rev-reverb mix', 'rrev.mix', 0, 1, 0.05, v => v ? v.toFixed(2) : 'off'],
+];
+function getPath(o, p) { return p.split('.').reduce((a, k) => (a == null ? a : a[k]), o); }
+function setPath(o, p, v) { const ks = p.split('.'); const l = ks.pop(); let t = o; for (const k of ks) t = t[k] = t[k] || {}; t[l] = v; }
+function ctlValue(path) { return path === 'speed' ? draft.speed : getPath(FX(), path); }
+
+/* ---------- audio: process with the same chain production uses, then play ---------- */
+const player = new Audio(); player.preservesPitch = true;
+let ac = null, playingBtn = null, playingPath = null, liveTimer = null, liveSeq = 0, liveUrl = null;
+const rawCache = new Map(), procCache = new Map();
+async function rawSamples(path) {
+  if (!rawCache.has(path)) {
+    ac = ac || new AudioContext();
+    const buf = await ac.decodeAudioData(await (await fetch(url(path))).arrayBuffer());
+    rawCache.set(path, {x: buf.getChannelData(0).slice(), sr: buf.sampleRate});
+  }
+  return rawCache.get(path);
+}
+async function playClip(path, btn) {
+  if (playingBtn) { playingBtn.textContent = '▶'; playingBtn.classList.remove('on'); }
+  if (playingBtn === btn && !player.paused) { player.pause(); playingBtn = null; return; }
+  playingBtn = btn; playingPath = path; btn.textContent = '…';
+  const useFx = document.getElementById('prevfx').checked;
+  const key = path + '|' + (useFx ? JSON.stringify(draft) : 'dry');
+  if (!procCache.has(key)) {
+    const {x, sr} = await rawSamples(path);
+    const y = useFx ? VoiceFx.applyFx(x, sr, draft.fx) : x;
+    procCache.set(key, URL.createObjectURL(new Blob([VoiceFx.encodeWav(y, sr)], {type: 'audio/wav'})));
+  }
+  player.src = procCache.get(key);
+  player.preservesPitch = true; player.playbackRate = useFx ? draft.speed : 1;
+  player.loop = !!(document.getElementById('loopfx') || {}).checked;
+  btn.textContent = '■'; btn.classList.add('on');
+  await player.play();
+}
+/* live update: re-run the chain on the clip that is playing and swap it in at the same position (the chain takes tens of ms) */
+function scheduleLive() {
+  if (!playingBtn || player.paused || !document.getElementById('prevfx').checked || !document.getElementById('loopfx').checked) return;
+  clearTimeout(liveTimer); liveTimer = setTimeout(liveRefresh, 50);
+}
+async function liveRefresh() {
+  const seq = ++liveSeq, path = playingPath;
+  const {x, sr} = await rawSamples(path);
+  const y = VoiceFx.applyFx(x, sr, draft.fx);
+  if (seq !== liveSeq || !playingBtn || player.paused) return;
+  const u = URL.createObjectURL(new Blob([VoiceFx.encodeWav(y, sr)], {type: 'audio/wav'}));
+  const t = player.currentTime;
+  player.addEventListener('loadedmetadata', () => { player.currentTime = Math.min(t, Math.max(0, player.duration - 0.05)); player.play(); }, {once: true});
+  player.src = u; player.playbackRate = draft.speed;
+  if (liveUrl) URL.revokeObjectURL(liveUrl); liveUrl = u;
+}
+player.addEventListener('ended', () => { if (playingBtn) { playingBtn.textContent = '▶'; playingBtn.classList.remove('on'); playingBtn = null; } });
+
+/* ---------- character view ---------- */
+async function load() {
+  S = await (await fetch('/state')).json();
+  PRESETS = await (await fetch('/fx')).json();
+  LIB = await (await fetch('/library')).json();
+  const sel = document.getElementById('who'); sel.innerHTML = '';
+  const grp = (label, items) => { if (!items.length) return; const g = document.createElement('optgroup'); g.label = label; items.forEach(o => g.appendChild(o)); sel.appendChild(g); };
+  const opt = (name, text) => { const o = document.createElement('option'); o.value = name; o.textContent = text + (PRESETS[name] ? '  [fx]' : ''); return o; };
+  grp('Designed candidates', Object.keys(S.manifest).map(n => opt(n, `${(S.audit[n] || {}).pick ? '\u2713 ' : '   '}${n}`)));
+  const rend = Object.keys(S.rendered).filter(n => !S.manifest[n]);
+  grp('Rendered voices (post-processing)', rend.map(n => opt(n, `${n} (${S.rendered[n].count})`)));
+  const want = cur || lsGet('who'); cur = allNames().includes(want) ? want : allNames()[0];
+  sel.value = cur; selectChar(cur, true);
+}
+const allNames = () => [...Object.keys(S.manifest), ...Object.keys(S.rendered).filter(n => !S.manifest[n])];
+function selectChar(name, keepDraft) {
+  if (!keepDraft && dirty && !confirm('Discard unsaved FX changes for ' + cur + '?')) { document.getElementById('who').value = cur; return; }
+  cur = name; lsSet('who', cur); dirty = false; libPick = '';
+  const p = PRESETS[cur]; draft = p ? JSON.parse(JSON.stringify(p)) : {fx: {}, speed: 1};
+  document.getElementById('who').value = cur;
+  const names = allNames(); document.getElementById('progress').textContent = `${names.indexOf(cur) + 1} / ${names.length}, ${Object.values(S.audit).filter(a => a.pick).length} picked`;
+  renderMain(); renderFx();
+}
+function renderRendered() {
+  const r = S.rendered[cur];
+  document.getElementById('main').innerHTML = `<div class="card"><h2>${esc(cur)}</h2>
+   <div class="dim">${r.count} rendered lines on this machine; ${r.samples.length} samples below. Use them to tune this voice's post-processing, then Save preset.</div>` +
+    r.samples.map(x => `<div class="clone"><button class="play" data-play="${esc(x.file)}">\u25B6</button><div class="dim">${esc(x.text.slice(0, 220))}</div></div>`).join('') + '</div>';
+}
+function renderMain() {
+  if (!S.manifest[cur]) return renderRendered();
+  const m = S.manifest[cur], a = S.audit[cur] || {cands: {}}, desc = DESCDRAFT[cur] ?? (S.overrides[cur] || m.description);
+  let h = `<div class="card"><h2>${esc(cur)}</h2><div class="dim">${esc(m.role)} · ${esc(m.gender)} · ${a.pick ? 'picked ' + esc(a.pick) : 'no pick yet'}</div>
+   <textarea rows="2" id="desc">${esc(desc)}</textarea>
+   <div class="row"><button id="redo">Save description for redo</button><span class="dim">then re-run design.py --only "${esc(cur)}" --redo --salt NEW</span></div>` + liveHtml();
+  const ord = (a.order || []).filter(c => m.candidates.includes(c));
+  const cands = [...ord, ...m.candidates.filter(c => !ord.includes(c))];
+  h += '<div class="dim" style="margin-top:8px">Drag a candidate by its \u2807 handle to rank best (top) to worst. Rank 1 is the pick.</div><div id="cands">';
+  for (const c of cands) {
+    const k = `clips/${m.slug}/${c}`, sc = S.scores[k], v = a.cands[c] || {};
+    const chips = sc ? `<span class="${sc.p_us > 0.5 ? 'us' : 'good'}">p_us ${sc.p_us.toFixed(2)}</span><span>${esc(sc.top)} ${sc.p_top.toFixed(2)}</span>` : '<span>unscored</span>';
+    const clones = Object.entries(S.clones).filter(([f, x]) => x.name === cur && x.candidate === c).map(([f, x]) => {
+      const cs = S.scores['clones/' + f];
+      return `<div class="clone"><button class="play" data-play="clones/${esc(f)}">▶</button><div><span class="dim">${cs ? 'p_us ' + cs.p_us.toFixed(2) + ' · ' : ''}real line</span><div class="dim">${esc(x.text.slice(0, 140))}</div></div></div>`;
+    }).join('');
+    const b = (f, val, label, cls = '') => `<button class="${cls} ${v[f] === val ? 'on' : ''}" data-c="${c}" data-f="${f}" data-v="${val}">${label}</button>`;
+    h += `<div class="cand ${a.pick === c ? 'picked' : ''}" draggable="true" data-cand="${c}"><button class="play" data-play="${k}">▶</button><div>
+      <span class="grip" title="drag to rank">\u2807</span>${ord.includes(c) ? `<span class="rank">${ord.indexOf(c) + 1}.</span>` : ''}<b>#${c.replace('c', '').replace('.wav', '')}</b> <span class="chips">${chips}</span>
+      <div class="row">accent: ${b('accent', 'british', 'British')}${b('accent', 'american', 'American')}${b('accent', 'other', 'Other')}
+       fit: ${[1, 2, 3, 4, 5].map(i => b('fit', i, i)).join('')} ${b('reject', true, 'Reject', 'rej')}
+       <button class="pick ${a.pick === c ? 'on' : ''}" data-pick="${c}">Pick</button></div>${clones}</div></div>`;
+  }
+  document.getElementById('main').innerHTML = h + '</div></div>';
+}
+let DESCDRAFT = {}, LIVE = {}, LIVEOPT = {seed: '', cfg: 2, steps: 10}, liveBusy = false;
+function liveHtml() {
+  const takes = (LIVE[cur] || []).map((t, i) => `<div class="take"><button class="play" data-play="${esc(t.file)}">\u25B6</button>
+    <span class="seed" data-seed="${t.seed}" title="click to reuse this seed">seed ${t.seed}</span><span class="dim">cfg ${t.cfg} · ${t.timesteps} steps · ${t.seconds}s</span>
+    ${t.kept ? '<span class="dim">kept as ' + esc(t.kept) + '</span>' : `<button data-keep="${i}">Keep</button>`}</div>`).join('');
+  return `<div class="live"><b>Live design</b> <span class="dim" id="livestat"></span>
+    <div class="row">seed <input id="lseed" placeholder="random" value="${esc(LIVEOPT.seed)}"> cfg <input id="lcfg" type="number" step="0.5" value="${LIVEOPT.cfg}">
+     steps <input id="lsteps" type="number" step="1" value="${LIVEOPT.steps}"> <button class="primary" id="lgen">Generate</button></div>
+    <div class="dim">Uses the description above. Blank seed rolls a new one; click a seed to replay it. Keep adds the take as a new candidate.</div>${takes}</div>`;
+}
+let dragEl = null;
+document.addEventListener('dragstart', e => { dragEl = e.target.closest && e.target.closest('.cand[data-cand]'); if (dragEl) { dragEl.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; } });
+document.addEventListener('dragover', e => {
+  const t = e.target.closest && e.target.closest('.cand[data-cand]'); if (!dragEl || !t) return; e.preventDefault();
+  document.querySelectorAll('.cand.over').forEach(x => x.classList.remove('over')); if (t !== dragEl) t.classList.add('over');
+});
+document.addEventListener('drop', async e => {
+  const t = e.target.closest && e.target.closest('.cand[data-cand]'); if (!dragEl || !t) return; e.preventDefault();
+  if (t !== dragEl) { const r = t.getBoundingClientRect(); t.parentNode.insertBefore(dragEl, e.clientY > r.top + r.height / 2 ? t.nextSibling : t); }
+  const order = [...document.querySelectorAll('#cands .cand[data-cand]')].map(x => x.dataset.cand), y = scrollY;
+  await post('/order', {name: cur, order}); S = await (await fetch('/state')).json(); renderMain(); scrollTo(0, y);
+});
+document.addEventListener('dragend', () => { document.querySelectorAll('.dragging,.over').forEach(x => x.classList.remove('dragging', 'over')); dragEl = null; });
+function renderFx() {
+  const others = Object.keys(PRESETS).filter(n => n !== cur);
+  let h = `<h3>Post-processing for ${esc(cur)} ${PRESETS[cur] ? '<span class="dim">(saved)</span>' : ''}${dirty ? '<span class="dim"> · unsaved</span>' : ''}</h3>
+   <label class="row chk"><input type="checkbox" id="prevfx" ${document.getElementById('prevfx') ? (document.getElementById('prevfx').checked ? 'checked' : '') : 'checked'}> Preview with these settings</label>
+   <label class="row chk"><input type="checkbox" id="loopfx" ${document.getElementById('loopfx') && document.getElementById('loopfx').checked ? 'checked' : ''}> <span>Loop, and update live while I move a control</span></label>
+   <div class="row"><select id="lib"><option value="">Load a preset\u2026</option>
+     <optgroup label="Built-in">${Object.keys(BUILTIN).map(n => `<option ${libPick === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</optgroup>
+     ${Object.keys(LIB).length ? `<optgroup label="Yours">${Object.keys(LIB).map(n => `<option ${libPick === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</optgroup>` : ''}</select>
+     <button id="savelib" title="Save these settings as a named preset you can load for any character">Save as preset\u2026</button></div>
+   <div class="dim" style="margin:4px 0 6px">${esc((BUILTIN[libPick] || LIB[libPick] || {}).desc || '')}</div>`;
+  for (const [label, path, min, max, step, fmt, sec] of CTLS) {
+    if (sec) h += `<div class="sec">${sec}</div>`;
+    const v = ctlValue(path);
+    h += `<div class="ctl"><span>${label}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${v}" data-path="${path}"><span class="v" id="v_${path.replace('.', '_')}">${fmt(+v)}</span></div>`;
+  }
+  h += `<div class="row" style="margin-top:12px"><button class="primary" id="savefx">Save preset</button><button id="resetfx">Reset</button></div>
+   ${others.length ? `<div class="row"><select id="copyfrom"><option value="">copy from…</option>${others.map(n => `<option>${esc(n)}</option>`).join('')}</select></div>` : ''}
+   <p class="dim">Saved presets are applied to this character's rendered lines by <code>apply_fx.py</code> (raw renders stay untouched). Speed is a pitch-preserving stretch; the browser preview uses the browser's own, production uses ffmpeg atempo.</p>`;
+  document.getElementById('fxp').innerHTML = h;
+}
+
+/* ---------- events ---------- */
+document.getElementById('who').addEventListener('change', e => selectChar(e.target.value));
+document.getElementById('prev').onclick = () => step(-1);
+document.getElementById('next').onclick = () => step(1);
+function step(d) { const n = allNames(); selectChar(n[(n.indexOf(cur) + d + n.length) % n.length]); }
+document.getElementById('reg').onclick = async () => { const r = await (await fetch('/register', {method: 'POST', body: '{}'})).json(); say('registered: ' + (r.registered.join(', ') || 'none')); };
+document.addEventListener('input', e => {
+  if (e.target.id === 'desc') DESCDRAFT[cur] = e.target.value;
+  const r = e.target.closest('input[data-path]'); if (!r) return;
+  const path = r.dataset.path, val = +r.value;
+  if (path === 'speed') draft.speed = val; else { draft.fx = JSON.parse(JSON.stringify(draft.fx)); setPath(draft.fx, path, val); }
+  const c = CTLS.find(x => x[1] === path); document.getElementById('v_' + path.replace('.', '_')).textContent = c[5](val);
+  if (!dirty) { dirty = true; renderFxTitle(); }
+  if (path === 'speed') player.playbackRate = draft.speed; else scheduleLive();
+});
+function renderFxTitle() { const t = document.querySelector('#fxp h3'); if (t && !t.textContent.includes('unsaved')) t.insertAdjacentHTML('beforeend', '<span class="dim"> · unsaved</span>'); }
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.play) return playClip(b.dataset.play, b);
+  if (b.id === 'savelib') { const nm = (prompt('Name for this preset:') || '').trim(); if (!nm) return; if (BUILTIN[nm] && !confirm('That is a built-in name; save yours under it anyway?')) return; await post('/library', {name: nm, preset: draft}); LIB = await (await fetch('/library')).json(); libPick = nm; renderFx(); return say('preset saved: ' + nm); }
+  if (b.id === 'savefx') { await post('/fx', {name: cur, preset: draft}); dirty = false; await load(); return say('preset saved for ' + cur); }
+  if (b.id === 'resetfx') { draft = {fx: {}, speed: 1}; libPick = ''; dirty = true; return renderFx(); }
+  if (b.id === 'redo') { await post('/redo', {name: cur, description: document.getElementById('desc').value}); delete DESCDRAFT[cur]; return say('description saved'); }
+  if (b.id === 'lgen') {
+    if (liveBusy) return; liveBusy = true; b.disabled = true; const st = document.getElementById('livestat'); st.textContent = 'generating\u2026';
+    const desc = document.getElementById('desc').value, name = cur;
+    const r = await (await post('/live/generate', {description: desc, text: S.manifest[name].text, seed: LIVEOPT.seed, cfg: LIVEOPT.cfg, timesteps: LIVEOPT.steps})).json();
+    liveBusy = false;
+    if (r.error) { b.disabled = false; st.textContent = r.error; return; }
+    (LIVE[name] = LIVE[name] || []).unshift({...r, description: desc, text: S.manifest[name].text});
+    if (cur === name) { renderMain(); document.querySelector('.take [data-play]').click(); }
+    return;
+  }
+  if (b.dataset.keep !== undefined) {
+    const t = LIVE[cur][+b.dataset.keep], y0 = scrollY;
+    const r = await (await post('/live/keep', {name: cur, file: t.file, seed: t.seed, cfg: t.cfg, timesteps: t.timesteps, description: t.description, text: t.text})).json();
+    if (r.error) return say(r.error);
+    t.kept = r.cand; S = await (await fetch('/state')).json(); renderMain(); scrollTo(0, y0); return say('kept as ' + r.cand);
+  }
+  const y = scrollY;
+  if (b.dataset.pick) { const a = S.audit[cur] || {}; await post('/verdict', {name: cur, cand: b.dataset.pick, pick: a.pick !== b.dataset.pick}); }
+  else if (b.dataset.f) {
+    let val = b.dataset.v; const cs = ((S.audit[cur] || {cands: {}}).cands[b.dataset.c] || {});
+    if (b.dataset.f === 'reject') val = !cs.reject; else if (b.dataset.f === 'fit') val = +val;
+    await post('/verdict', {name: cur, cand: b.dataset.c, [b.dataset.f]: val});
+  } else return;
+  S = await (await fetch('/state')).json(); renderMain(); scrollTo(0, y);
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'lseed') LIVEOPT.seed = e.target.value.trim();
+  if (e.target.id === 'lcfg') LIVEOPT.cfg = +e.target.value || 2;
+  if (e.target.id === 'lsteps') LIVEOPT.steps = Math.max(1, Math.round(+e.target.value) || 10);
+});
+document.addEventListener('click', e => { const sd = e.target.closest('.take .seed'); if (sd) { LIVEOPT.seed = sd.dataset.seed; document.getElementById('lseed').value = LIVEOPT.seed; } });
+document.addEventListener('change', e => {
+  if (e.target.id === 'loopfx') { player.loop = e.target.checked; return; }
+  if (e.target.id === 'lib' && e.target.value) { libPick = e.target.value; const pr = LIB[libPick] || BUILTIN[libPick]; draft = {fx: JSON.parse(JSON.stringify(pr.fx)), speed: pr.speed}; dirty = true; renderFx(); return; }
+  if (e.target.id === 'copyfrom' && e.target.value) { draft = JSON.parse(JSON.stringify(PRESETS[e.target.value])); dirty = true; renderFx(); }
+});
+load();
+</script>

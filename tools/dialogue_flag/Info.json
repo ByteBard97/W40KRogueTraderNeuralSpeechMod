@@ -1,0 +1,10 @@
+{
+  "Id": "DialogueFlag",
+  "DisplayName": "Dialogue Flag",
+  "Author": "bytebard97",
+  "Version": "0.1.0",
+  "ManagerVersion": "0.25.0",
+  "Requirements": [],
+  "AssemblyName": "DialogueFlag.dll",
+  "EntryMethod": "DialogueFlag.Main.Load"
+}

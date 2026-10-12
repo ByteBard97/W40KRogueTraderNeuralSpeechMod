@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>AudioTest</AssemblyName>
+    <RootNamespace>AudioTest</RootNamespace>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ManagedDir Condition="'$(ManagedDir)' == ''">/mnt/games/SteamLibrary/steamapps/common/Warhammer 40,000 Rogue Trader/WH40KRT_Data/Managed</ManagedDir>
+    <UmmDir Condition="'$(UmmDir)' == ''">/mnt/games/SteamLibrary/steamapps/compatdata/2186680/pfx/drive_c/users/steamuser/AppData/LocalLow/Owlcat Games/Warhammer 40000 Rogue Trader/UnityModManager</UmmDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="netstandard"><HintPath>$(ManagedDir)/netstandard.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="System.Memory"><HintPath>$(ManagedDir)/System.Memory.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>$(ManagedDir)/Newtonsoft.Json.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityModManager"><HintPath>$(UmmDir)/UnityModManager.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(ManagedDir)/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(ManagedDir)/UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(ManagedDir)/UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="AK.Wwise.Unity.API"><HintPath>$(ManagedDir)/AK.Wwise.Unity.API.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="AK.Wwise.Unity.API.WwiseTypes"><HintPath>$(ManagedDir)/AK.Wwise.Unity.API.WwiseTypes.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="AK.Wwise.Unity.MonoBehaviour"><HintPath>$(ManagedDir)/AK.Wwise.Unity.MonoBehaviour.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

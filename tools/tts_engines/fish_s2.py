@@ -9,7 +9,13 @@ import numpy as np
 import torch
 
 FISH_DIR = Path(__file__).resolve().parent.parent.parent / "reference/fish-speech"
-CHECKPOINT_DIR = FISH_DIR / "checkpoints/s2-pro"
+# int8 weight-only quantized (via reference/fish-speech/tools/llama/quantize.py --mode int8):
+# the original bf16 checkpoint OOMs on this 16GB card even standalone (LLM alone climbs past
+# 14.4GB during generation, no headroom left) - quantizing the LLM's Linear weights to int8
+# brings peak usage down to ~11.8GB, comfortably fitting. codec.pth (DAC decoder, not
+# quantized) was copied back in from the original checkpoint dir since quantize.py only
+# touches the LLM weights.
+CHECKPOINT_DIR = FISH_DIR / "checkpoints/s2-pro-int8"
 
 
 def load():
@@ -50,6 +56,10 @@ def synth(engine, text, prompt_wav=None, prompt_text=None, instruct=None):
     req = ServeTTSRequest(text=text, references=references, reference_id=None, streaming=False)
 
     results = list(engine.inference(req))
-    final = next(r for r in reversed(results) if r.code == "final")
+    errors = [r.error for r in results if r.code == "error"]
+    try:
+        final = next(r for r in reversed(results) if r.code == "final")
+    except StopIteration:
+        raise RuntimeError(f"fish_s2 produced no final result: {errors or 'no error reported'}") from None
     sr, audio = final.audio
     return np.asarray(audio, dtype=np.float32).reshape(-1), sr

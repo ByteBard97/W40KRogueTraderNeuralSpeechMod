@@ -1,0 +1,238 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>Live tweak - Abelard TTS</title>
+<style>
+:root { --bg:#0f1115; --panel:#171a21; --line:#262a33; --mute:#94a3b8; --acc:#facc15; }
+body { background:var(--bg); color:#e5e7eb; font-family:system-ui,sans-serif; padding:20px; max-width:1300px; margin:0 auto; }
+h1 { font-size:18px; margin:0 0 12px; }
+label { display:block; font-size:12px; color:var(--mute); margin:10px 0 4px; }
+select, textarea, input[type=text] { width:100%; background:var(--bg); color:#e5e7eb; border:1px solid var(--line); border-radius:6px; padding:7px; font-size:13px; box-sizing:border-box; }
+textarea { min-height:52px; font-family:inherit; }
+input[type=range] { width:100%; }
+.shared { background:var(--panel); border-radius:8px; padding:12px; margin-bottom:14px; }
+.panels { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.panel { background:var(--panel); border-radius:8px; padding:12px; border-top:3px solid var(--acc); }
+.panel.B { border-top-color:#38bdf8; }
+.panel h2 { font-size:15px; margin:0 0 6px; display:flex; justify-content:space-between; align-items:center; }
+.tabs { display:flex; gap:6px; }
+.tabs button { flex:1; padding:6px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:#e5e7eb; cursor:pointer; font-size:12px; }
+.tabs button.active { background:var(--acc); color:var(--bg); font-weight:600; border-color:var(--acc); }
+.panel.B .tabs button.active { background:#38bdf8; border-color:#38bdf8; }
+.row { display:flex; gap:12px; } .row > div { flex:1; }
+.val { float:right; color:#e5e7eb; }
+button.btn { padding:9px 14px; border:none; border-radius:6px; font-weight:600; cursor:pointer; background:var(--acc); color:var(--bg); }
+.panel.B button.btn.render { background:#38bdf8; }
+button.btn.sec { background:var(--line); color:#e5e7eb; font-weight:500; }
+button.btn:disabled { opacity:.5; cursor:default; }
+.status { font-size:12px; color:var(--mute); min-height:16px; margin-top:6px; }
+audio { width:100%; height:32px; margin-top:8px; }
+.compare { display:flex; gap:10px; margin:14px 0; align-items:center; flex-wrap:wrap; }
+.compare .now { color:var(--mute); font-size:13px; }
+.hidden { display:none; }
+.hist h2 { font-size:14px; color:var(--mute); margin:18px 0 8px; display:flex; gap:16px; align-items:center; }
+.run { display:grid; grid-template-columns:1fr 230px auto; gap:10px; align-items:center; background:var(--panel); border-radius:6px; padding:8px 10px; margin-bottom:6px; font-size:12px; }
+.run .meta { color:#cbd5e1; word-break:break-word; }
+.run .meta b { color:#fff; } .run .sub { color:var(--mute); margin-top:2px; }
+.run audio { margin:0; height:28px; }
+.run .acts { display:flex; gap:4px; align-items:center; }
+.run .acts button { padding:4px 8px; font-size:12px; border-radius:4px; border:1px solid var(--line); background:var(--bg); color:#e5e7eb; cursor:pointer; }
+.run .acts button.star.on { color:var(--acc); border-color:var(--acc); }
+.run input.note { margin-top:4px; padding:3px 6px; font-size:12px; }
+</style></head><body>
+<h1>Live tweak &mdash; Abelard TTS (A/B compare)</h1>
+
+<div class="shared">
+  <div class="row">
+    <div><label>Line</label><select id="lineSelect">__LINE_OPTIONS__</select></div>
+  </div>
+  <div class="status" id="lineInfo"></div>
+  <label>Target text (shared by A and B)</label>
+  <textarea id="textInput"></textarea>
+</div>
+
+<div class="panels" id="panels"></div>
+
+<div class="compare">
+  <button class="btn" onclick="renderBoth()" id="bothBtn">Render both</button>
+  <button class="btn sec" onclick="playSeq('A','B')">&#9654; A then B</button>
+  <button class="btn sec" onclick="playSeq('B','A')">&#9654; B then A</button>
+  <button class="btn sec" onclick="copySide('A','B')">copy A &rarr; B settings</button>
+  <span class="now" id="nowPlaying"></span>
+</div>
+
+<div class="hist">
+  <h2>Run history (saved to disk) <label style="margin:0"><input type="checkbox" id="starOnly" onchange="renderHistory()"> starred only</label><span id="histCount"></span></h2>
+  <div id="histList"></div>
+</div>
+
+<script>
+const LINES = __LINES_JSON__;
+const REF_OPTIONS = `__REF_OPTIONS__`;
+const REF_TEXT = __REFS_JSON__;
+const SIDES = ['A', 'B'];
+const el = id => document.getElementById(id);
+let RUNS = [];
+const state = {A: {engine: 'voxcpm2', runId: null}, B: {engine: 'voxcpm2', runId: null}};
+
+function panelHtml(s) {
+  return `<div class="panel ${s}" id="panel${s}">
+  <h2>Version ${s}</h2>
+  <div class="tabs">
+    <button id="tab${s}-voxcpm2" class="active" onclick="setEngine('${s}','voxcpm2')">voxcpm2</button>
+    <button id="tab${s}-qwen3_tts" onclick="setEngine('${s}','qwen3_tts')">qwen3_tts</button>
+  </div>
+  <label>Zero-shot reference clip (&#10003; = accepted) <a href="#" onclick="setPlanned('${s}');return false" style="color:var(--acc)">reset to planned</a></label>
+  <select id="ref${s}"><option value="">Line default (emotion-matched)</option>${REF_OPTIONS}</select>
+  <audio id="refPlayer${s}" controls class="hidden"></audio>
+  <div id="refText${s}" class="status"></div>
+  <div id="vox${s}">
+    <label>Instruction (voxcpm2 only)</label>
+    <textarea id="instruct${s}"></textarea>
+    <div class="row">
+      <div><label>cfg_value <span class="val" id="cfgVal${s}">3.0</span></label>
+        <input type="range" id="cfg${s}" min="1.0" max="5.0" step="0.1" value="3.0"></div>
+      <div><label>inference_timesteps <span class="val" id="tsVal${s}">10</span></label>
+        <input type="range" id="ts${s}" min="4" max="30" step="1" value="10"></div>
+    </div>
+    <label><input type="checkbox" id="retry${s}" checked> retry_badcase</label>
+  </div>
+  <div id="qwenNote${s}" class="status hidden" style="color:#f87171">qwen3_tts (Base) ignores the instruction, cfg and timesteps; only the reference clip and text matter.</div>
+  <div style="margin-top:10px"><button class="btn render" id="btn${s}" onclick="renderSide('${s}')">Render ${s}</button></div>
+  <div class="status" id="status${s}"></div>
+  <audio id="player${s}" controls></audio>
+</div>`;
+}
+el('panels').innerHTML = SIDES.map(panelHtml).join('');
+
+function setEngine(s, e) {
+  state[s].engine = e;
+  for (const x of ['voxcpm2', 'qwen3_tts']) el(`tab${s}-${x}`).classList.toggle('active', x === e);
+  el(`vox${s}`).classList.toggle('hidden', e !== 'voxcpm2');
+  el(`qwenNote${s}`).classList.toggle('hidden', e === 'voxcpm2');
+  el(`instruct${s}`).value = (LINES[el('lineSelect').value].engines[e] || {}).instruct || '';
+}
+function setRef(s, ev) {
+  el(`ref${s}`).value = ev || '';
+  const p = el(`refPlayer${s}`);
+  p.classList.toggle('hidden', !ev);
+  if (ev) p.src = '/ref_wav?event=' + encodeURIComponent(ev);
+  el(`refText${s}`).textContent = ev ? REF_TEXT[ev] : '';
+}
+function plannedRef(guid, engine) {
+  const e = LINES[guid].engines[engine];
+  return e && e.ref_event ? e : null;
+}
+function loadLine() {
+  const guid = el('lineSelect').value, info = LINES[guid];
+  el('textInput').value = info.text;
+  const pr = plannedRef(guid, 'voxcpm2');
+  el('lineInfo').textContent = `Annotated emotion: ${info.emotion}` + (pr
+    ? ` \u00b7 planned reference: ${pr.ref_emotion} (${pr.ref_exact ? 'exact match' : 'nearest, PAD distance ' + pr.ref_distance}) \u00b7 ${pr.ref_event}` : '');
+  for (const s of SIDES) { setEngine(s, state[s].engine); setPlanned(s); }
+}
+function setPlanned(s) {
+  const pr = plannedRef(el('lineSelect').value, state[s].engine);
+  setRef(s, pr ? pr.ref_event : '');
+}
+for (const s of SIDES) {
+  el(`ref${s}`).addEventListener('change', e => setRef(s, e.target.value));
+  el(`cfg${s}`).addEventListener('input', e => el(`cfgVal${s}`).textContent = e.target.value);
+  el(`ts${s}`).addEventListener('input', e => el(`tsVal${s}`).textContent = e.target.value);
+}
+el('lineSelect').addEventListener('change', loadLine);
+loadLine();
+
+function settings(s) {
+  return {engine: state[s].engine, ref_event: el(`ref${s}`).value, instruct: el(`instruct${s}`).value,
+          cfg: el(`cfg${s}`).value, ts: el(`ts${s}`).value, retry: el(`retry${s}`).checked ? '1' : '0'};
+}
+function applySettings(s, st) {
+  setEngine(s, st.engine);
+  setRef(s, st.ref_event);
+  if (st.engine === 'voxcpm2') {
+    el(`instruct${s}`).value = st.instruct || '';
+    el(`cfg${s}`).value = st.cfg; el(`cfgVal${s}`).textContent = st.cfg;
+    el(`ts${s}`).value = st.ts; el(`tsVal${s}`).textContent = st.ts;
+    el(`retry${s}`).checked = st.retry === '1';
+  }
+}
+function copySide(from, to) { applySettings(to, settings(from)); }
+
+async function renderSide(s) {
+  const st = settings(s), guid = el('lineSelect').value, text = el('textInput').value;
+  const params = new URLSearchParams({engine: st.engine, guid, text});
+  if (st.ref_event) params.set('ref_event', st.ref_event);
+  if (st.engine === 'voxcpm2') for (const k of ['instruct', 'cfg', 'ts', 'retry']) params.set(k, st[k]);
+  el(`btn${s}`).disabled = true;
+  el(`status${s}`).textContent = 'Rendering (first render per engine loads the model, ~20-45s)...';
+  const t0 = performance.now();
+  try {
+    const resp = await fetch('/render?' + params);
+    if (!resp.ok) { el(`status${s}`).textContent = 'Error: ' + await resp.text(); return; }
+    const id = resp.headers.get('X-Run-Id');
+    state[s].runId = id;
+    el(`player${s}`).src = '/run_wav?id=' + id;
+    el(`status${s}`).textContent = `Done in ${((performance.now() - t0) / 1000).toFixed(1)}s (run ${id})`;
+    await loadRuns();
+  } catch (err) { el(`status${s}`).textContent = 'Error: ' + err; }
+  finally { el(`btn${s}`).disabled = false; }
+}
+async function renderBoth() {
+  el('bothBtn').disabled = true;
+  await Promise.all(SIDES.map(renderSide));
+  el('bothBtn').disabled = false;
+}
+
+let seqToken = 0;
+function playSeq(first, second) {
+  const token = ++seqToken;
+  const a = el(`player${first}`), b = el(`player${second}`);
+  for (const p of [a, b]) { p.pause(); p.currentTime = 0; }
+  el('nowPlaying').textContent = `playing ${first}...`;
+  a.onended = () => {
+    if (token !== seqToken) return;
+    el('nowPlaying').textContent = `playing ${second}...`;
+    setTimeout(() => { if (token === seqToken) b.play(); }, 500);
+    b.onended = () => { if (token === seqToken) el('nowPlaying').textContent = ''; };
+  };
+  a.play();
+}
+
+async function loadRuns() { RUNS = await (await fetch('/runs')).json(); renderHistory(); }
+function esc(t) { return String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c])); }
+function summary(r) {
+  const p = r.params || {};
+  const ref = r.ref ? `${r.ref.emotion} ${r.ref.duration.toFixed(1)}s` : 'line default';
+  const eng = r.engine === 'voxcpm2'
+    ? `cfg ${p.cfg} &middot; ts ${p.ts} &middot; retry ${p.retry}` : '';
+  const line = LINES[r.guid] ? 'L' + LINES[r.guid].n : r.guid.slice(0, 8);
+  return `<b>${line} &middot; ${r.engine}</b> ${eng} &middot; ref: ${esc(ref)}
+    <div class="sub">${p.instruct ? '(' + esc(p.instruct) + ') ' : ''}&ldquo;${esc(r.text.slice(0, 90))}&rdquo;
+    &middot; ${r.ts.slice(5, 16).replace('T', ' ')} &middot; ${r.elapsed}s gen</div>`;
+}
+function renderHistory() {
+  const starOnly = el('starOnly').checked;
+  const rows = RUNS.filter(r => !starOnly || r.star).slice().reverse();
+  el('histCount').textContent = `${rows.length} of ${RUNS.length} runs`;
+  el('histList').innerHTML = rows.map(r => `<div class="run" data-id="${r.id}">
+    <div class="meta">${summary(r)}<input class="note" type="text" placeholder="note..." value="${esc(r.note || '')}" onchange="setMeta('${r.id}',{note:this.value})"></div>
+    <audio controls preload="none" src="/run_wav?id=${r.id}"></audio>
+    <div class="acts"><button onclick="loadRun('${r.id}','A')">&rarr;A</button><button onclick="loadRun('${r.id}','B')">&rarr;B</button>
+    <button class="star ${r.star ? 'on' : ''}" onclick="setMeta('${r.id}',{star:${!r.star}})">&#9733;</button></div></div>`).join('');
+}
+function loadRun(id, s) {
+  const r = RUNS.find(x => x.id === id);
+  if (LINES[r.guid]) el('lineSelect').value = r.guid;
+  el('textInput').value = r.text;
+  applySettings(s, {engine: r.engine, ref_event: r.ref_event || '', instruct: (r.params || {}).instruct,
+                    cfg: (r.params || {}).cfg, ts: (r.params || {}).ts, retry: (r.params || {}).retry});
+  state[s].runId = id;
+  el(`player${s}`).src = '/run_wav?id=' + id;
+  el(`status${s}`).textContent = `Loaded run ${id} (settings + audio)`;
+}
+async function setMeta(id, patch) {
+  await fetch('/run_meta', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id, ...patch})});
+  await loadRuns();
+}
+loadRuns();
+</script>
+</body></html>

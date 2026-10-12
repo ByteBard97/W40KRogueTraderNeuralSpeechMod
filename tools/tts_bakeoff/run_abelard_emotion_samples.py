@@ -4,10 +4,18 @@ using an emotion-matched zero-shot reference clip picked from his real, ear-veri
 voiced lines (curation.json) - exact emotion match preferred, nearest-PAD-neighbor
 fallback (see ../select_reference_clip.py).
 
+chatterbox and chatterbox_turbo are dropped from this comparison as of 2026-09-15: chatterbox
+consistently gives Abelard an American accent instead of British RP and doesn't clone his timbre
+well; chatterbox_turbo has better accent behavior but sounds mechanical, and its exaggeration/
+cfg_weight knobs are confirmed dead upstream (Resemble AI removed CFG from Turbo for speed), so
+there's no lever to fix its pacing. Both are believed to be base-model accent/prosody bias, not
+something reference-clip choice or generation knobs can tune around - don't re-run them here
+without a concrete new idea for why they'd behave differently this time.
+
 Must be run under the correct venv/conda env for the given engine - same convention as
 run_bakeoff.py (this project doesn't import all engines into one process; each has its
 own, sometimes conflicting, dependency set):
-  chatterbox, chatterbox_turbo, indextts2  -> .venv-tts (repo root)
+  indextts2                                -> .venv-tts (repo root)
   fish_s2, fish_s2cpp                      -> tools/tts_bakeoff/.venv-fish
   higgs                                    -> tools/tts_bakeoff/.venv-higgs
   qwen3_tts                                -> tools/tts_bakeoff/.venv-qwen
@@ -37,6 +45,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # tools/
 sys.path.insert(0, str(ROOT / "src/TtsSidecar"))
 from annotation_bridge import route  # noqa: E402
 from select_reference_clip import ReferenceLibrary  # noqa: E402
+from build_test_set import speech_only  # noqa: E402
+from lexicon import respell  # noqa: E402
 
 OUT_ROOT = ROOT / "data/bakeoff_abelard_emotion_matched"
 MANIFEST_PATH = OUT_ROOT / "manifest.json"
@@ -85,15 +95,48 @@ def load_labeled_lines(n: int, seed: int) -> list[dict]:
             if l.get("text_key"):
                 text_by_key[l["text_key"]] = l["text"]
 
-    random.Random(seed).shuffle(labeled)
-    lines = []
+    rng = random.Random(seed)
+    rng.shuffle(labeled)
+    joined = []
     for rec in labeled:
-        text = text_by_key.get(rec["guid"])
+        raw_text = text_by_key.get(rec["guid"])
+        if not raw_text:
+            continue
+        # Raw game text carries Owlcat markup ({n}..{/n} narration, {g|..}..{/g} glossary
+        # wrappers, etc.) - without stripping it, engines synthesize the literal tag syntax as
+        # part of the line. speech_only() is the same cleaner the production bake-off's test set
+        # (data/tts_test_set.json, via build_test_set.py) already uses for this exact reason.
+        text = speech_only(raw_text)
         if not text:
             continue
-        lines.append({**rec, "text": text})
+        joined.append({**rec, "text": text})
+
+    # Stratify by emotion so the sample maximizes *distinct* emotions covered rather than just
+    # picking n random lines (which skews toward the corpus's most common emotions - dry,
+    # matter-of-fact, stern - and can miss rare ones entirely, e.g. only 1-3 lines exist for
+    # emotions like "pleading" or "hopeful"). `joined` is already shuffled (from `labeled` above),
+    # so by_emotion[emo][0] is a random representative per emotion - deterministic given seed.
+    by_emotion: dict[str, list[dict]] = {}
+    for rec in joined:
+        by_emotion.setdefault(rec["emotion"], []).append(rec)
+    emotions = list(by_emotion)
+    rng.shuffle(emotions)
+
+    lines: list[dict] = []
+    seen_guids: set[str] = set()
+    for emo in emotions:
         if len(lines) >= n:
             break
+        cand = by_emotion[emo][0]
+        lines.append(cand)
+        seen_guids.add(cand["guid"])
+    if len(lines) < n:  # n exceeds distinct-emotion count - fill remainder from the rest
+        for rec in joined:
+            if len(lines) >= n:
+                break
+            if rec["guid"] not in seen_guids:
+                lines.append(rec)
+                seen_guids.add(rec["guid"])
     return lines
 
 
@@ -130,7 +173,11 @@ def main() -> None:
         annotation = {"emotion": rec["emotion"], "intensity": rec["intensity"],
                       "pace": rec["pace"], "nonverbal": rec["nonverbal"],
                       "instruct": rec["instruct"]}
-        text, kwargs = route(args.engine, rec["text"], annotation)
+        # Lexicon respelling applied before synthesis, same order as production's server.py -
+        # rec["text"] (manifest display text) stays unrespelled/readable, only the text actually
+        # handed to the engine is transformed (e.g. "Chorda" -> "KOR-dah" so engines don't guess
+        # a soft-ch pronunciation from English orthography rules).
+        text, kwargs = route(args.engine, respell(rec["text"]), annotation)
 
         entry = {
             "engine": args.engine, "guid": guid, "text": rec["text"],

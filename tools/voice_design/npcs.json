@@ -1,0 +1,30 @@
+{
+  "design_text": "The Rogue Trader's vessel has entered the system, and the augurs report nothing unusual. We should proceed with caution, my lord, and hold our position until the situation becomes clear.",
+  "accent": "British English accent",
+  "npcs": [
+    {"name": "Vox Master Vigdis", "gender": "Female", "role": "ship's vox master",
+     "description": "A woman in her forties, British English accent, crisp and precise with a slightly nasal tone, calm and technical, the clipped delivery of a ship's communications officer."},
+    {"name": "High Factotum Janris Danrok", "gender": "Male", "role": "high factotum, Imperial administrator",
+     "description": "An elderly man, British English accent, dry and gravelly voice, formal and weary, an old Imperial administrator speaking slowly with quiet authority."},
+    {"name": "Jocasta Sauerback", "gender": "Female", "role": "master of discipline",
+     "description": "A stern woman in her fifties, British English accent, hard and clipped voice, disciplined and unsentimental, speaking like a military overseer."},
+    {"name": "Master Helmsman Ravor", "gender": "Male", "role": "void master, ship's helmsman",
+     "description": "A middle-aged man, British English accent, gruff and weathered voice, a veteran ship's helmsman, plain-spoken and calm under pressure."},
+    {"name": "Incendia Chorda", "gender": "Female", "role": "devout penitent zealot",
+     "description": "A woman, British English accent, hoarse and intense voice, fervent and devout, a zealot preaching in a low urgent tone."},
+    {"name": "Clementia Werserian", "gender": "Female", "role": "high-born noble envoy",
+     "description": "A refined woman in her sixties, British English accent, polished aristocratic voice, warm but formal, courtly and measured."},
+    {"name": "Xavier Calcazar", "gender": "Male", "role": "Inquisitor",
+     "description": "A man in his fifties, British English accent, cold and quiet voice, controlled menace, an Imperial inquisitor speaking softly and deliberately."},
+    {"name": "Calligos Winterscale", "gender": "Male", "role": "arrogant bullying noble",
+     "description": "A loud arrogant man, British English accent, posh and sneering, an entitled aristocrat who bullies and mocks."},
+    {"name": "Vladaym Tocara the Liege", "gender": "Male", "role": "oily merchant lord",
+     "description": "A man in his forties, British English accent, smooth and oily voice, friendly and calculating, a merchant lord who flatters while he bargains."},
+    {"name": "Governor Ruoldo", "gender": "Male", "role": "fawning planetary governor",
+     "description": "A man in his fifties, British English accent, bright and eager voice, fawning and obsequious, anxious to please."},
+    {"name": "Marshal Gregoras Strachs", "gender": "Male", "role": "Adeptus Arbites marshal",
+     "description": "A man in his fifties, British English accent, stern and authoritative voice, a lawman with a clipped, no-nonsense delivery."},
+    {"name": "Muaran", "gender": "Male", "role": "Aeldari seer",
+     "description": "A tall ethereal being, British English accent, calm and otherworldly voice, measured and slightly haughty, lyrical and unhurried."}
+  ]
+}
