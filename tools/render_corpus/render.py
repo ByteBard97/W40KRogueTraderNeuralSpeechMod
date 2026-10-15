@@ -32,7 +32,7 @@ from lexicon import respell  # noqa: E402
 from phonemes import phonemize  # noqa: E402
 
 CFG = 3.0           # VoxCPM2: higher was better across the sweep range (HANDOFF-2026-09-23)
-TIMESTEPS = 10
+TIMESTEPS = 15
 
 
 def pronounce(text: str, engine: str) -> str:
@@ -52,6 +52,30 @@ def load_engine(name: str):
             wav = model.generate(text=text, reference_wav_path=ref["wav"], cfg_value=CFG,
                                  inference_timesteps=TIMESTEPS, retry_badcase=False)
             return np.asarray(wav, dtype=np.float32).reshape(-1), model.tts_model.sample_rate
+
+        def raw(text, ref_wav, instruct=None, cfg=CFG, timesteps=TIMESTEPS, normalize=False, seed=None):
+            """One generation with every knob explicit (recipe jobs, see recipe_render.py). Text is sent as given: no lexicon pass here."""
+            import random
+            import torch
+            if seed is not None:
+                random.seed(seed)
+                np.random.seed(seed % (2 ** 32))
+                torch.manual_seed(seed)
+                if torch.cuda.is_available():
+                    torch.cuda.manual_seed_all(seed)
+            if normalize:                                   # the model's own normalizer, but never inside a {PHONEME} guide
+                import re
+                if model.text_normalizer is None:
+                    from voxcpm.utils.text_normalize import TextNormalizer
+                    model.text_normalizer = TextNormalizer()
+                text = "".join(p if i % 2 else (model.text_normalizer.normalize(p) if p.strip() else p)
+                               for i, p in enumerate(re.split(r"(\{[^{}]*\})", text)))
+            if instruct:
+                text = f"({instruct}){text}"
+            wav = model.generate(text=text, reference_wav_path=ref_wav, cfg_value=cfg, inference_timesteps=timesteps,
+                                 retry_badcase=False, normalize=False)
+            return np.asarray(wav, dtype=np.float32).reshape(-1), model.tts_model.sample_rate
+        synth.raw = raw
         return synth
     if name == "qwen3_tts":
         import tts_engines.qwen3_tts as q

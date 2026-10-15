@@ -69,3 +69,7 @@ screenshots/
 *_shot.png
 *-screenshot*.png
 tools/studio/web/vite.mock.tmp.config.ts
+
+# Game art and voice extractions (copyrighted, local use only)
+data/portraits/
+data/bg3_voices/

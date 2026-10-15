@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import clone, design, fx, fx_library, jobs, matches, pools, qa, speakers, store, summary
+from . import bg3_labels, casting, clone, design, lab, lab_opus, fx, fx_library, jobs, matches, pools, qa, speakers, store, summary
 from .errors import ApiError
 from .router import Router
 
@@ -70,6 +70,22 @@ def build_router() -> Router:
     r.add("GET", "/api/pools/spot-check/{slot}", lambda q: pools.spot_check_sample(q.cfg, q.params["slot"], q.query.get("seed")))
     r.add("POST", "/api/pools/spot-check/{slot}",
           lambda q: pools.record_spot_check(q.cfg, q.params["slot"], q.body.get("results", {})))
+    L = "/api/lab"
+    r.add("GET", L + "/options", lambda q: lab.options())
+    r.add("GET", L + "/speakers", lambda q: lab.speakers(q.cfg))
+    r.add("GET", L + "/recipes", lambda q: lab.recipes(q.cfg))
+    r.add("POST", L + "/recipes", lambda q: lab.save_recipe(q.cfg, q.body))
+    r.add("POST", L + "/prepare", lambda q: lab.prepare(q.cfg, q.body))
+    r.add("GET", L + "/lexicon", lambda q: lab.lexicon_lookup(q.query.get("q", "")))
+    r.add("POST", L + "/opus", lambda q: lab_opus.preview(q.cfg, q.body["wav"], int(q.body["kbps"])))
+    r.add("GET", L + "/real-clips", lambda q: lab.real_clips(q.cfg, q.query.get("q", ""), int(q.query.get("limit", lab.REAL_CLIP_LIMIT))))
+    r.add("POST", L + "/render", lambda q: lab.start_render(q.cfg, q.model, q.body))
+    r.add("GET", L + "/jobs", lambda q: lab.active_jobs())
+    r.add("GET", L + "/jobs/{id}", lambda q: lab.get_job(q.params["id"]))
+    r.add("POST", L + "/jobs/{id}/cancel", lambda q: lab.cancel_job(q.params["id"]))
+    r.add("GET", L + "/{speaker}/lines", lambda q: lab.lines(q.cfg, q.params["speaker"]))
+    r.add("GET", L + "/{speaker}/takes", lambda q: lab.takes(q.cfg, q.params["speaker"], q.query.get("guid")))
+    r.add("POST", L + "/{speaker}/takes/{id}", lambda q: lab.update_take(q.cfg, q.params["speaker"], q.params["id"], q.body))
     r.add("GET", "/api/fx/library", lambda q: fx_library.library(q.cfg))
     r.add("GET", "/api/fx/labels", lambda q: fx_library.get_labels(q.cfg))
     r.add("POST", "/api/fx/labels", lambda q: fx_library.save_labels(q.cfg, q.body))
@@ -85,6 +101,16 @@ def build_router() -> Router:
     r.add("POST", "/api/matches/decision", lambda q: matches.save(
         q.cfg, q.body.get("id", ""), q.body.get("value", ""), rebuild=q.body.get("rebuild", True) is not False))
     r.add("POST", "/api/matches/rebuild", lambda q: matches.flush_pools(q.cfg))
+    r.add("GET", "/api/casting", lambda q: casting.page(q.cfg))
+    r.add("GET", "/api/casting/bg3", lambda q: casting.bg3_voices(q.cfg))
+    r.add("POST", "/api/casting/assign", lambda q: casting.assign(q.cfg, q.body["speaker"], q.body.get("bg3")))
+    r.add("POST", "/api/casting/portrait", lambda q: casting.set_portrait(q.cfg, q.body["speaker"], q.body.get("portrait")))
+    r.add("POST", "/api/casting/audition", lambda q: casting.audition(
+        q.cfg, q.model, q.body["speaker"], q.body["bg3"], int(q.body.get("ref", 0)), int(q.body.get("line", 0))))
+    r.add("GET", "/api/casting/labels", lambda q: {"schema": bg3_labels.SCHEMA, "progress": bg3_labels.progress(q.cfg, casting.bg3_voices(q.cfg))})
+    r.add("POST", "/api/casting/labels", lambda q: bg3_labels.set_label(q.cfg, q.body["slug"], q.body["key"], q.body.get("value")))
+    r.add("POST", "/api/casting/labels/backup", lambda q: {"backup": bg3_labels.backup(q.cfg)})
+    r.add("POST", "/api/casting/register", lambda q: casting.register(q.cfg))
     run = lambda q: q.query.get("run") or qa.EXPORT
     r.add("GET", "/api/qa/runs", lambda q: qa.runs(q.cfg))
     r.add("GET", "/api/qa/facets", lambda q: qa.facets(q.cfg, run(q)))

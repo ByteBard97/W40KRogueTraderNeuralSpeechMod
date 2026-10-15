@@ -42,3 +42,12 @@ def test_single_segment_and_empty():
 
 def test_never_clips():
     assert np.max(np.abs(stitch([tone(1.0, 0.99), tone(1.0, 0.99)], SR))) <= 1.0
+
+
+def test_a_piece_uses_its_redo_take_when_its_own_is_not_usable():
+    from takes import pick
+    segs = {"p2": ("w2", {}), "p3@r1": ("w3", {}), "p5@r2": ("w5", {})}
+    assert pick({"guid": "p2"}, segs) == "p2"                       # own take wins
+    assert pick({"guid": "p3"}, segs) == "p3@r1"                    # a redo takes over
+    assert pick({"guid": "p5"}, segs) == "p5@r2"                    # any of the redo numbers
+    assert pick({"guid": "p4"}, segs) is None

@@ -5,6 +5,9 @@ import PoolsView from './views/PoolsView.vue'
 import FxView from './views/FxView.vue'
 import MatchesView from './views/MatchesView.vue'
 import QaView from './views/QaView.vue'
+import CastingView from './views/CastingView.vue'
+import VoicesView from './views/VoicesView.vue'
+import LabView from './views/LabView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -16,6 +19,9 @@ export const router = createRouter({
     { path: '/fx', component: FxView },
     { path: '/matches', component: MatchesView },
     { path: '/qa', component: QaView },
+    { path: '/casting', component: CastingView },
+    { path: '/voices', component: VoicesView },
+    { path: '/lab', component: LabView },
     // Dev only (or a build with VITE_STYLEGUIDE=1): every shared component on one page.
     ...(import.meta.env.DEV || import.meta.env.VITE_STYLEGUIDE ? [{ path: '/styleguide', component: () => import('./views/StyleguideView.vue') }] : []),
   ],

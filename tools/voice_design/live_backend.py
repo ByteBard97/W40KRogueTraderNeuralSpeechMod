@@ -20,6 +20,7 @@ import base64
 import hashlib
 import json
 import random
+import re
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -30,6 +31,19 @@ from design import OUT, ROOT, seed_all, vox_prompt
 TMP = OUT / "live_tmp"
 LOCK = threading.Lock()   # one generation at a time on the GPU
 STATE = {"model": None, "n": 0}
+
+
+_BRACED = re.compile(r"(\{[^{}]*\})")
+
+
+def normalize_keep_braces(model, text: str) -> str:
+    """The model's own text normalization, applied everywhere except inside {PHONEME} guides.
+    Run over a guide it turns the stress digits into words ("{V AA1 N}" -> "{V AA one N}") and the model then reads the guide out."""
+    if model.text_normalizer is None:
+        from voxcpm.utils.text_normalize import TextNormalizer
+        model.text_normalizer = TextNormalizer()
+    parts = _BRACED.split(text)
+    return "".join(p if i % 2 else (model.text_normalizer.normalize(p) if p.strip() else p) for i, p in enumerate(parts))
 
 
 def generate(body: dict) -> dict:
@@ -50,8 +64,12 @@ def generate(body: dict) -> dict:
         if (ROOT / "data").resolve() not in ref.parents or not ref.is_file():
             raise ValueError(f"reference_wav must be an existing file under data/: {body['reference_wav']}")
     if body.get("reference_wav"):
-        kw = {"reference_wav_path": str(ref), "retry_badcase": bool(body.get("retry_badcase", False)),
-              "normalize": bool(body.get("normalize", False))}
+        kw = {"reference_wav_path": str(ref), "retry_badcase": bool(body.get("retry_badcase", False)), "normalize": False}
+        if body.get("normalize"):                       # done here, not by generate(), so {PHONEME} guides survive it
+            body = {**body, "text": normalize_keep_braces(STATE["model"], body["text"])}
+        for key, cast in (("retry_badcase_max_times", int), ("retry_badcase_ratio_threshold", float), ("max_len", int), ("min_len", int)):
+            if body.get(key) not in (None, ""):          # render-lab knobs; absent means the library default
+                kw[key] = cast(body[key])
         if body.get("prompt_text"):
             kw.update(prompt_wav_path=str(ref), prompt_text=body["prompt_text"])
         text = f"({body['instruct']}){body['text']}" if body.get("instruct") else body["text"]
@@ -65,7 +83,7 @@ def generate(body: dict) -> dict:
         TMP.mkdir(parents=True, exist_ok=True)
         STATE["n"] += 1
         name = f"t{int(time.time())}_{STATE['n']}.wav"
-        sf.write(str(TMP / name), np.asarray(w, dtype=np.float32).reshape(-1), model.tts_model.sample_rate)
+        sf.write(str(TMP / name), np.asarray(w, dtype=np.float32).reshape(-1), model.tts_model.sample_rate, subtype="FLOAT")   # float: a peak past full scale is kept, not clipped at the write
     out = {"file": f"live_tmp/{name}", "seed": seed, "cfg": cfg, "timesteps": steps,
            "seconds": round(time.time() - t0, 1), "audio_s": round(len(w) / model.tts_model.sample_rate, 2)}
     if body.get("return_audio"):    # remote studio: send the wav back instead of relying on a shared disk

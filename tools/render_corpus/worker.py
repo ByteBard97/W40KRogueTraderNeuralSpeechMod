@@ -17,6 +17,7 @@ import os
 import socket
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -70,6 +71,16 @@ def fake_synth(text, ref, annotation):
     return (0.1 * np.sin(2 * np.pi * 220 * t)).astype(np.float32), sr
 
 
+def fake_raw(text, ref_wav, instruct=None, cfg=3.0, timesteps=10, normalize=False, seed=None):
+    """Plumbing test for recipe jobs: peaky noise (crest like speech) whose length follows the text, lower cfg = quieter."""
+    sr = 24000
+    rng = np.random.default_rng(seed or 0)
+    return (rng.laplace(0, 0.02 * cfg / 3.0, int(sr * max(0.5, len(text) / 15)))).astype(np.float32), sr
+
+
+fake_synth.raw = fake_raw
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--server", required=True)
@@ -80,6 +91,8 @@ def main() -> None:
     ap.add_argument("--asr-model", help="transcribe each take with Whisper and send the comparison along")
     ap.add_argument("--asr-device", default="cuda:0")
     ap.add_argument("--exit-when-empty", action="store_true")
+    ap.add_argument("--pipeline", action="store_true",
+                    help="run the ASR check and the upload on a background thread while the next take renders")
     a = ap.parse_args()
     c = Client(a.server, a.token, a.name)
     engine_name = "voxcpm2" if a.engine == "fake" else a.engine
@@ -89,6 +102,23 @@ def main() -> None:
         import asr_check
         import lexicon
         asr, terms = asr_check.make_asr(a.asr_model, a.asr_device), list(lexicon._load()[0])
+    def finish(job, row, wav, sr):
+        """Everything after synthesis: WAV bytes, the ASR comparison, the upload."""
+        buf = b""
+        if wav is not None:
+            bio = io.BytesIO()
+            # recipe jobs keep the float output: a peak past full scale is measured and scaled later, not clipped by a 16-bit write
+            sf.write(bio, wav, sr, format="WAV", subtype="FLOAT" if job.get("recipe") else "PCM_16")
+            buf = bio.getvalue()
+            if asr:
+                from asr_compare import compare
+                heard = asr({"raw": asr_check.resample_16k(wav, sr), "sampling_rate": 16000},
+                            generate_kwargs={"language": "en", "task": "transcribe"})["text"].strip()
+                row["asr"] = {"heard": heard, **compare(job["text"], heard, terms)}
+        c.result(row, buf)
+
+    pool = ThreadPoolExecutor(max_workers=1) if a.pipeline else None
+    pending: list = []  # in-flight finish() futures, at most 2 so memory and unreported work stay bounded
     n, audio_s, t0 = 0, 0.0, time.time()
     while True:
         jobs = c.lease(engine_name, a.batch)
@@ -99,22 +129,24 @@ def main() -> None:
             continue
         for job in jobs:
             ref = c.ref(job["ref"]["wav"])
-            row, wav, sr = render_take(synth, job, a.engine if a.engine != "fake" else "voxcpm2", str(ref))
-            buf = b""
+            if job.get("recipe") and getattr(synth, "raw", None):
+                from recipe_render import render_recipe_job
+                row, wav, sr = render_recipe_job(synth.raw, job, str(ref))
+            else:
+                row, wav, sr = render_take(synth, job, a.engine if a.engine != "fake" else "voxcpm2", str(ref))
             if wav is not None:
-                bio = io.BytesIO()
-                sf.write(bio, wav, sr, format="WAV", subtype="PCM_16")
-                buf = bio.getvalue()
                 audio_s += len(wav) / sr
-                if asr:
-                    from asr_compare import compare
-                    heard = asr({"raw": asr_check.resample_16k(wav, sr), "sampling_rate": 16000},
-                                generate_kwargs={"language": "en", "task": "transcribe"})["text"].strip()
-                    row["asr"] = {"heard": heard, **compare(job["text"], heard, terms)}
-            c.result(row, buf)
+            if pool:
+                while len(pending) >= 2:
+                    pending.pop(0).result()
+                pending.append(pool.submit(finish, job, row, wav, sr))
+            else:
+                finish(job, row, wav, sr)
             n += 1
         el = time.time() - t0
         print(f"{n} jobs  {audio_s:.0f}s audio in {el:.0f}s  ({audio_s/max(el,1):.2f}x realtime)", flush=True)
+    for f in pending:
+        f.result()
     print(f"queue empty; {n} jobs rendered", flush=True)
 
 

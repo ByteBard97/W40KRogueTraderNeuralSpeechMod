@@ -14,7 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 ANNOTATIONS = ROOT / "data/npc_profile/segments.json"
 KINDS = ("speech", "narration")
 _TAG = re.compile(r"\{/?[a-z_]+(?:\|[^}]*)?\}")   # {n} {/n} and glossary links {g|Encyclopedia:Vox} {/g}
-_LABEL_TAIL = re.compile(r"([A-Z][\w' -]{0,28}):\s*$")   # a "Name:" label at the end of a gap, i.e. just before its segment
+_LABEL_TAIL = re.compile(r"([A-Z][\w' -]{0,28}):\s*[\"\u201c]?\s*$")   # a "Name:" label (optionally followed by an opening quote) at the end of a gap
+_BOLD = re.compile(r"</?b>")    # some cues bold the speaker label: <b>Enforcer:</b> "..."
 _WORD = re.compile(r"[A-Za-z0-9]")
 
 
@@ -55,7 +56,7 @@ def validate(cue_text: str, entry: dict) -> list[str]:
         errors.append("needs at least one speech segment (an all-narration cue is not multi-speaker)")
     if errors:
         return errors
-    gaps = _gaps(cue_text, segs)
+    gaps = _gaps(_BOLD.sub("", cue_text), segs)
     if gaps is None:
         return ["segments are not an in-order copy of the cue text"]
     for k, gap in enumerate(gaps):

@@ -1,8 +1,9 @@
 import type {
   MatchFilter, MatchValue, QaFacets, QaFilter, QaPage, QaRun, QaVerdictBody, MatchesPage, FxLabels, FxPresetInfo, FxPreview, FxWritten, FxUsage, FxDiff, FxBackup, FxRestored, OverrideBody, OverrideResult, NewSlotBody, PoolSlot, PoolSummary, QueueEntry, RoutesPage, SpotSample,
-  CloneRequest, RegisterAllResult, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
+  Bg3Voice, LabelValue, LabelsInfo, VoiceLabels, CastAudition, CastPage, CastRegistered, CloneRequest, RegisterAllResult, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
 } from './types'
 import type { JobView } from './jobs'
+import type { LabJob, LabLexiconHit, LabLines, LabOptions, LabPrepared, LabRealClip, LabOpusPreview, LabRecipe, LabRenderBody, LabSpeaker, LabTake } from './labTypes'
 
 export class ApiRequestError extends Error {
   constructor(public status: number, message: string) {
@@ -20,6 +21,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 const post = <T>(url: string, body: unknown = {}) =>
   request<T>(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 
+const L = (speaker: string) => `/api/lab/${encodeURIComponent(speaker)}`
 const S = (slug: string) => `/api/speakers/${encodeURIComponent(slug)}`
 
 export const api = {
@@ -84,4 +86,26 @@ export const api = {
     return request<QaPage>(`/api/qa/clips?${qs}`)
   },
   qaVerdict: (body: QaVerdictBody) => post<object>('/api/qa/verdict', body),
+  casting: () => request<CastPage>('/api/casting'),
+  castingVoices: () => request<Bg3Voice[]>('/api/casting/bg3'),
+  castAssign: (speaker: string, bg3: string | null) => post<{ speaker: string; bg3: string | null }>('/api/casting/assign', { speaker, bg3 }),
+  castPortrait: (speaker: string, portrait: string | null) => post<{ speaker: string; portrait: string | null }>('/api/casting/portrait', { speaker, portrait }),
+  castAudition: (speaker: string, bg3: string, ref = 0, line = 0) => post<CastAudition>('/api/casting/audition', { speaker, bg3, ref, line }),
+  castRegister: () => post<CastRegistered>('/api/casting/register'),
+  castLabels: () => request<LabelsInfo>('/api/casting/labels'),
+  castLabelSet: (slug: string, key: string, value: LabelValue | null) => post<VoiceLabels>('/api/casting/labels', { slug, key, value }),
+  labOptions: () => request<LabOptions>('/api/lab/options'),
+  labSpeakers: () => request<LabSpeaker[]>('/api/lab/speakers'),
+  labLines: (speaker: string) => request<LabLines>(`${L(speaker)}/lines`),
+  labPrepare: (body: { speaker: string; guid?: string; text?: string; recipe: LabRecipe }) => post<LabPrepared>('/api/lab/prepare', body),
+  labRender: (body: LabRenderBody) => post<LabJob>('/api/lab/render', body),
+  labJob: (id: string) => request<LabJob>(`/api/lab/jobs/${encodeURIComponent(id)}`),
+  labJobCancel: (id: string) => post<LabJob>(`/api/lab/jobs/${encodeURIComponent(id)}/cancel`),
+  labTakes: (speaker: string, guid?: string) => request<LabTake[]>(`${L(speaker)}/takes${guid ? `?guid=${encodeURIComponent(guid)}` : ''}`),
+  labTakeUpdate: (speaker: string, id: string, body: { rating?: number; note?: string; hidden?: boolean }) => post<LabTake>(`${L(speaker)}/takes/${encodeURIComponent(id)}`, body),
+  labRecipes: () => request<LabRecipe[]>('/api/lab/recipes'),
+  labRecipeSave: (name: string, recipe: LabRecipe) => post<LabRecipe[]>('/api/lab/recipes', { name, recipe }),
+  labRealClips: (q: string, limit = 12) => request<LabRealClip[]>(`/api/lab/real-clips?q=${encodeURIComponent(q)}&limit=${limit}`),
+  labOpus: (wav: string, kbps: number) => post<LabOpusPreview>('/api/lab/opus', { wav, kbps }),
+  labLexicon: (q: string) => request<LabLexiconHit[]>(`/api/lab/lexicon?q=${encodeURIComponent(q)}`),
 }

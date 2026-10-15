@@ -497,3 +497,39 @@ export interface QaVerdictBody {
   tags: string[]
   note: string
 }
+
+export interface CastSuggestion { slug: string; name: string; lines: number; gender: string; f0: number | null; used_by: string[] }
+export interface CastCharacter {
+  speaker: string
+  /** What to show: the character's name, or the group's name for a nameless group. */
+  display: string
+  kind: 'character' | 'slot'
+  rank: number | null
+  lines: number
+  chars: number
+  approx_minutes: number
+  status: 'designed' | 'voiceless'
+  gender: string | null
+  species: string | null
+  age: string | null
+  role: string | null
+  voice_description: string | null
+  pool_slot: string | null
+  samples: string[]
+  portrait: string | null
+  portrait_name: string | null
+  portrait_chosen: boolean
+  assignment: { bg3: string; name: string } | null
+  suggestions: CastSuggestion[]
+}
+export interface CastPage { characters: CastCharacter[]; total: number; assigned: number; portraits: string[] }
+export interface Bg3Ref { wav: string; text: string; seconds: number; speech_seconds?: number; speech_ratio?: number; kind?: 'single' | 'stitched' }
+export interface Bg3Voice { slug: string; name: string; lines: number; minutes: number; gender: string; f0: number | null; non_human: boolean; refs: Bg3Ref[]; used_by: string[]; aliases?: string[]; quality?: 'good' | 'ok' | 'poor' | null; labels: VoiceLabels; mine: VoiceLabels; complete: boolean }
+export interface CastAudition { file: string; text: string; seconds: number | null; ref: string }
+export interface CastRegistered { registered: string[]; skipped: string[] }
+
+export type LabelValue = string | string[]
+export type VoiceLabels = Record<string, LabelValue | undefined>
+export interface LabelDef { key: string; label: string; kind: 'single' | 'multi' | 'text' | 'rating'; options: string[]; required: boolean; allow_several?: boolean }
+export interface LabelProgress { total: number; complete: number; started: number }
+export interface LabelsInfo { schema: LabelDef[]; progress: LabelProgress }

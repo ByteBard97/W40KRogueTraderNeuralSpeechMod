@@ -110,3 +110,58 @@ arrow and drag ranking, stars, accent, Register pick, clear FX.
 
 Nothing known. Real-data runs of the studio have only used the model off or the test stacks above, so the first real
 audition will be the first time rankings are written by hand.
+
+## Casting
+
+`/casting` gives each character that has no voice a real BG3 voice. Characters come from
+`data/npc_profile/describe/casting_needs.json` (303, sorted by line count, so the biggest characters are cast first), BG3 voices from
+`data/bg3_voices/catalog.json` (about 440 with reference clips), portraits from `data/portraits/half/` (extracted from the game's
+`portraits` bundle with UnityPy; matched by name, with a picker to correct a wrong or missing one). Suggestions pair big with big:
+a character near the top of the list is offered BG3 voices near the top by line count, filtered by gender and by creature or human.
+"Audition" clones the BG3 reference onto one of the character's real lines through the model backend (start it and the tunnel as
+above, so it needs the GPU); without the backend you can still listen to the BG3 reference clips and cast.
+
+State: `data/studio/casting.json` (assignments, portrait corrections). "Register cast voices" copies each chosen BG3 reference to
+`data/voices/prompts/cast/` and replaces that character's entry in `prompts.json` (the previous file is kept as
+`prompts.json.pre-casting-<time>`). `tools/render_corpus/plan_voiceless.py` uses a speaker's own registered voice first, so the next
+render picks the cast voice up. `data/bg3_voices/` and `data/portraits/` are game assets: local only, git-ignored.
+
+### BG3 voice labels and the nameless groups
+
+`/voices` is where each BG3 voice gets labels, once: gender (male, female, neuter), age (child, youth, adult, old), class (low, middle, high),
+processing (natural, processed) and pitch (high, middle, low) count toward "fully labelled"; optional extras are accent, what it sounds like
+(human, elf, dwarf, orc, devil, undead, construct...), texture, manner, pace, a 1 to 5 rating, a use flag (free, reserve for main characters,
+do not use) and a note. A dashed chip is an automatic guess (gender from the catalog, pitch from the median F0): click it to confirm. The
+label set is data (`SCHEMA` in `server/studio_server/bg3_labels.py`), so adding a label is one entry. Labels live in
+`data/studio/bg3_labels.json` (a backup copy is kept at least every half hour while you label).
+
+The Casting page filters the BG3 voices by those labels (chips under the tabs; "Match this character" fills in gender and age from the
+character). Nameless speakers are casting targets too: each pool slot from the Pools page appears under "Nameless groups", so you can cast a
+BG3 voice for, say, every nameless low-class young woman by creating that slot in Pools. Casting a slot replaces that slot's voice in the
+prompt bank, and `tools/render_corpus/cast_ready.py` re-renders every cue routed to it.
+
+## Render Lab (`/lab`)
+
+An interactive lab for tuning how one cast speaker's lines are rendered (built 2026-10-13 for the Vladaym pilot). Pick a line, change the
+recipe (cfg, steps, seed, style prefix, pronunciation overrides, what each punctuation mark becomes, how the text is split and the silence
+between pieces), render on the live model, and compare against the current render. A take keeps its recipe, rating and notes in
+`data/studio/lab/<speaker>/` (takes are hidden, never deleted). Server: `lab.py` (batches on a thread), `lab_text.py` (the text stages),
+`lab_audio.py` (silence, peak limit, metrics); web: `views/LabView.vue`, `components/lab/`, `stores/lab.ts`.
+
+- The model is the shared `tools/voice_design/live_backend.py` (port 8909, one generation at a time). It now writes float wavs, so a peak
+  past full scale is measured (`model_peak`) instead of silently clipped, and it passes `retry_badcase_*`, `max_len` and `min_len` through.
+- Metrics per take: crest factor of the speech frames (peak over rms, dB; under 11 dB sounds compressed/overdriven), clipped runs, model peak.
+- Pronunciation overrides live in the recipe (word, arpabet|plain|literal, value); the shared lexicon is looked up, never edited.
+  `GET /api/lab/real-clips?q=word` lists the game's own clips containing a word, for matching how it is really said.
+- A recipe is meant to become per-job fields the render worker honours (`cfg`, `timesteps`, pre-split pieces, `respell: false`): that bridge
+  is not built yet. `render.py` still uses `CFG = 3.0` and the planners their 1,200-char cap.
+- `tools/render_corpus/clip_scan.py` scans raw renders for clipped runs.
+
+### Recipe renders (the lab's recipe on the render workers)
+
+`plan_recipe.py --speaker NAME --recipe RECIPE` writes one job per speech piece with the recipe attached; run it as its own queue
+(`queue_server.py --run cast-r2 --jobs ... --port 8953`) and start workers against it (the worker honours `job["recipe"]`, keeps float wavs and runs
+the quality ladder). `recipe_followup.py` queues `@fix` takes for what is still flagged; stitch with `--runs cast-r2 cast` into a new directory
+(the stitcher skips cues already in its manifest) and overlay it last in `night_build.py`. Job schema: `docs/superpowers/specs/2026-10-13-recipe-render-jobs.md`.
+The workers on other machines need `render.py`, `worker.py`, `recipe_*.py` copied over (scp) before they can take recipe jobs, and the lab's model
+and a 5080 worker cannot be loaded together (10.7 GB each).

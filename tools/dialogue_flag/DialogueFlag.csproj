@@ -14,6 +14,7 @@
     <Reference Include="netstandard"><HintPath>$(ManagedDir)\netstandard.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="System.Memory"><HintPath>$(ManagedDir)\System.Memory.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Owlcat.Runtime.Core"><HintPath>$(ManagedDir)\Owlcat.Runtime.Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="RogueTrader.GameCore"><HintPath>$(ManagedDir)\RogueTrader.GameCore.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Code"><HintPath>$(ManagedDir)\Code.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="0Harmony"><HintPath>$(ManagedDir)\0Harmony.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityModManager"><HintPath>$(ManagedDir)\UnityModManager.dll</HintPath><Private>false</Private></Reference>

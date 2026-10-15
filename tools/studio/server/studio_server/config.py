@@ -33,7 +33,7 @@ class Config:
         return self.data / "render"
 
     def file_roots(self) -> tuple[Path, ...]:
-        return (self.voices, self.render, self.studio, self.voice_design)
+        return (self.voices, self.render, self.studio, self.voice_design, self.data / "bg3_voices", self.data / "portraits")
 
     def _inside(self, rel: str, roots: tuple[Path, ...]) -> Path | None:
         if not rel or rel.startswith("/") or "\x00" in rel:

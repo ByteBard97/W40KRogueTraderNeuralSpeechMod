@@ -1,11 +1,75 @@
+**FIRST (2026-10-13): 11,190 narrator codex/item/bark clips are in Gale's voice. Re-render them with the real narrator reference: see `HANDOFF-2026-10-13-narrator-rerender.md`.**
+
 # TODO: replacing the remaining AIVO audio
+
+## KNOWN PROBLEM: silent clips in game (noted 2026-10-14)
+
+Two cues play no audio in game with the installed Opus 24 kbps bank (r3): Vistenza Vyatt, `b470f9d4-a679-49bc-8e5b-f3e358ad00aa` ("Allow me to make myself clear: to refuse Yrliet's help...")
+and Vladaym Tocara the Liege, `37b5a04e-2590-4721-b585-c4986e21a0f5` ("Your request is difficult to fathom..."). Cause unknown. Checked: both wems decode cleanly (-22.3 / -22.5 LUFS, right length),
+bank structure identical to cues that play, the game posted the events, no Wwise errors. Only difference found: both encoded at 28-30 kb/s with some 124-128 byte frames (a playing clip is 24 kb/s).
+Next step: build a small test bank with these clips as PCM (game closed, back up the installed files first) and see whether they play. Not fixed.
+
 
 > **STAY ON TRACK (2026-10-08):** the FX / post-processing build is a detour. The main line is the voiceless NPCs:
 > (1) audition the 12 pilot NPCs (:8907) -> (2) review match decisions (:8920) -> (3) wire them into `plan.py` -> (4) named-speaker pass + voice design -> (5) render priority 3.
 > Return here when the FX work wraps up. Details in `memory/return-to-voiceless-npcs.md`.
 
 
-Last updated 2026-10-07. This tracks the work between "11,051 lines swapped into the AIVO bank" and "every line has our audio".
+## QUEUE FOR NEXT SESSION (written 2026-10-12 evening)
+
+**State right now:** the installed bank is the full set built 17:05 on 2026-10-12: 7 files, about 19.2 GB, 31,186 of 38,031 clips replaced (dialogue, the 11,205
+codex/item/bark/name strings, the 21-conversation fixes, the stitched diary). Verified (0 bad headers, byte-compared). The user has NOT heard it yet and memory
+use at 19.2 GB is unmeasured. Rollback: the 6-file 07:50 set is in `soundbanks_disabled/` as `*.installed-0750-2026-10-12` (move the 7 files out, move those back,
+drop `_pcm6`); older sets sit beside it. Full log: `HANDOFF-2026-10-11-overnight.md` (bottom).
+
+**A. Start here: the user's listening test**
+- [ ] Ask what they heard: memory/stutter, Jae in the Footfall Liege scene, Heinrix cues, the 20 auto-picked designed voices, the pool voices, barks and codex strings.
+- [ ] Import flagged lines (`g`/`b` in game) with `tools/dialogue_flag/import_flags.py` (dry run first); re-run the runtime-truth cross-check on the new `played.jsonl`.
+
+**A2. Casting site built (2026-10-12):** `http://127.0.0.1:8930/casting` (start with `tools/studio/run.sh`). 303 characters by line count, 442 BG3 voices with reference clips, portraits, suggestions that pair big with big, Audition (needs the model backend on the 4070 plus the tunnel), "Register cast voices" writes the prompt bank. Cast the top ~50 first (73% of the text), then re-run `plan_voiceless.py` (it prefers a registered voice) and render.
+
+**A3. Cast characters render as soon as their voice is ready (built 2026-10-12):** `tools/render_corpus/cast_ready.py` (running as a background loop, log `data/render/overnight/cast_ready.log`). A character is ready when the Casting page has assigned a BG3 voice AND that voice's reference was rebuilt and rated good/ok. Each tick it registers the voice (prompt bank, backed up), plans ALL of the character's lines in that voice into `data/render/cast_jobs/<batch>.jsonl`, and the queue server (run `cast`, port 8952, token `valtok`, `--watch` that folder) picks them up. Workers: the 4070 starts itself when there is work; the 5080 only while the game is closed. The MacBook joins with `python3 tools/render_corpus/worker.py --server http://192.168.0.200:8952 --engine voxcpm2 --token valtok --name macbook-m4`. Finished pieces are stitched into `data/render/cast-stitched`, which `night_build.py` overlays last. Status: `python3 tools/render_corpus/cast_ready.py --status`. Not handled: if you change a character's voice AFTER it rendered, it is reported, not re-rendered.
+
+**A4. BG3 voice labels (2026-10-12):** `/voices` page to label the 442 BG3 voices (5 required labels plus extras); Casting filters by them and lists the nameless pool slots as targets. Next: label the voices, then cast the slots (create finer slots in Pools first if you want, e.g. low-class young woman). A slot's assignment re-renders every cue routed to it (about 7,300 nameless cues are in the installed bank with the generic pool voices today).
+
+**B. Render queue, ready to go (ask the user before using the GPUs; the game needs the 5080)**
+- [ ] **Voiceless lines** (~6,100 cues still original AIVO audio). Plan exists: `python3 tools/render_corpus/plan_voiceless.py` already wrote `data/render/jobs_voiceless.jsonl`
+      (6,144 cues, 10,492 pieces, 1.36M chars, ~25 audio-h, longest piece 759 chars). Voices come from `data/npc_profile/describe/descriptions.json` (293 characters, gender/species/
+      age/role/voice description/pool slot, generated by agents from the lines; 6 low confidence). Steps: start `queue_server.py --run voiceless --jobs data/render/jobs_voiceless.jsonl --port 8951 --token valtok`;
+      workers on 5080, 4070 (`--pipeline`) and the MacBook (`--engine voxcpm2`); `stitch_mixed.py --jobs jobs_voiceless.jsonl --runs voiceless --out voiceless-stitched` (LENIENT_RUNS=voiceless);
+      add `voiceless-stitched` to `night_build.py` (before `q21-stitched`); run `audit_renders.py`; rebuild; install. About 5 to 6 hours on two GPUs.
+- [ ] **Distinct voices for the big characters.** Pool slots have one clip each, so all 129 `male_human` characters sound alike. Design individual voices for the 66 speakers with 20+ lines
+      (2,600 lines) from `voice_description` via `tools/voice_design/design.py`, auto-pick by accent score, register, re-plan (`plan_voiceless.py` prefers a speaker's own registered voice). 
+- [ ] `pool_female_machine` has no clip (35 lines route to `pool_male_machine` for now). Add a female machine voice, or leave.
+- [ ] ~25 real lines among the 591 clips outside the corpus (Tetria-Lemma transmitting, the cogitator/vid-screen readouts, a Jae eye-roll line, Juvenna's description). Plan and render; skip the dev test strings.
+- [ ] One q21 cue (`42d3919c...`, a stuttering "a-a-alive" exchange) still has its old take: Whisper flagged it truncated. Listen to the render and force-accept if it is fine.
+- [ ] Qwen3 rendered ~300 short `extra` strings before the engine was relabelled to VoxCPM2; if any sound different, re-render them.
+
+**C. Investigate**
+- [ ] **Banter (1,092 lines): only 23 have a clip in the original bank.** Read the mod's playback code (https://github.com/pas2k/W40KRT_AIVOMod, MIT, SpeechMod folder) to see how banter is played and whether we can add bank events or need a mod change. 
+      The mod repo does not contain the voice-pack/clips.json builder.
+- [ ] 181 finished clips have no bank event (88 not in `clips.json`, 93 in it without media; narrator 79, Eogunn 46, Vigdis 18, Yrliet 11). Find out why and whether events can be added.
+- [ ] 215 conversation cues and 92 answers are not in `clips.json`; 18,526 strings are not in it either (a sample looked like UI text). Spot-check for barks the mod missed.
+- [ ] Measure memory with the 19.2 GB bank; if bad, test Opus (`docs/research/audio-compression-and-runtime-decoding.md` section 5; `/home/geoff/rt-mods/tone-test3-opus`; `tools/audio_test` is built but not installed).
+
+**D. Quality**
+- [ ] Listen through `data/render/audit/render_audit.json`: 447 clips marked "listen" (114 worst first: mostly silent, long gap, truncated, very slow). Re-run `audit_renders.py` on the new export.
+- [ ] Ear-check the 20 auto-picked designed voices (Studio `/speakers`); Calligos Winterscale's pick is arbitrary.
+- [ ] 15 of the 21 answered conversations use guessed voices (list in `tools/npc_profile/q21_answers.py`; DoorGuard, NewVoxMaster and IntBeg are undetermined). Fix by ear or from what the user knows.
+- [ ] In-game flag loop: flagged lines -> re-render list -> small patch bank swapped in without a full 15 GB rebuild.
+
+**E. FX and chorus** (see section 5): add an `fx` field to `descriptions.json` and apply machine/ethereal/vox presets in post; the 25 `machine` speakers currently use a plain clip. Multi-voice aligned chorus
+  is an overnight-render idea (30 to 150 lines, needs a text pass to find them).
+
+**F. Planner cleanup:** make `plan.py` read `runtime_truth.json`, `human_labels.json` (now with `voices` per roster id) and the descriptions; needs a re-plan, ask first (never rewrite `jobs.jsonl` blindly).
+
+**G. Housekeeping**
+- [ ] Commit (user asked to push earlier; later work is uncommitted): `split_long.py`, `audit_renders.py`, `plan_q21.py`, `plan_voiceless.py`, `tools/npc_profile/q21_answers.py`, `--pipeline` in `worker.py`, `night_build.py`, `segment_annotations.py`, this file. No Claude attribution; push only when told.
+- [ ] Add the untracked `data/` render directories to `.gitignore` so `git add -A` cannot pull them in.
+- [ ] Trash candidates, itemised OK needed: `/home/geoff/rt-mods/all-banks-night-interim-0310`, `-final1`, `-final2`, `-installed-0750` (each 13 to 15 GB), `data/render/pipetest`, `data/render/_redo_*.jsonl`, `jobs_replan*.jsonl`, `tools/_old_pages`.
+- [ ] Idle queue servers on 8946, 8949 and 8950 can be stopped. MacBook: give Claude the ssh alias; note in `docs/MACBOOK-RENDER-NODE.md` that Whisper is optional for the `extra`-type runs.
+
+Last updated 2026-10-12 (the section above is current; the sections below are older). This tracks the work between "11,051 lines swapped into the AIVO bank" and "every line has our audio".
 `PROJECT_PLAN.md` has the architecture and history; this file is only what is left, in the order I'd do it.
 
 ## Where things stand
@@ -105,6 +169,14 @@ The chain exists (`tools/voice_design/fx.py` + `dsp.js`): high/low-pass, drive, 
 - [ ] In-game on/off toggle: bake raw and fx variants for the affected characters only, and a small patch to the event lookup. Runtime DSP is not practical
       on the Wwise path (Unity audio is disabled in Rogue Trader).
 - [ ] Per-line fx from the harness (e.g. an ordinary person heard over a vox) is stored per line; the renderer/exporter does not use it yet.
+- [ ] Short run: add a chorus/octave layer to the FX Lab chain and apply it to the daemon, Necron and "chorus of voices" lines in post. The voiceless-speaker
+      descriptions (`data/npc_profile/describe/descriptions.json`) carry no `fx` field yet; add one (machine, ethereal, vox_channel, monstrous, chorus) so
+      post-processing can read it. Nothing applies a machine modulation today: the 25 `machine` speakers use the plain `pool_male_machine` clip.
+- [ ] Next overnight render: real multi-voice chorus. Render the same short phrase in 3 to 5 pool voices (male and female, old and young), word-align the takes
+      (Whisper word timestamps or a CTC forced aligner like torchaudio's MMS aligner), time-warp each word to a common timeline (cap the stretch at about
+      0.8x to 1.25x), then mix with small random offsets, slight detune, pan and a touch of reverb in the FX Lab chain. Short lines only. Estimated 30 to 150 lines
+      (Amarnat "Collective", daemon voices, Necron lines, Stryx crew, explicit "voices speak together" narration); there is no chorus tag in the data, so an agent
+      pass over the text is needed first to find them. Prototype on one line and listen before scaling. Cheap fallback: pitch/formant-shifted copies of one take.
 
 ## 6. Post-processing what is already rendered
 

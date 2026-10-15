@@ -1,0 +1,10 @@
+{
+  "Id": "FormatTester",
+  "DisplayName": "Audio Format Tester",
+  "Author": "bytebard97",
+  "Version": "0.1.0",
+  "ManagerVersion": "0.25.0",
+  "Requirements": [],
+  "AssemblyName": "FormatTester.dll",
+  "EntryMethod": "FormatTester.Main.Load"
+}

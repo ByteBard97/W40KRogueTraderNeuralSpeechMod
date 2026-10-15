@@ -27,6 +27,8 @@ def main():
     ap.add_argument("--bank", required=True)
     ap.add_argument("--export", required=True)
     ap.add_argument("--out-dir", required=True)
+    ap.add_argument("--only-new", action="store_true",
+                    help="keep only the four test clips in the bank (small file, for the in-game format tester mod)")
     a = ap.parse_args()
     bank = Bank(a.bank)
     idx = json.load(open(os.path.join(a.export, "index.json")))
@@ -48,11 +50,24 @@ def main():
         struct.pack_into("<I", hirc, b + 13, len(data))
         new[med] = data
         print(k, guid[:8], hex(plugin), len(data), "bytes")
-    keep = [(m, s, (lambda m=m: bank.read_media(m))) for m, _, s in bank.didx if m not in new]
+    keep = [] if a.only_new else [(m, s, (lambda m=m: bank.read_media(m))) for m, _, s in bank.didx if m not in new]
     keep += [(m, len(d), (lambda d=d: d)) for m, d in new.items()]
     os.makedirs(a.out_dir, exist_ok=True)
     write_bank(os.path.join(a.out_dir, MAIN_NAME), bank.bkhd, struct.unpack_from("<I", bank.bkhd, 4)[0], keep, hirc)
     print("wrote", a.out_dir)
+    if a.only_new:
+        write_tester_files(a.out_dir, bank, wavs, target)
+
+
+def write_tester_files(out_dir, bank, wavs, target):
+    """Files for tools/format_tester: tests.json plus a PCM wem (line A's audio) to push into line D's media with SetMedia."""
+    snd_d, med_d = bank.media_for_guid(LINES["D"])
+    wem = pcm_wem(wavs["A"], target)
+    open(os.path.join(out_dir, "setmedia_override.wem"), "wb").write(wem)
+    tests = {"bank": MAIN_NAME, "lines": {k: "ev_" + g for k, g in LINES.items()},
+             "setmedia": {"event": "ev_" + LINES["D"], "sourceId": med_d, "wem": "setmedia_override.wem"}}
+    json.dump(tests, open(os.path.join(out_dir, "tests.json"), "w"), indent=2)
+    print("wrote tests.json, setmedia_override.wem (source", med_d, ")")
 
 
 if __name__ == "__main__":

@@ -35,6 +35,7 @@ public static class Main
     {
         public string Event;
         public string Target;
+        public GameObject TargetObject;
         public string Text;
         public DateTime When;
         public float Realtime;
@@ -44,7 +45,7 @@ public static class Main
     public static UnityModManager.ModEntry.ModLogger Log;
     private static string s_Dir;
     private static readonly string s_Session = Guid.NewGuid().ToString("N").Substring(0, 8);
-    private static readonly List<Played> s_Buffer = new List<Played>();
+    internal static readonly List<Played> s_Buffer = new List<Played>();
     private static string s_Feedback;
     private static Color s_FeedbackColor;
     private static float s_FeedbackUntil;
@@ -55,23 +56,25 @@ public static class Main
         Log = modEntry.Logger;
         s_Dir = modEntry.Path;
         modEntry.OnFixedGUI = OnFixedGui;
+        modEntry.OnUpdate = (_, _) => Replay.Tick();
         var harmony = new Harmony(modEntry.Info.Id);
         harmony.PatchAll(Assembly.GetExecutingAssembly());
         AudioDebug.Install(harmony, s_Dir);
-        Log.Log($"loaded, session {s_Session}, G = good, B = bad, writing to {Path.Combine(s_Dir, FlagFile)}");
+        Log.Log($"loaded, session {s_Session}, G = good, B = bad, keypad 7/9 step back/forward, 8 again, 5 last two, Enter chain, writing to {Path.Combine(s_Dir, FlagFile)}");
         return true;
     }
 
-    public static void RecordPlayed(string voiceOverSound, string target, VoiceOverStatus status)
+    public static void RecordPlayed(string voiceOverSound, GameObject targetObject, VoiceOverStatus status)
     {
         try
         {
-            if (string.IsNullOrEmpty(voiceOverSound) || status == null)
+            if (Replay.Suppress || string.IsNullOrEmpty(voiceOverSound) || status == null)
                 return;
             var played = new Played
             {
                 Event = voiceOverSound,
-                Target = target,
+                Target = targetObject != null ? targetObject.name : null,
+                TargetObject = targetObject,
                 Text = CurrentCueText(),
                 When = DateTime.Now,
                 Realtime = Time.realtimeSinceStartup,
@@ -101,7 +104,9 @@ public static class Main
         if (current.type == EventType.KeyDown && !current.shift && !current.control && !current.alt
             && GUIUtility.keyboardControl == 0)
         {
-            if (current.keyCode == BadKey)
+            if (Replay.HandleKey(current.keyCode))
+                current.Use();
+            else if (current.keyCode == BadKey)
                 Flag("bad");
             else if (current.keyCode == GoodKey)
                 Flag("good");
@@ -148,7 +153,7 @@ public static class Main
     }
 
     // Status.IsEnded stays false until Wwise reports a duration, so cap the age and survive a null Player.
-    private static bool IsPlaying(Played p)
+    internal static bool IsPlaying(Played p)
     {
         if (Time.realtimeSinceStartup - p.Realtime > MaxPlayingSeconds)
             return false;
@@ -165,13 +170,13 @@ public static class Main
         return s_Buffer.Count > 0 ? s_Buffer[s_Buffer.Count - 1] : null;
     }
 
-    private static string Preview(Played line)
+    internal static string Preview(Played line)
     {
         string text = string.IsNullOrEmpty(line.Text) ? line.Event : line.Text;
         return text.Length > PreviewChars ? text.Substring(0, PreviewChars) + "..." : text;
     }
 
-    private static void Show(string message, Color color)
+    internal static void Show(string message, Color color)
     {
         s_Feedback = message;
         s_FeedbackColor = color;

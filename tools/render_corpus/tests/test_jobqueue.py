@@ -78,3 +78,15 @@ def test_segments_of_one_cue_are_served_together_so_the_cue_can_be_stitched():
     q = JobQueue(jobs)
     order = [j["guid"] for j in q.lease("w", "voxcpm2", 10)]
     assert order == ["c", "a~0", "a~1", "b~0", "b~1", "d"]
+
+
+def test_jobs_added_while_running_are_leased_in_order_and_duplicates_are_ignored():
+    def job(g, parent=None, seg=0, prio=1):
+        return {"guid": g, "engine": "voxcpm2", "priority": prio, **({"parent": parent, "seg_index": seg} if parent else {})}
+
+    q = JobQueue([job("a")])
+    assert q.add([job("a"), job("b~0", "b", 0), job("b~1", "b", 1)]) == 2        # "a" is already queued
+    assert q.add([job("b~0", "b", 0)]) == 0
+    got = [j["guid"] for j in q.lease("w", "voxcpm2", 10)]
+    assert got == ["a", "b~0", "b~1"]
+    assert q.status()["total"] == 3

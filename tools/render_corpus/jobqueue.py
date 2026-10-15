@@ -18,19 +18,35 @@ class JobQueue:
         jobs = [j for j in jobs if j["priority"] <= max_priority]
         # segments of one cue share the cue's best priority and stay together in segment order, so cues finish (and can be
         # stitched) one by one instead of all speech first and all narration last
-        group: dict[str, int] = {}
-        for j in jobs:
-            if j.get("parent"):
-                group[j["parent"]] = min(group.get(j["parent"], 99), j["priority"])
-        self.jobs = sorted(jobs, key=lambda j: (group.get(j.get("parent"), j["priority"]), j.get("parent", j["guid"]),
-                                                j.get("seg_index", 0), j["guid"]))
+        self.jobs = self._order(jobs)
         self.done = set(done or ())
         self.failures = Counter(failures or ())
         self.lease_s = lease_s
         self.clock = clock
+        self.max_priority = max_priority
+        self._known = {j["guid"] for j in self.jobs}
         self.leases: dict[str, tuple[float, str]] = {}   # guid -> (expires at, worker)
         self.stats: dict[str, dict] = {}                 # worker -> {"jobs": n, "audio_s": s, "first": t, "last": t}
         self._lock = threading.Lock()
+
+    def add(self, new: list[dict]) -> int:
+        """Queue more jobs while the server runs. A guid already queued (or done) is ignored; returns how many were added."""
+        fresh = [j for j in new if j["priority"] <= self.max_priority and j["guid"] not in self._known]
+        with self._lock:
+            fresh = [j for j in fresh if j["guid"] not in self._known]
+            self._known.update(j["guid"] for j in fresh)
+            if fresh:
+                self.jobs = self._order(self.jobs + fresh)
+        return len(fresh)
+
+    @staticmethod
+    def _order(jobs: list[dict]) -> list[dict]:
+        group: dict[str, int] = {}
+        for j in jobs:
+            if j.get("parent"):
+                group[j["parent"]] = min(group.get(j["parent"], 99), j["priority"])
+        return sorted(jobs, key=lambda j: (group.get(j.get("parent"), j["priority"]), j.get("parent", j["guid"]),
+                                           j.get("seg_index", 0), j["guid"]))
 
     def _available(self, j: dict, now: float) -> bool:
         g = j["guid"]

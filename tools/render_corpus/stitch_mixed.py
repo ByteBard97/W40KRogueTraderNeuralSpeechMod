@@ -27,6 +27,7 @@ sys.path.insert(0, str(ROOT / "tools/loudness"))
 
 import numpy as np  # noqa: E402
 from jobs import take_problem  # noqa: E402
+from takes import pick  # noqa: E402
 from stitch import stitch  # noqa: E402
 from targets import target_for  # noqa: E402
 from wem import linear_gain_db, measure_levels  # noqa: E402
@@ -35,10 +36,17 @@ BAD_FLAGS = {"asr_bad", "asr_truncated", "asr_extra_words"}
 # runs whose takes were already retried once: a plain "asr_bad" (usually Whisper mishearing a proper name) is accepted there,
 # truncated / extra-words takes never are. Set LENIENT_RUNS="night-redo" (space separated) to enable.
 LENIENT_RUNS = set(os.environ.get("LENIENT_RUNS", "").split())
+ACCEPT_FILE = ROOT / "data/render/cast_accept.json"
 
 
-def usable_segments(render_root: Path, runs: list[str]) -> dict[str, tuple[Path, dict]]:
-    """guid~k -> (wav path, manifest row) for finished, clean segment takes."""
+def load_accept(path: Path = ACCEPT_FILE) -> dict:
+    """Takes the owner (or the follow-up's best-of-three rule) accepted although Whisper flagged them: {take guid: {...}}."""
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+
+
+def usable_segments(render_root: Path, runs: list[str], accept: dict | None = None) -> dict[str, tuple[Path, dict]]:
+    """guid~k -> (wav path, manifest row) for finished, clean segment takes (an accepted take passes the Whisper flags, never the take check)."""
+    accept = load_accept() if accept is None else accept
     found: dict[str, tuple[Path, dict]] = {}
     for run in runs:
         mpath = render_root / run / "manifest.jsonl"
@@ -54,7 +62,7 @@ def usable_segments(render_root: Path, runs: list[str]) -> dict[str, tuple[Path,
             if r["status"] != "ok" or not wav.is_file() or take_problem(r.get("text", ""), r.get("seconds", 0)):
                 continue
             bad = BAD_FLAGS - ({"asr_bad"} if run in LENIENT_RUNS else set())
-            if bad & set(asr.get(r["guid"], {}).get("flags", [])):
+            if r["guid"] not in accept and bad & set(asr.get(r["guid"], {}).get("flags", [])):
                 continue
             found.setdefault(r["guid"], (wav, r))
     return found
@@ -70,7 +78,8 @@ def main() -> None:
     by_parent: dict[str, list[dict]] = defaultdict(list)
     for line in Path(a.jobs).read_text(encoding="utf-8").splitlines():
         j = json.loads(line)
-        by_parent[j["parent"]].append(j)
+        if "@r" not in j["guid"]:         # a redo take replaces its piece (see pick); it is never a piece of its own
+            by_parent[j["parent"]].append(j)
     segs = usable_segments(render_root, a.runs)
     out = render_root / a.out
     (out / "wav").mkdir(parents=True, exist_ok=True)
@@ -82,12 +91,12 @@ def main() -> None:
             if parent in done:
                 continue
             jobs.sort(key=lambda j: j["seg_index"])
-            if any(j["guid"] not in segs for j in jobs):
+            if any(pick(j, segs) is None for j in jobs):
                 waiting.append(parent)
                 continue
             pieces, sr = [], 24000
             for j in jobs:
-                path = segs[j["guid"]][0]
+                path = segs[pick(j, segs)][0]
                 wav, sr = sf.read(str(path), dtype="float32")
                 # each segment goes to its own voice's loudness target (narration -> narrator, speech -> the speaker) and
                 # is left there: the stitched take is marked loudness "preset" so patch.py only guards its peak

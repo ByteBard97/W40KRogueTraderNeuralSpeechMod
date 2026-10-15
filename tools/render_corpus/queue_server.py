@@ -110,6 +110,26 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
+def load_jobs(path: Path) -> list[dict]:
+    return [json.loads(ln) for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+
+
+def watch(queue: JobQueue, folder: Path, loaded: set[str], every_s: float) -> None:
+    """Add the jobs of every *.jsonl that appears in `folder` (write the file elsewhere and rename it in, so it is whole)."""
+    import time
+    while True:
+        for f in sorted(folder.glob("*.jsonl")):
+            if f.name not in loaded:
+                try:
+                    n = queue.add(load_jobs(f))
+                except (OSError, ValueError) as e:
+                    print(f"cannot read {f.name}: {e}", flush=True)
+                    continue
+                loaded.add(f.name)
+                print(f"added {n} jobs from {f.name}", flush=True)
+        time.sleep(every_s)
+
+
 class Server(ThreadingHTTPServer):
     request_queue_size = 128
     daemon_threads = True
@@ -124,12 +144,19 @@ def main() -> None:
     ap.add_argument("--host", default="0.0.0.0", help="0.0.0.0 = reachable from the LAN (token required either way)")
     ap.add_argument("--token", default=os.environ.get("RT_QUEUE_TOKEN") or secrets.token_urlsafe(12))
     ap.add_argument("--lease-s", type=float, default=900.0)
+    ap.add_argument("--watch", help="folder to watch: jobs of any *.jsonl that appears (or is already there) are queued, so a run can grow")
+    ap.add_argument("--watch-every", type=float, default=15.0)
     a = ap.parse_args()
     run_dir = ROOT / "data/render" / a.run
     (run_dir / "wav").mkdir(parents=True, exist_ok=True)
     done, fails = read_manifest(run_dir / "manifest.jsonl")
-    jobs = [json.loads(ln) for ln in Path(a.jobs).read_text(encoding="utf-8").splitlines()]
+    jobs = load_jobs(Path(a.jobs)) if a.jobs not in ("", "none") else []
     Handler.queue = JobQueue(jobs, done, fails, a.lease_s, a.max_priority)
+    if a.watch:
+        folder = Path(a.watch)
+        folder.mkdir(parents=True, exist_ok=True)
+        loaded: set[str] = set()
+        threading.Thread(target=watch, args=(Handler.queue, folder, loaded, a.watch_every), daemon=True).start()
     Handler.run_dir, Handler.token = run_dir, a.token
     st = Handler.queue.status()
     print(f"{st['total']} jobs, {st['done']} already done. token: {a.token}", flush=True)

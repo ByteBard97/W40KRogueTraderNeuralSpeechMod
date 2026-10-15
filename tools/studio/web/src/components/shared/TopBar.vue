@@ -17,6 +17,9 @@ const links = computed(() => [
   { to: '/pools', label: 'Pools', count: counts.pools === null ? null : fmt(counts.pools) },
   { to: '/fx', label: 'FX', count: counts.fxUnsaved ? `${counts.fxUnsaved} unsaved` : null },
   { to: '/matches', label: 'Matches', count: counts.matchesUndecided === null ? null : fmt(counts.matchesUndecided) },
+  { to: '/casting', label: 'Casting', count: null },
+  { to: '/voices', label: 'BG3 Voices', count: null },
+  { to: '/lab', label: 'Render Lab', count: null },
   { to: '/qa', label: 'Render QA', count: counts.qaClips === null ? null : fmt(counts.qaClips) },
 ])
 </script>

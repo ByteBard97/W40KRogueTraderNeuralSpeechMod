@@ -24,6 +24,14 @@ from jobs import take_problem  # noqa: E402
 
 def link(src: Path, dst: Path) -> None:
     if dst.exists():
+        if os.path.samefile(src, dst):
+            return
+        tmp = dst.with_name(dst.name + ".new")          # a stale link from an earlier build: swap it atomically (data stays elsewhere)
+        try:
+            os.link(src, tmp)
+        except OSError:
+            shutil.copyfile(src, tmp)
+        os.replace(tmp, dst)
         return
     try:
         os.link(src, dst)

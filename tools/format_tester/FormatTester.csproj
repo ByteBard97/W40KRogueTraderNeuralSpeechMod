@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>FormatTester</AssemblyName>
+    <RootNamespace>FormatTester</RootNamespace>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ManagedDir Condition="'$(ManagedDir)' == ''">C:\Users\geoff\rt-managed</ManagedDir>
+    <UmmDll Condition="'$(UmmDll)' == ''">$(ManagedDir)\UnityModManager.dll</UmmDll>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="netstandard"><HintPath>$(ManagedDir)\netstandard.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="AK.Wwise.Unity.API"><HintPath>$(ManagedDir)\AK.Wwise.Unity.API.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="AK.Wwise.Unity.API.WwiseTypes"><HintPath>$(ManagedDir)\AK.Wwise.Unity.API.WwiseTypes.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>$(ManagedDir)\Newtonsoft.Json.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityModManager"><HintPath>$(UmmDll)</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(ManagedDir)\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(ManagedDir)\UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(ManagedDir)\UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>
