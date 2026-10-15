@@ -10,10 +10,11 @@ from urllib.parse import parse_qs, urlparse
 from .config import DEFAULT_BACKEND_URL, Config
 from .errors import ApiError
 from .model import ModelClient
-from . import fx, qa
+from . import fx, qa, vendor_files
 from .routes import build_router
 
 DEFAULT_PORT = 8930
+REPO_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_DIST = Path(__file__).resolve().parents[2] / "web" / "dist"
 
 
@@ -95,6 +96,9 @@ def make_server(cfg: Config, model: ModelClient, port: int = DEFAULT_PORT, web_d
                     return self._send(e.status, e.message.encode(), "text/plain")
                 except Exception as e:
                     return self._send(500, f"{type(e).__name__}: {e}".encode(), "text/plain")
+            vendor = vendor_files.resolve(REPO_ROOT, u.path)
+            if vendor:
+                return self._send(200, vendor[0].read_bytes(), vendor[1], {"Cache-Control": "no-store"})
             rel = u.path.lstrip("/")
             f = (dist / rel).resolve() if rel else None
             if f and f.is_file() and dist.resolve() in f.parents:

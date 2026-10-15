@@ -1,0 +1,19 @@
+import("stdfaust.lib");
+
+// Fixture block library for the generator tests. Every node_* is a stereo box (2*inputs in, 2*outputs out) whose
+// controls live inside its own definition, so each vgroup'd instance gets its own sliders.
+
+node_gain = par(i, 2, chan) with {
+  g = hslider("[0]Gain dB", 0, -24, 24, 0.1) : ba.db2linear : si.smoo;
+  on = checkbox("[1]on") : si.smoo;
+  chan(x) = x * (on * g + (1 - on));
+};
+
+node_mix2 = (_ * ga, _ * ga, _ * gb, _ * gb) :> si.bus(2) with {
+  ga = hslider("[0]In 1 dB", 0, -24, 24, 0.1) : ba.db2linear : si.smoo;
+  gb = hslider("[1]In 2 dB", 0, -24, 24, 0.1) : ba.db2linear : si.smoo;
+};
+
+node_output = par(i, 2, _ * g) with {
+  g = hslider("[0]Output dB", 0, -24, 24, 0.1) : ba.db2linear : si.smoo;
+};

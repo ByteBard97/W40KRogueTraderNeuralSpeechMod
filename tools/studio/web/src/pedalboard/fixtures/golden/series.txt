@@ -1,0 +1,16 @@
+process = vgroup("fx",
+  // n1: mono input to a stereo wire
+  (_ <: (_, _))
+  // layer 1: n2
+  : (
+    vgroup("n2", node_gain)
+  )
+  // layer 2: n3
+  : (
+    vgroup("n3", node_gain)
+  )
+  // layer 3: n4
+  : (
+    vgroup("n4", node_output)
+  )
+);

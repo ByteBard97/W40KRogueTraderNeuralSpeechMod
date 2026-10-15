@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import auto_cast, bg3_labels, rt_voices, casting, clone, design, lab, lab_opus, fx, fx_library, jobs, matches, pools, qa, speakers, store, summary
+from . import auto_cast, bg3_labels, rt_voices, casting, clone, design, lab, lab_opus, fx, fx_library, jobs, matches, pedalboard, pools, qa, reference_api, speakers, store, summary
 from .errors import ApiError
 from .router import Router
 
@@ -86,6 +86,8 @@ def build_router() -> Router:
     r.add("GET", L + "/{speaker}/lines", lambda q: lab.lines(q.cfg, q.params["speaker"]))
     r.add("GET", L + "/{speaker}/takes", lambda q: lab.takes(q.cfg, q.params["speaker"], q.query.get("guid")))
     r.add("POST", L + "/{speaker}/takes/{id}", lambda q: lab.update_take(q.cfg, q.params["speaker"], q.params["id"], q.body))
+    r.add("GET", "/api/ref/speakers", lambda q: reference_api.speakers(q.cfg))
+    r.add("GET", "/api/ref/ltas", lambda q: reference_api.ltas(q.cfg, q.query.get("speaker", "")))
     r.add("GET", "/api/fx/library", lambda q: fx_library.library(q.cfg))
     r.add("GET", "/api/fx/labels", lambda q: fx_library.get_labels(q.cfg))
     r.add("POST", "/api/fx/labels", lambda q: fx_library.save_labels(q.cfg, q.body))
@@ -113,6 +115,10 @@ def build_router() -> Router:
     r.add("POST", "/api/casting/register", lambda q: casting.register(q.cfg))
     r.add("GET", "/api/rtvoices", lambda q: rt_voices.page(q.cfg))
     r.add("POST", "/api/rtvoices/labels", lambda q: rt_voices.set_label(q.cfg, q.body["slug"], q.body["key"], q.body.get("value")))
+    r.add("GET", "/api/pedalboard/blocks", lambda q: pedalboard.blocks(q.cfg))
+    r.add("GET", "/api/pedalboard/graphs", lambda q: pedalboard.list_graphs(q.cfg))
+    r.add("GET", "/api/pedalboard/graphs/{name}", lambda q: pedalboard.load_graph(q.cfg, q.params["name"]))
+    r.add("POST", "/api/pedalboard/graphs", lambda q: pedalboard.save_graph(q.cfg, q.body))
     r.add("GET", "/api/assignments", lambda q: auto_cast.page(q.cfg))
     r.add("POST", "/api/assignments/run", lambda q: auto_cast.run(q.cfg))
     r.add("POST", "/api/assignments/override", lambda q: auto_cast.override(q.cfg, q.body["key"], q.body.get("bg3")))

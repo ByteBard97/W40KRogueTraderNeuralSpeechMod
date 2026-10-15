@@ -1,0 +1,19 @@
+process = vgroup("fx",
+  // n1: mono input to a stereo wire
+  (_ <: (_, _))
+  // into layer 1: n2
+  : route(2, 4, (1,1), (2,2), (1,3), (2,4))
+  // layer 1: n2
+  : (
+    vgroup("n2", node_gain),
+    si.bus(2)
+  )
+  // layer 2: n3
+  : (
+    vgroup("n3", node_mix2)
+  )
+  // layer 3: n4
+  : (
+    vgroup("n4", node_output)
+  )
+);

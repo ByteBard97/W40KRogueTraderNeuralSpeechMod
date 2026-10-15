@@ -1,0 +1,87 @@
+{
+ "version": 1,
+ "blocks": [
+  {
+   "id": "gain",
+   "name": "Gain",
+   "category": "Tone",
+   "description": "Gain",
+   "kind": "effect",
+   "stomp": "on",
+   "inputs": 1,
+   "outputs": 1,
+   "node": "node_gain",
+   "stereoNative": false,
+   "controls": [
+    {
+     "label": "Gain dB",
+     "type": "hslider",
+     "init": 0,
+     "min": -24,
+     "max": 24,
+     "step": 0.1
+    },
+    {
+     "label": "on",
+     "type": "checkbox",
+     "init": 1,
+     "min": 0,
+     "max": 1,
+     "step": 1
+    }
+   ]
+  },
+  {
+   "id": "mix2",
+   "name": "Mix 2",
+   "category": "Routing",
+   "description": "Mix 2",
+   "kind": "structural",
+   "stomp": null,
+   "inputs": 2,
+   "outputs": 1,
+   "node": "node_mix2",
+   "stereoNative": false,
+   "controls": [
+    {
+     "label": "In 1 dB",
+     "type": "hslider",
+     "init": 0,
+     "min": -24,
+     "max": 24,
+     "step": 0.1
+    },
+    {
+     "label": "In 2 dB",
+     "type": "hslider",
+     "init": 0,
+     "min": -24,
+     "max": 24,
+     "step": 0.1
+    }
+   ]
+  },
+  {
+   "id": "output",
+   "name": "Output",
+   "category": "Output",
+   "description": "Output",
+   "kind": "structural",
+   "stomp": null,
+   "inputs": 1,
+   "outputs": 0,
+   "node": "node_output",
+   "stereoNative": false,
+   "controls": [
+    {
+     "label": "Output dB",
+     "type": "hslider",
+     "init": 0,
+     "min": -24,
+     "max": 24,
+     "step": 0.1
+    }
+   ]
+  }
+ ]
+}

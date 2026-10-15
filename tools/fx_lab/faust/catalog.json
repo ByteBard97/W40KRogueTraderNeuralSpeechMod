@@ -1,0 +1,1602 @@
+{
+  "version": 1,
+  "blocks": [
+    {
+      "id": "input",
+      "name": "Input",
+      "category": "Routing",
+      "description": "The raw voice clip, sent to both channels.",
+      "kind": "structural",
+      "stomp": null,
+      "inputs": 0,
+      "outputs": 1,
+      "node": null,
+      "stereoNative": false,
+      "controls": []
+    },
+    {
+      "id": "highpass",
+      "name": "Highpass",
+      "category": "Tone",
+      "description": "Cuts everything below a cutoff frequency; 0 turns it off.",
+      "kind": "effect",
+      "stomp": "Highpass on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_highpass",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Highpass on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Highpass Hz (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 2000,
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "lowpass",
+      "name": "Lowpass",
+      "category": "Tone",
+      "description": "Cuts everything above a cutoff frequency; 0 turns it off.",
+      "kind": "effect",
+      "stomp": "Lowpass on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_lowpass",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Lowpass Hz (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 12000,
+          "step": 10
+        },
+        {
+          "label": "Lowpass on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "deesser",
+      "name": "De-esser",
+      "category": "Tone",
+      "description": "Compresses only the harsh sibilant band so s and t sounds stay tame before other effects exaggerate them.",
+      "kind": "effect",
+      "stomp": "De-ess on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_deesser",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "De-ess on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "De-ess threshold dB (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": -60,
+          "max": 0,
+          "step": 0.5
+        },
+        {
+          "label": "De-ess frequency Hz",
+          "type": "hslider",
+          "init": 6000,
+          "min": 3000,
+          "max": 9000,
+          "step": 50
+        }
+      ]
+    },
+    {
+      "id": "eq",
+      "name": "EQ",
+      "category": "Tone",
+      "description": "Three peaking bands and a high shelf to shape the tone.",
+      "kind": "effect",
+      "stomp": "EQ on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_eq",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "EQ on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "EQ low freq Hz",
+          "type": "hslider",
+          "init": 250,
+          "min": 80,
+          "max": 1000,
+          "step": 1
+        },
+        {
+          "label": "EQ low gain dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -18,
+          "max": 18,
+          "step": 0.1
+        },
+        {
+          "label": "EQ low Q",
+          "type": "hslider",
+          "init": 1,
+          "min": 0.3,
+          "max": 4,
+          "step": 0.01
+        },
+        {
+          "label": "EQ mid freq Hz",
+          "type": "hslider",
+          "init": 1000,
+          "min": 400,
+          "max": 4000,
+          "step": 1
+        },
+        {
+          "label": "EQ mid gain dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -18,
+          "max": 18,
+          "step": 0.1
+        },
+        {
+          "label": "EQ mid Q",
+          "type": "hslider",
+          "init": 1,
+          "min": 0.3,
+          "max": 4,
+          "step": 0.01
+        },
+        {
+          "label": "EQ high freq Hz",
+          "type": "hslider",
+          "init": 3000,
+          "min": 1500,
+          "max": 9000,
+          "step": 1
+        },
+        {
+          "label": "EQ high gain dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -18,
+          "max": 18,
+          "step": 0.1
+        },
+        {
+          "label": "EQ high Q",
+          "type": "hslider",
+          "init": 1,
+          "min": 0.3,
+          "max": 4,
+          "step": 0.01
+        },
+        {
+          "label": "EQ shelf freq Hz",
+          "type": "hslider",
+          "init": 3000,
+          "min": 1500,
+          "max": 9000,
+          "step": 1
+        },
+        {
+          "label": "EQ shelf gain dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -18,
+          "max": 18,
+          "step": 0.1
+        }
+      ]
+    },
+    {
+      "id": "lowshelf",
+      "name": "Low shelf",
+      "category": "Tone",
+      "description": "Boosts or cuts everything below 200 Hz.",
+      "kind": "effect",
+      "stomp": "Low shelf on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_lowshelf",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Low shelf on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Low shelf dB (200 Hz)",
+          "type": "hslider",
+          "init": 0,
+          "min": -12,
+          "max": 12,
+          "step": 0.1
+        }
+      ]
+    },
+    {
+      "id": "compressor",
+      "name": "Compressor",
+      "category": "Tone",
+      "description": "Evens out loud and quiet parts with threshold, ratio, attack, release and makeup gain.",
+      "kind": "effect",
+      "stomp": "Compressor on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_compressor",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Compressor on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Compressor threshold dB",
+          "type": "hslider",
+          "init": -18,
+          "min": -60,
+          "max": 0,
+          "step": 0.5
+        },
+        {
+          "label": "Compressor ratio (1 off)",
+          "type": "hslider",
+          "init": 1,
+          "min": 1,
+          "max": 20,
+          "step": 0.1
+        },
+        {
+          "label": "Compressor attack ms",
+          "type": "hslider",
+          "init": 5,
+          "min": 0.1,
+          "max": 100,
+          "step": 0.1
+        },
+        {
+          "label": "Compressor release ms",
+          "type": "hslider",
+          "init": 80,
+          "min": 5,
+          "max": 1000,
+          "step": 1
+        },
+        {
+          "label": "Compressor makeup dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -12,
+          "max": 24,
+          "step": 0.1
+        }
+      ]
+    },
+    {
+      "id": "pitch",
+      "name": "Pitch shift",
+      "category": "Pitch & voice",
+      "description": "Shifts the whole voice up or down by semitones and adds about 20 ms of delay.",
+      "kind": "effect",
+      "stomp": "Pitch on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_pitch",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Pitch on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Pitch semitones",
+          "type": "hslider",
+          "init": 0,
+          "min": -12,
+          "max": 12,
+          "step": 0.1
+        }
+      ]
+    },
+    {
+      "id": "harmonizer",
+      "name": "Harmonizer",
+      "category": "Pitch & voice",
+      "description": "Adds up to two pitch-shifted copies of the voice for a doubled, choir-like sound.",
+      "kind": "effect",
+      "stomp": "Harmonizer on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_harmonizer",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Harmonizer on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Harmonizer voice 1 semitones",
+          "type": "hslider",
+          "init": -12,
+          "min": -24,
+          "max": 24,
+          "step": 0.1
+        },
+        {
+          "label": "Harmonizer voice 1 level",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        },
+        {
+          "label": "Harmonizer voice 2 semitones",
+          "type": "hslider",
+          "init": 7,
+          "min": -24,
+          "max": 24,
+          "step": 0.1
+        },
+        {
+          "label": "Harmonizer voice 2 level",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "freqshift",
+      "name": "Frequency shifter",
+      "category": "Pitch & voice",
+      "description": "Moves every partial by the same number of Hz, which turns a natural voice inharmonic and eerie.",
+      "kind": "effect",
+      "stomp": "Freq shift on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_freqshift",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Freq shift on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Freq shift Hz (negative shifts down)",
+          "type": "hslider",
+          "init": 0,
+          "min": -400,
+          "max": 400,
+          "step": 0.5
+        },
+        {
+          "label": "Freq shift mix (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "vocoder",
+      "name": "Vocoder",
+      "category": "Pitch & voice",
+      "description": "Replaces the voice with a monotone buzz that keeps the words, for a robot or cyborg sound.",
+      "kind": "effect",
+      "stomp": "Vocoder on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_vocoder",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Vocoder on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Vocoder mix (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        },
+        {
+          "label": "Vocoder bands (8 16 24 32)",
+          "type": "hslider",
+          "init": 16,
+          "min": 8,
+          "max": 32,
+          "step": 8
+        },
+        {
+          "label": "Vocoder carrier Hz",
+          "type": "hslider",
+          "init": 110,
+          "min": 30,
+          "max": 400,
+          "step": 1
+        },
+        {
+          "label": "Vocoder pulse width",
+          "type": "hslider",
+          "init": 0.3,
+          "min": 0.05,
+          "max": 0.95,
+          "step": 0.01
+        },
+        {
+          "label": "Vocoder carrier noise",
+          "type": "hslider",
+          "init": 0.15,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        },
+        {
+          "label": "Vocoder attack ms",
+          "type": "hslider",
+          "init": 4,
+          "min": 1,
+          "max": 50,
+          "step": 0.5
+        },
+        {
+          "label": "Vocoder release ms",
+          "type": "hslider",
+          "init": 40,
+          "min": 5,
+          "max": 300,
+          "step": 1
+        },
+        {
+          "label": "Vocoder consonant pass (4.5 kHz+)",
+          "type": "hslider",
+          "init": 0.3,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "wowflutter",
+      "name": "Wow and flutter",
+      "category": "Pitch & voice",
+      "description": "Slow and fast pitch wobble like a worn tape or an unstable vox link.",
+      "kind": "effect",
+      "stomp": "Wow flutter on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_wowflutter",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Wow flutter on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Wow cents",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 50,
+          "step": 0.5
+        },
+        {
+          "label": "Wow rate Hz",
+          "type": "hslider",
+          "init": 0.5,
+          "min": 0.2,
+          "max": 2,
+          "step": 0.01
+        },
+        {
+          "label": "Flutter cents",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 30,
+          "step": 0.5
+        },
+        {
+          "label": "Flutter rate Hz",
+          "type": "hslider",
+          "init": 9,
+          "min": 4,
+          "max": 14,
+          "step": 0.1
+        }
+      ]
+    },
+    {
+      "id": "resonator",
+      "name": "Resonator",
+      "category": "Metal",
+      "description": "Adds four fixed resonant peaks, like the ring of a small metal box, grille or helmet.",
+      "kind": "effect",
+      "stomp": "Resonator on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_resonator",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Resonator freq 3 Hz",
+          "type": "hslider",
+          "init": 3100,
+          "min": 200,
+          "max": 8000,
+          "step": 1
+        },
+        {
+          "label": "Resonator freq 4 Hz",
+          "type": "hslider",
+          "init": 4600,
+          "min": 200,
+          "max": 8000,
+          "step": 1
+        },
+        {
+          "label": "Resonator Q",
+          "type": "hslider",
+          "init": 12,
+          "min": 2,
+          "max": 30,
+          "step": 0.1
+        },
+        {
+          "label": "Resonator mix (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        },
+        {
+          "label": "Resonator on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Resonator freq 1 Hz",
+          "type": "hslider",
+          "init": 700,
+          "min": 200,
+          "max": 8000,
+          "step": 1
+        },
+        {
+          "label": "Resonator freq 2 Hz",
+          "type": "hslider",
+          "init": 1900,
+          "min": 200,
+          "max": 8000,
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "metal",
+      "name": "Metal bank",
+      "category": "Metal",
+      "description": "Six narrow ringing resonances laid out like a struck metal bar, so the voice sounds like it hits metal.",
+      "kind": "effect",
+      "stomp": "Metal on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_metal",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Metal on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Metal base Hz",
+          "type": "hslider",
+          "init": 300,
+          "min": 80,
+          "max": 1200,
+          "step": 1
+        },
+        {
+          "label": "Metal inharmonicity (0 harmonic, 1 metal bar)",
+          "type": "hslider",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        },
+        {
+          "label": "Metal Q (ring length)",
+          "type": "hslider",
+          "init": 30,
+          "min": 5,
+          "max": 80,
+          "step": 0.5
+        },
+        {
+          "label": "Metal mix (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "comb",
+      "name": "Comb",
+      "category": "Metal",
+      "description": "A short feedback delay that gives a hollow pipe or robotic flange tone.",
+      "kind": "effect",
+      "stomp": "Comb on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_comb",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Comb on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Comb delay ms",
+          "type": "hslider",
+          "init": 3,
+          "min": 0.3,
+          "max": 12,
+          "step": 0.05
+        },
+        {
+          "label": "Comb feedback",
+          "type": "hslider",
+          "init": 0.5,
+          "min": -0.9,
+          "max": 0.9,
+          "step": 0.01
+        },
+        {
+          "label": "Comb mix (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "ringmod",
+      "name": "Ring mod",
+      "category": "Metal",
+      "description": "Multiplies the voice by a sine wave for a classic metallic robot voice.",
+      "kind": "effect",
+      "stomp": "Ring on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_ringmod",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Ring on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Ring Hz",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 400,
+          "step": 1
+        },
+        {
+          "label": "Ring mix",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "drive",
+      "name": "Drive",
+      "category": "Metal",
+      "description": "Soft saturation that adds grit and harmonics.",
+      "kind": "effect",
+      "stomp": "Drive on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_drive",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Drive on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Drive",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "bitcrush",
+      "name": "Bitcrusher",
+      "category": "Metal",
+      "description": "Lowers the bit depth and sample hold rate for a crunchy digital sound.",
+      "kind": "effect",
+      "stomp": "Crush on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_bitcrush",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Crush on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Crush bits (16 off)",
+          "type": "hslider",
+          "init": 16,
+          "min": 2,
+          "max": 16,
+          "step": 1
+        },
+        {
+          "label": "Crush hold samples",
+          "type": "hslider",
+          "init": 1,
+          "min": 1,
+          "max": 32,
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "tremolo",
+      "name": "Tremolo",
+      "category": "Modulation",
+      "description": "Wobbles the volume at a steady rate.",
+      "kind": "effect",
+      "stomp": "Tremolo on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_tremolo",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Tremolo on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Tremolo Hz",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 20,
+          "step": 0.1
+        },
+        {
+          "label": "Tremolo depth",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "chorus",
+      "name": "Chorus",
+      "category": "Modulation",
+      "description": "Mixes in two slightly detuned, modulated copies for a thicker voice.",
+      "kind": "effect",
+      "stomp": "Chorus on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_chorus",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Chorus on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Chorus rate Hz",
+          "type": "hslider",
+          "init": 0.8,
+          "min": 0.1,
+          "max": 6,
+          "step": 0.01
+        },
+        {
+          "label": "Chorus depth ms",
+          "type": "hslider",
+          "init": 3,
+          "min": 0,
+          "max": 10,
+          "step": 0.1
+        },
+        {
+          "label": "Chorus delay ms",
+          "type": "hslider",
+          "init": 15,
+          "min": 5,
+          "max": 30,
+          "step": 0.1
+        },
+        {
+          "label": "Chorus mix (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "phaser",
+      "name": "Phaser",
+      "category": "Modulation",
+      "description": "Sweeps moving notches through the sound with an allpass chain.",
+      "kind": "effect",
+      "stomp": "Phaser on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_phaser",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Phaser on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Phaser mix (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        },
+        {
+          "label": "Phaser rate Hz",
+          "type": "hslider",
+          "init": 0.3,
+          "min": 0.05,
+          "max": 8,
+          "step": 0.01
+        },
+        {
+          "label": "Phaser feedback",
+          "type": "hslider",
+          "init": 0.4,
+          "min": -0.9,
+          "max": 0.9,
+          "step": 0.01
+        },
+        {
+          "label": "Phaser stages (2 4 6 8)",
+          "type": "hslider",
+          "init": 4,
+          "min": 2,
+          "max": 8,
+          "step": 2
+        },
+        {
+          "label": "Phaser sweep low Hz",
+          "type": "hslider",
+          "init": 200,
+          "min": 40,
+          "max": 1000,
+          "step": 10
+        },
+        {
+          "label": "Phaser sweep high Hz",
+          "type": "hslider",
+          "init": 3500,
+          "min": 1000,
+          "max": 9000,
+          "step": 50
+        }
+      ]
+    },
+    {
+      "id": "echo",
+      "name": "Echo",
+      "category": "Space",
+      "description": "Repeating delay with feedback and a mix control.",
+      "kind": "effect",
+      "stomp": "Echo on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_echo",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Echo on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Echo ms",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 500,
+          "step": 1
+        },
+        {
+          "label": "Echo feedback",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 0.9,
+          "step": 0.01
+        },
+        {
+          "label": "Echo mix",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "reverb",
+      "name": "Reverb",
+      "category": "Space",
+      "description": "Adds the sound of a room with size and damping.",
+      "kind": "effect",
+      "stomp": "Reverb on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_reverb",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Reverb on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Reverb size",
+          "type": "hslider",
+          "init": 0.5,
+          "min": 0,
+          "max": 0.98,
+          "step": 0.01
+        },
+        {
+          "label": "Reverb damping",
+          "type": "hslider",
+          "init": 0.5,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        },
+        {
+          "label": "Reverb mix",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "static",
+      "name": "Static",
+      "category": "Space",
+      "description": "Band-limited radio hiss that only sounds while the character speaks.",
+      "kind": "effect",
+      "stomp": "Static on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_static",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Static on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Static level dB (-60 off)",
+          "type": "hslider",
+          "init": -60,
+          "min": -60,
+          "max": -6,
+          "step": 0.5
+        },
+        {
+          "label": "Static band low Hz",
+          "type": "hslider",
+          "init": 300,
+          "min": 100,
+          "max": 3000,
+          "step": 10
+        },
+        {
+          "label": "Static band high Hz",
+          "type": "hslider",
+          "init": 3400,
+          "min": 1000,
+          "max": 10000,
+          "step": 50
+        },
+        {
+          "label": "Static tail ms",
+          "type": "hslider",
+          "init": 120,
+          "min": 10,
+          "max": 3000,
+          "step": 5
+        }
+      ]
+    },
+    {
+      "id": "dropout",
+      "name": "Dropout",
+      "category": "Space",
+      "description": "Randomly mutes short pieces of the signal like a failing vox-caster.",
+      "kind": "effect",
+      "stomp": "Dropout on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_dropout",
+      "stereoNative": false,
+      "controls": [
+        {
+          "label": "Dropout on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Dropout rate per s",
+          "type": "hslider",
+          "init": 6,
+          "min": 1,
+          "max": 20,
+          "step": 0.5
+        },
+        {
+          "label": "Dropout length ms",
+          "type": "hslider",
+          "init": 60,
+          "min": 5,
+          "max": 400,
+          "step": 1
+        },
+        {
+          "label": "Dropout amount (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "autopan",
+      "name": "Auto pan",
+      "category": "Stereo",
+      "description": "Sweeps the voice between left and right with an LFO.",
+      "kind": "effect",
+      "stomp": "Auto pan on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_autopan",
+      "stereoNative": true,
+      "controls": [
+        {
+          "label": "Auto pan on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Auto pan rate Hz",
+          "type": "hslider",
+          "init": 0.5,
+          "min": 0.05,
+          "max": 8,
+          "step": 0.01
+        },
+        {
+          "label": "Auto pan depth (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "stereochorus",
+      "name": "Stereo chorus",
+      "category": "Stereo",
+      "description": "A chorus whose left and right sides move out of step for width.",
+      "kind": "effect",
+      "stomp": "Stereo chorus on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_stereochorus",
+      "stereoNative": true,
+      "controls": [
+        {
+          "label": "Stereo chorus on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Stereo chorus rate Hz",
+          "type": "hslider",
+          "init": 0.6,
+          "min": 0.05,
+          "max": 6,
+          "step": 0.01
+        },
+        {
+          "label": "Stereo chorus depth ms",
+          "type": "hslider",
+          "init": 3,
+          "min": 0,
+          "max": 10,
+          "step": 0.1
+        },
+        {
+          "label": "Stereo chorus delay ms",
+          "type": "hslider",
+          "init": 14,
+          "min": 5,
+          "max": 30,
+          "step": 0.1
+        },
+        {
+          "label": "Stereo chorus right offset deg",
+          "type": "hslider",
+          "init": 180,
+          "min": 0,
+          "max": 360,
+          "step": 1
+        },
+        {
+          "label": "Stereo chorus mix (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "stereophaser",
+      "name": "Stereo phaser",
+      "category": "Stereo",
+      "description": "A phaser whose left and right sweeps are offset for a swirling stereo image.",
+      "kind": "effect",
+      "stomp": "Stereo phaser on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_stereophaser",
+      "stereoNative": true,
+      "controls": [
+        {
+          "label": "Stereo phaser mix (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        },
+        {
+          "label": "Stereo phaser rate Hz",
+          "type": "hslider",
+          "init": 0.3,
+          "min": 0.05,
+          "max": 8,
+          "step": 0.01
+        },
+        {
+          "label": "Stereo phaser feedback",
+          "type": "hslider",
+          "init": 0.4,
+          "min": -0.9,
+          "max": 0.9,
+          "step": 0.01
+        },
+        {
+          "label": "Stereo phaser stages (2 4 6 8)",
+          "type": "hslider",
+          "init": 4,
+          "min": 2,
+          "max": 8,
+          "step": 2
+        },
+        {
+          "label": "Stereo phaser sweep low Hz",
+          "type": "hslider",
+          "init": 200,
+          "min": 40,
+          "max": 1000,
+          "step": 10
+        },
+        {
+          "label": "Stereo phaser sweep high Hz",
+          "type": "hslider",
+          "init": 3500,
+          "min": 1000,
+          "max": 9000,
+          "step": 50
+        },
+        {
+          "label": "Stereo phaser right offset deg",
+          "type": "hslider",
+          "init": 180,
+          "min": 0,
+          "max": 360,
+          "step": 1
+        },
+        {
+          "label": "Stereo phaser on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "bassspread",
+      "name": "Bass spread",
+      "category": "Stereo",
+      "description": "Delays the low band differently in each ear while the highs stay put.",
+      "kind": "effect",
+      "stomp": "Bass spread on",
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_bassspread",
+      "stereoNative": true,
+      "controls": [
+        {
+          "label": "Bass spread crossover Hz",
+          "type": "hslider",
+          "init": 300,
+          "min": 60,
+          "max": 800,
+          "step": 1
+        },
+        {
+          "label": "Bass spread delay ms",
+          "type": "hslider",
+          "init": 4,
+          "min": 1,
+          "max": 15,
+          "step": 0.1
+        },
+        {
+          "label": "Bass spread motion depth",
+          "type": "hslider",
+          "init": 0.5,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        },
+        {
+          "label": "Bass spread motion rate Hz",
+          "type": "hslider",
+          "init": 0.7,
+          "min": 0.05,
+          "max": 6,
+          "step": 0.01
+        },
+        {
+          "label": "Bass spread mix (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        },
+        {
+          "label": "Bass spread on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "mix2",
+      "name": "Mix 2",
+      "category": "Routing",
+      "description": "Sums two stereo wires with a level for each.",
+      "kind": "structural",
+      "stomp": null,
+      "inputs": 2,
+      "outputs": 1,
+      "node": "node_mix2",
+      "stereoNative": true,
+      "controls": [
+        {
+          "label": "Level A dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -60,
+          "max": 12,
+          "step": 0.1
+        },
+        {
+          "label": "Level B dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -60,
+          "max": 12,
+          "step": 0.1
+        }
+      ]
+    },
+    {
+      "id": "mix3",
+      "name": "Mix 3",
+      "category": "Routing",
+      "description": "Sums three stereo wires with a level for each.",
+      "kind": "structural",
+      "stomp": null,
+      "inputs": 3,
+      "outputs": 1,
+      "node": "node_mix3",
+      "stereoNative": true,
+      "controls": [
+        {
+          "label": "Level A dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -60,
+          "max": 12,
+          "step": 0.1
+        },
+        {
+          "label": "Level B dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -60,
+          "max": 12,
+          "step": 0.1
+        },
+        {
+          "label": "Level C dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -60,
+          "max": 12,
+          "step": 0.1
+        }
+      ]
+    },
+    {
+      "id": "mix4",
+      "name": "Mix 4",
+      "category": "Routing",
+      "description": "Sums four stereo wires with a level for each.",
+      "kind": "structural",
+      "stomp": null,
+      "inputs": 4,
+      "outputs": 1,
+      "node": "node_mix4",
+      "stereoNative": true,
+      "controls": [
+        {
+          "label": "Level A dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -60,
+          "max": 12,
+          "step": 0.1
+        },
+        {
+          "label": "Level B dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -60,
+          "max": 12,
+          "step": 0.1
+        },
+        {
+          "label": "Level C dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -60,
+          "max": 12,
+          "step": 0.1
+        },
+        {
+          "label": "Level D dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -60,
+          "max": 12,
+          "step": 0.1
+        }
+      ]
+    },
+    {
+      "id": "output",
+      "name": "Output",
+      "category": "Output",
+      "description": "Final output level, limiter and hard clip on both channels.",
+      "kind": "structural",
+      "stomp": null,
+      "inputs": 1,
+      "outputs": 1,
+      "node": "node_output",
+      "stereoNative": true,
+      "controls": [
+        {
+          "label": "Output dB",
+          "type": "hslider",
+          "init": 0,
+          "min": -24,
+          "max": 12,
+          "step": 0.1
+        },
+        {
+          "label": "Limiter on",
+          "type": "checkbox",
+          "init": 1,
+          "min": 0,
+          "max": 1,
+          "step": 1
+        },
+        {
+          "label": "Limiter threshold dB (0 off)",
+          "type": "hslider",
+          "init": 0,
+          "min": -24,
+          "max": 0,
+          "step": 0.5
+        }
+      ]
+    }
+  ]
+}

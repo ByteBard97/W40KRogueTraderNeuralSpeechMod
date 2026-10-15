@@ -38,15 +38,32 @@ KEEP_AFTER_S = 0.08
 MAX_TAIL_S = 2.0
 
 
+TAIL_CONTROLS = ("Echo_mix", "Echo_ms", "Reverb_mix", "Reverb_size", "Static_level_dB_60_off", "Static_tail_ms")
+
+
+def _by_node(params: dict) -> dict[str, dict]:
+    """The time-effect controls grouped by node: 'n3_Echo_mix' belongs to node 'n3', a flat 'Echo_mix' to node ''.
+    A graph preset has one set per pedal, and a pedal's mix and delay only count together."""
+    out: dict[str, dict] = {}
+    for key, value in params.items():
+        for name in TAIL_CONTROLS:
+            if key == name:
+                out.setdefault("", {})[name] = value
+            elif key.endswith("_" + name):
+                out.setdefault(key[: -len(name) - 1], {})[name] = value
+    return out
+
+
 def tail_seconds(params: dict) -> float:
-    """How much silence to append so delay / reverb / static tails are not cut off."""
+    """How much silence to append so delay / reverb / static tails are not cut off (the longest over all pedals)."""
     t = 0.0
-    if params.get("Echo_mix", 0) > 0 and params.get("Echo_ms", 0) > 0:
-        t = max(t, min(MAX_TAIL_S, params["Echo_ms"] / 1000 * 8))
-    if params.get("Reverb_mix", 0) > 0:
-        t = max(t, 0.6 + 1.6 * params.get("Reverb_size", 0.5))
-    if params.get("Static_level_dB_60_off", -60) > -59.5:
-        t = max(t, params.get("Static_tail_ms", 120) / 1000 + 0.1)
+    for p in _by_node(params).values():
+        if p.get("Echo_mix", 0) > 0 and p.get("Echo_ms", 0) > 0:
+            t = max(t, min(MAX_TAIL_S, p["Echo_ms"] / 1000 * 8))
+        if p.get("Reverb_mix", 0) > 0:
+            t = max(t, 0.6 + 1.6 * p.get("Reverb_size", 0.5))
+        if p.get("Static_level_dB_60_off", -60) > -59.5:
+            t = max(t, p.get("Static_tail_ms", 120) / 1000 + 0.1)
     return min(MAX_TAIL_S, t)
 
 

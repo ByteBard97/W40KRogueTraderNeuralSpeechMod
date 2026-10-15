@@ -86,3 +86,28 @@ def test_limiter_and_tail_trim_work_on_both_channels():
     z = np.zeros((2, sr), dtype=np.float32)
     z[1, 2000] = 0.5
     assert batch.trim_tail(z, sr).shape[1] < sr // 2                                     # the quiet end goes whichever channel carried the sound
+
+
+# ---- graph presets: keys carry a node prefix (n3_Echo_mix), the program is a saved .dsp ----
+def test_tail_seconds_finds_time_effects_under_node_prefixes():
+    assert batch.tail_seconds({"n3_Echo_mix": 0.5, "n3_Echo_ms": 100}) > 0.5
+    assert batch.tail_seconds({"n4_Reverb_mix": 0.3, "n4_Reverb_size": 0.8}) > 1.5
+    assert batch.tail_seconds({"n5_Static_level_dB_60_off": -20, "n5_Static_tail_ms": 500}) > 0.5
+    assert batch.tail_seconds({"n3_Echo_mix": 0.5, "n3_Echo_ms": 0}) == 0                   # an echo with no delay has no tail
+    assert batch.tail_seconds({"n3_Echo_mix": 0.5, "n4_Echo_ms": 100}) == 0                 # mix of one echo and delay of another do not combine
+    assert batch.tail_seconds({"n3_Ring_Hz": 40, "n3_Ring_mix": 0.3}) == 0
+
+
+def test_tail_seconds_takes_the_longest_of_several_nodes():
+    one = batch.tail_seconds({"n2_Echo_mix": 0.5, "n2_Echo_ms": 50})
+    both = batch.tail_seconds({"n2_Echo_mix": 0.5, "n2_Echo_ms": 50, "n7_Echo_mix": 0.5, "n7_Echo_ms": 200})
+    assert both > one and both <= batch.MAX_TAIL_S
+
+
+def test_a_saved_graph_program_renders_with_keys_by_node_and_is_mono_when_the_sides_match():
+    code = 'import("stdfaust.lib");\nprocess = vgroup("fx", _ <: vgroup("n1", *(hslider("Gain", 1, 0, 2, 0.01))), vgroup("n2", *(hslider("Gain", 1, 0, 2, 0.01))));\n'
+    x = speechlike()
+    same = batch.process_clip(x, 24000, [{"dsp": "presets/g.dsp", "params": {"n1_Gain": 0.5, "n2_Gain": 0.5}}], {"presets/g.dsp": code})
+    assert same.ndim == 1                                                                   # left == right: stays mono
+    differ = batch.process_clip(x, 24000, [{"dsp": "presets/g.dsp", "params": {"n1_Gain": 1.0, "n2_Gain": 0.25}}], {"presets/g.dsp": code})
+    assert differ.shape[0] == 2 and np.abs(differ[0]).max() > 3 * np.abs(differ[1]).max()   # each instance honours its own gain
