@@ -5,6 +5,7 @@ declare module 'node:fs' {
   export function writeFileSync(path: string, data: string | Uint8Array): void
   export function mkdtempSync(prefix: string): string
   export function existsSync(path: string): boolean
+  export function readdirSync(path: string): string[]
 }
 declare module 'node:os' {
   export function tmpdir(): string

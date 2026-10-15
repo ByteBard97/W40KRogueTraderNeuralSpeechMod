@@ -13,6 +13,8 @@ const props = defineProps<{
   valid: boolean
   issues: string[]
   saving?: boolean
+  canUndo?: boolean
+  canRedo?: boolean
 }>()
 const emit = defineEmits<{
   'update:name': [name: string]
@@ -20,6 +22,8 @@ const emit = defineEmits<{
   'load-saved': [name: string]
   save: [name: string]
   new: []
+  undo: []
+  redo: []
 }>()
 
 const open = ref<Menu>(null)
@@ -70,6 +74,10 @@ function submit() {
       </div>
     </div>
     <button type="button" class="btn" data-testid="new-btn" @click="emit('new')">New</button>
+    <div class="history" role="group" aria-label="History">
+      <button type="button" class="btn" data-testid="undo-btn" title="Undo (Ctrl+Z)" :disabled="!canUndo" @click="emit('undo')">Undo</button>
+      <button type="button" class="btn" data-testid="redo-btn" title="Redo (Ctrl+Shift+Z)" :disabled="!canRedo" @click="emit('redo')">Redo</button>
+    </div>
     <form class="save" @submit.prevent="submit">
       <input class="name" type="text" placeholder="Name this graph" aria-label="Graph name" data-testid="name-input" :value="name" maxlength="60" @input="emit('update:name', ($event.target as HTMLInputElement).value)" />
       <button type="submit" class="btn primary" data-testid="save-btn" :disabled="!canSave">Save</button>
@@ -85,6 +93,7 @@ function submit() {
 <style scoped>
 .bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); padding: var(--s-2) var(--s-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); }
 .menu { position: relative; }
+.history { display: flex; gap: var(--s-1); }
 .btn { min-height: var(--hit); padding: 0 var(--s-3); border-radius: var(--r-md); border: 1px solid var(--line-strong); background: var(--raised); color: var(--text); font-size: var(--fs-md); font-weight: 500; cursor: pointer; }
 .btn:hover { background: var(--inset); }
 .btn:disabled { color: var(--text-off); border-color: var(--line); background: transparent; cursor: not-allowed; }

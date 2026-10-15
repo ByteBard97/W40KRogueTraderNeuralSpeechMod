@@ -69,4 +69,15 @@ describe('PresetBar', () => {
     expect(items).toHaveLength(5)
     expect(items[4].text()).toBe('and 2 more')
   })
+
+  it('has Undo and Redo buttons that follow their enabled state and emit', async () => {
+    const off = mk()
+    expect(off.get('[data-testid="undo-btn"]').attributes('disabled')).toBeDefined()
+    expect(off.get('[data-testid="redo-btn"]').attributes('disabled')).toBeDefined()
+    const w = mk({ canUndo: true, canRedo: true })
+    await w.get('[data-testid="undo-btn"]').trigger('click')
+    await w.get('[data-testid="redo-btn"]').trigger('click')
+    expect(w.emitted('undo')).toHaveLength(1)
+    expect(w.emitted('redo')).toHaveLength(1)
+  })
 })

@@ -4,11 +4,12 @@ import { computed, ref } from 'vue'
 import type { CatalogBlock, GraphNode } from '../../pedalboard/types'
 import ControlRow from './ControlRow.vue'
 
-export interface PedalData { node: GraphNode; block: CatalogBlock }
+// `muted` and `solo` are audition state from the store (Bypass all, Solo); they are not part of the saved node.
+export interface PedalData { node: GraphNode; block: CatalogBlock; muted?: boolean; solo?: boolean }
 
 defineOptions({ inheritAttrs: false })
 const props = defineProps<{ id: string; data: PedalData; selected?: boolean }>()
-const emit = defineEmits<{ param: [label: string, value: number]; stomp: [on: boolean] }>()
+const emit = defineEmits<{ param: [label: string, value: number]; stomp: [on: boolean]; solo: [] }>()
 
 const PORT_LABELS = ['A', 'B', 'C', 'D']
 const PERCENT = 100
@@ -24,7 +25,7 @@ const handleTop = (i: number) => `${((i + 1) / (inputs.value.length + 1)) * PERC
 </script>
 
 <template>
-  <div class="pedal" :class="{ selected, bypassed: stompable && !on }" :data-testid="`pedal-${id}`">
+  <div class="pedal" :class="{ selected, bypassed: stompable && !on, muted: data.muted, soloed: data.solo }" :data-testid="`pedal-${id}`">
     <Handle
       v-for="i in inputs"
       :id="`in${i}`"
@@ -48,6 +49,15 @@ const handleTop = (i: number) => `${((i + 1) / (inputs.value.length + 1)) * PERC
         :data-testid="`stomp-${id}`"
         @click="emit('stomp', !on)"
       >{{ on ? 'In chain' : 'Bypassed' }}</button>
+      <button
+        v-if="stompable"
+        type="button"
+        class="solo nodrag"
+        :aria-pressed="!!data.solo"
+        :title="data.solo ? 'Soloed: every other pedal is bypassed. Click to release.' : 'Solo: bypass every other pedal while you listen'"
+        :data-testid="`solo-${id}`"
+        @click="emit('solo')"
+      >Solo</button>
       <button
         type="button"
         class="fold nodrag"
@@ -75,6 +85,12 @@ const handleTop = (i: number) => `${((i + 1) / (inputs.value.length + 1)) * PERC
 .pedal { position: relative; width: 220px; background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-md); color: var(--text); font-size: var(--fs-md); }
 .pedal.selected { border-color: var(--selected-line); }
 .pedal.bypassed .body { opacity: 0.55; }
+.pedal.muted { border-style: dashed; }
+.pedal.muted .head, .pedal.muted .body { opacity: 0.5; }
+.pedal.soloed { border-color: var(--accent); }
+.solo { background: transparent; color: var(--text-3); border: 1px solid var(--line); border-radius: var(--r-pill); font-size: var(--fs-xs); padding: 2px var(--s-2); cursor: pointer; }
+.solo:hover { color: var(--text); border-color: var(--line-strong); }
+.solo[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); font-weight: 600; }
 .head { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-2); border-bottom: 1px solid var(--line); }
 .led { width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--n-5); flex: none; }
 .led.lit { background: var(--accent); }

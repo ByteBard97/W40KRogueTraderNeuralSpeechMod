@@ -4,6 +4,9 @@ import { api } from '../api/client'
 import type { PedalboardStarter, PedalboardSaved } from '../api/types'
 import { blockFor, canConnect, controlKey, INPUT_TYPE, OUTPUT_TYPE, paramsFor, validate } from '../pedalboard/graph'
 import { generate } from '../pedalboard/generate'
+import { copyNodes, PASTE_OFFSET, type Clip } from '../pedalboard/clipboard'
+import { History } from '../pedalboard/history'
+import { tidyPositions } from '../pedalboard/tidy'
 import { describeIssue } from '../pedalboard/issueText'
 import type { Catalog, CatalogBlock, Control, Graph, GraphEdge, GraphIssue, GraphNode } from '../pedalboard/types'
 
@@ -14,6 +17,8 @@ const INPUT_X = 0
 const OUTPUT_X = 640
 const DEFAULT_Y = 0
 const FIRST_PORT = 0
+
+interface Snapshot { nodes: GraphNode[]; edges: GraphEdge[] }
 
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e))
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(toRaw(v))) as T
@@ -53,7 +58,17 @@ export const usePedalboardStore = defineStore('pedalboard', () => {
   const structuralRev = ref(0)
   // Bumped when a whole graph replaces the board (new, load, starter), so the canvas can re-fit its view.
   const loadRev = ref(0)
+  // Bumped by Tidy: the same re-fit as a load, without pretending a new graph arrived.
+  const fitRev = ref(0)
   let edgeCounter = 0
+  const history = new History<string>()
+  const undoCount = ref(0)
+  const redoCount = ref(0)
+  const clip = ref<Clip | null>(null)
+  let pasteCount = 0
+  // View state for auditioning: never saved, never part of the graph or its undo history.
+  const bypassAll = ref(false)
+  const soloId = ref<string | null>(null)
   const liveListeners = new Set<(c: LiveChange) => void>()
 
   const issues = computed<GraphIssue[]>(() => validate(graph.value, catalog.value))
@@ -75,15 +90,32 @@ export const usePedalboardStore = defineStore('pedalboard', () => {
       return null
     }
   })
+  /** Whether a pedal sounds right now: its saved stomp, unless Bypass all or Solo is overriding it. Pedals without a stomp cannot be muted. */
+  function viewOn(id: string): boolean {
+    if (bypassAll.value) return false
+    if (soloId.value !== null) return id === soloId.value
+    return nodeOf(id)?.on !== false
+  }
+
+  /** The saved values with the audition overrides laid over the stomp switches; this is what the engine should hear. */
+  function effectiveParams(): Record<string, number> {
+    const out = paramsFor(graph.value, catalog.value)
+    for (const n of graph.value.nodes) {
+      const stomp = blockFor(catalog.value, n.type)?.stomp
+      if (stomp) out[controlKey(n.id, stomp)] = viewOn(n.id) ? 1 : 0
+    }
+    return out
+  }
+
   const compiled = computed<Compiled | null>(() => {
     const g = generated.value
-    return g ? { code: g.code, controls: g.controls, params: paramsFor(graph.value, catalog.value) } : null
+    return g ? { code: g.code, controls: g.controls, params: effectiveParams() } : null
   })
 
   /** A fresh program with current knob values, for the debounced recompile (knobs may have moved since `compiled` was read). */
   function compileNow(): Compiled | null {
     const g = generated.value
-    return g ? { code: g.code, controls: g.controls, params: paramsFor(graph.value, catalog.value) } : null
+    return g ? { code: g.code, controls: g.controls, params: effectiveParams() } : null
   }
 
   function structural(): void {
@@ -101,6 +133,78 @@ export const usePedalboardStore = defineStore('pedalboard', () => {
   const blockOf = (id: string): CatalogBlock | undefined => {
     const n = nodeOf(id)
     return n ? blockFor(catalog.value, n.type) : undefined
+  }
+
+  const snapshot = (): string => JSON.stringify({ nodes: toRaw(graph.value.nodes), edges: toRaw(graph.value.edges) })
+  const syncCounts = () => {
+    undoCount.value = history.undoCount
+    redoCount.value = history.redoCount
+  }
+  /** Call before a change. A repeated `coalesceKey` within about 600 ms (a knob drag) stays one undo step. */
+  function record(coalesceKey: string | null = null): void {
+    history.record(snapshot(), Date.now(), coalesceKey)
+    syncCounts()
+  }
+
+  /** Announces the stomp state the engine should have for every pedal that has one (after Bypass all, Solo, or a restore). */
+  function announceStomps(): void {
+    for (const n of graph.value.nodes) {
+      const stomp = blockFor(catalog.value, n.type)?.stomp
+      if (!stomp) continue
+      const key = controlKey(n.id, stomp)
+      emitLive({ key, value: viewOn(n.id) ? 1 : 0 })
+    }
+  }
+
+  function setBypassAll(on: boolean): void {
+    bypassAll.value = on
+    if (on) soloId.value = null
+    announceStomps()
+  }
+
+  function toggleSolo(id: string): void {
+    if (!blockOf(id)?.stomp) return
+    soloId.value = soloId.value === id ? null : id
+    if (soloId.value) bypassAll.value = false
+    announceStomps()
+  }
+
+  function restore(snap: string): void {
+    const s = JSON.parse(snap) as Snapshot
+    const keyBefore = structureKey.value
+    const before = effectiveParams()
+    graph.value.nodes = s.nodes
+    graph.value.edges = s.edges
+    selection.value = selection.value.filter((id) => nodeOf(id))
+    if (soloId.value && !nodeOf(soloId.value)) soloId.value = null
+    const after = effectiveParams()
+    if (structureKey.value !== keyBefore) structural()
+    else dirty.value = true
+    // Knobs and stomps that differ are pushed live; a structural restore recompiles with these values too.
+    for (const [key, value] of Object.entries(after)) if (before[key] !== value) emitLive({ key, value })
+  }
+
+  function undo(): boolean {
+    const prev = history.undo(snapshot())
+    syncCounts()
+    if (prev === null) return false
+    restore(prev)
+    return true
+  }
+
+  function redo(): boolean {
+    const next = history.redo(snapshot())
+    syncCounts()
+    if (next === null) return false
+    restore(next)
+    return true
+  }
+
+  function resetHistory(): void {
+    history.clear()
+    syncCounts()
+    bypassAll.value = false
+    soloId.value = null
   }
 
   function nextNodeId(type: string): string {
@@ -131,28 +235,107 @@ export const usePedalboardStore = defineStore('pedalboard', () => {
   function addNode(type: string, x: number, y: number): string | null {
     if (type === INPUT_TYPE || type === OUTPUT_TYPE) return null
     if (!blockFor(catalog.value, type)) return null
+    record()
     const id = nextNodeId(type)
     graph.value.nodes.push({ id, type, x, y })
     structural()
     return id
   }
 
-  function removeNode(id: string): boolean {
-    const n = nodeOf(id)
-    if (!n || n.type === INPUT_TYPE || n.type === OUTPUT_TYPE) return false
-    graph.value.nodes = graph.value.nodes.filter((x) => x.id !== id)
-    graph.value.edges = graph.value.edges.filter((e) => e.source !== id && e.target !== id)
-    selection.value = selection.value.filter((s) => s !== id)
+  /** Removes pedals (never Input/Output) and wires as one undo step. Returns whether anything went. */
+  function removeMany(nodeIds: string[], edgeIds: string[] = []): boolean {
+    const gone = new Set(nodeIds.filter((id) => {
+      const n = nodeOf(id)
+      return n && n.type !== INPUT_TYPE && n.type !== OUTPUT_TYPE
+    }))
+    const wires = new Set(edgeIds.filter((id) => graph.value.edges.some((e) => e.id === id)))
+    if (!gone.size && !wires.size) return false
+    record()
+    graph.value.nodes = graph.value.nodes.filter((x) => !gone.has(x.id))
+    graph.value.edges = graph.value.edges.filter((e) => !wires.has(e.id) && !gone.has(e.source) && !gone.has(e.target))
+    selection.value = selection.value.filter((s) => !gone.has(s))
+    if (soloId.value && gone.has(soloId.value)) {
+      soloId.value = null
+      announceStomps()
+    }
     structural()
     return true
   }
 
-  function moveNode(id: string, x: number, y: number): void {
-    const n = nodeOf(id)
-    if (!n || (n.x === x && n.y === y)) return
-    n.x = x
-    n.y = y
+  const removeNode = (id: string): boolean => removeMany([id])
+
+  /** Moves several nodes (a group drag) as one undo step. */
+  function moveNodes(moves: Array<{ id: string; x: number; y: number }>): void {
+    const changed = moves.filter((m) => {
+      const n = nodeOf(m.id)
+      return n && (n.x !== m.x || n.y !== m.y)
+    })
+    if (!changed.length) return
+    record()
+    for (const m of changed) {
+      const n = nodeOf(m.id) as GraphNode
+      n.x = m.x
+      n.y = m.y
+    }
     dirty.value = true
+  }
+  const moveNode = (id: string, x: number, y: number): void => moveNodes([{ id, x, y }])
+
+  function copySelection(): boolean {
+    const c = copyNodes(graph.value, selection.value)
+    if (!c) return false
+    clip.value = c
+    pasteCount = 0
+    return true
+  }
+
+  /** Puts a copy of `source` on the board, shifted `step` offsets, with new ids; wires between two copied pedals come along. */
+  function place(source: Clip, step: number): string[] {
+    const nodes = source.nodes.filter((n) => blockFor(catalog.value, n.type))
+    if (!nodes.length) return []
+    record()
+    const ids = new Map<string, string>()
+    const shift = PASTE_OFFSET * step
+    for (const n of nodes) {
+      const id = nextNodeId(n.type)
+      ids.set(n.id, id)
+      graph.value.nodes.push({ ...clone(n), id, x: n.x + shift, y: n.y + shift })
+    }
+    for (const e of source.edges) {
+      const s = ids.get(e.source)
+      const t = ids.get(e.target)
+      if (s && t) graph.value.edges.push({ ...clone(e), id: nextEdgeId(), source: s, target: t })
+    }
+    selection.value = [...ids.values()]
+    structural()
+    return selection.value
+  }
+
+  function paste(): string[] {
+    if (!clip.value) return []
+    pasteCount++
+    return place(clip.value, pasteCount)
+  }
+
+  /** Copy and paste in one go without touching the clipboard. */
+  function duplicateSelection(): string[] {
+    const c = copyNodes(graph.value, selection.value)
+    return c ? place(c, 1) : []
+  }
+
+  /** Auto-arranges by signal depth, then asks the canvas to re-fit. One undo step. */
+  function tidy(): void {
+    const spots = tidyPositions(graph.value, catalog.value)
+    record()
+    for (const n of graph.value.nodes) {
+      const p = spots.get(n.id)
+      if (p) {
+        n.x = p.x
+        n.y = p.y
+      }
+    }
+    dirty.value = true
+    fitRev.value++
   }
 
   /** Makes a wire. Returns null on success or the plain-language reason it was refused. */
@@ -161,6 +344,7 @@ export const usePedalboardStore = defineStore('pedalboard', () => {
     if (req.sourcePort) edge.sourcePort = req.sourcePort
     const verdict = canConnect(graph.value, catalog.value, edge)
     if (!verdict.ok) return verdict.reason
+    record()
     graph.value.edges.push(edge)
     structural()
     return null
@@ -175,9 +359,9 @@ export const usePedalboardStore = defineStore('pedalboard', () => {
   }
 
   function disconnect(edgeId: string): boolean {
-    const before = graph.value.edges.length
+    if (!graph.value.edges.some((e) => e.id === edgeId)) return false
+    record()
     graph.value.edges = graph.value.edges.filter((e) => e.id !== edgeId)
-    if (graph.value.edges.length === before) return false
     structural()
     return true
   }
@@ -186,9 +370,11 @@ export const usePedalboardStore = defineStore('pedalboard', () => {
     const n = nodeOf(nodeId)
     const stomp = blockOf(nodeId)?.stomp
     if (!n || !stomp) return
+    if ((n.on !== false) !== on) record()
     n.on = on
     dirty.value = true
-    emitLive({ key: controlKey(nodeId, stomp), value: on ? 1 : 0 })
+    // While Bypass all or Solo is active the engine keeps hearing the override; the saved stomp changes underneath it.
+    emitLive({ key: controlKey(nodeId, stomp), value: viewOn(nodeId) ? 1 : 0 })
   }
 
   /** Stores a knob value (clamped to the catalog range) and announces it. Returns the stored value, or null for an unknown control. */
@@ -202,6 +388,7 @@ export const usePedalboardStore = defineStore('pedalboard', () => {
       return value >= 0.5 ? 1 : 0
     }
     const v = Math.min(control.max, Math.max(control.min, value))
+    if ((n.params?.[label] ?? control.init) !== v) record(`${nodeId}\u0000${label}`)
     if (!n.params) n.params = {}
     // Equal to init means "not set", which keeps saved graphs small and lets catalog default changes show through.
     if (v === control.init) delete n.params[label]
@@ -221,6 +408,7 @@ export const usePedalboardStore = defineStore('pedalboard', () => {
     graph.value = emptyGraph()
     selection.value = []
     edgeCounter = 0
+    resetHistory()
     loadRev.value++
     structural()
     dirty.value = false
@@ -230,6 +418,7 @@ export const usePedalboardStore = defineStore('pedalboard', () => {
     graph.value = clone(g)
     selection.value = []
     resetEdgeCounter()
+    resetHistory()
     loadRev.value++
     structural()
     dirty.value = false
@@ -297,7 +486,7 @@ export const usePedalboardStore = defineStore('pedalboard', () => {
 
   return {
     catalog, libText, graph, selection, dirty, issues, issueTexts, valid, starters, savedNames, error, loading, saving,
-    structuralRev, loadRev, compiled, compileNow, onLive, nodeOf, blockOf,
-    addNode, removeNode, moveNode, connect, wireRefusal, disconnect, setParam, setOn, select, newGraph, loadGraph, loadStarter, loadSaved, load, save,
+    structuralRev, loadRev, fitRev, undoCount, redoCount, bypassAll, soloId, compiled, compileNow, onLive, nodeOf, blockOf,
+    addNode, removeNode, removeMany, moveNode, moveNodes, undo, redo, copySelection, paste, duplicateSelection, tidy, setBypassAll, toggleSolo, viewOn, connect, wireRefusal, disconnect, setParam, setOn, select, newGraph, loadGraph, loadStarter, loadSaved, load, save,
   }
 })

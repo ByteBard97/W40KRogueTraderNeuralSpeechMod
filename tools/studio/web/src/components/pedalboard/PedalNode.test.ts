@@ -13,6 +13,17 @@ function pedal(type: string, over: Partial<GraphNode> = {}) {
   return mount(PedalNode, { props: { id: node.id, data: { node, block: block(type) } }, global: { stubs } })
 }
 
+describe('PedalNode solo', () => {
+  it('has a Solo button that emits and shows pressed state', async () => {
+    const node: GraphNode = { id: 'metal1', type: 'metal', x: 0, y: 0 }
+    const w = mount(PedalNode, { props: { id: 'metal1', data: { node, block: block('metal'), solo: true } }, global: { stubs } })
+    const btn = w.get('[data-testid="solo-metal1"]')
+    expect(btn.attributes('aria-pressed')).toBe('true')
+    await btn.trigger('click')
+    expect(w.emitted('solo')).toHaveLength(1)
+  })
+})
+
 describe('PedalNode', () => {
   it('renders one row per control except the stomp, and shows the stomp', () => {
     const b = block('metal')

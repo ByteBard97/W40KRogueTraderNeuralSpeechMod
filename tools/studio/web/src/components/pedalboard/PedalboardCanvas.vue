@@ -6,6 +6,7 @@ import type { Connection, GraphEdge as FlowEdge, GraphNode as FlowNode, Node } f
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { INPUT_TYPE, OUTPUT_TYPE } from '../../pedalboard/graph'
 import { usePedalboardStore } from '../../stores/pedalboard'
+import { handleShortcut, isTextEntry } from '../../pedalboard/shortcuts'
 import { PALETTE_MIME } from './paletteDrag'
 import PedalNode, { type PedalData } from './PedalNode.vue'
 import StructuralNode from './StructuralNode.vue'
@@ -24,9 +25,11 @@ const FIT_DELAY_MS = 350
 const DROP_OFFSET_X = 110
 const DROP_OFFSET_Y = 30
 const PORT_PREFIX = /^(in|out)/
+// Shift-click adds to the selection; Ctrl and Cmd work too. Shift-drag on empty canvas draws a selection box.
+const MULTI_SELECT_KEYS = ['Shift', 'Control', 'Meta']
 
 const store = usePedalboardStore()
-const { screenToFlowCoordinate, fitView, setEdges } = useVueFlow(FLOW_ID)
+const { screenToFlowCoordinate, fitView, setEdges, getSelectedNodes, getSelectedEdges } = useVueFlow(FLOW_ID)
 
 const root = ref<HTMLElement | null>(null)
 const refusal = ref('')
@@ -38,6 +41,10 @@ let fitTimer: ReturnType<typeof setTimeout> | undefined
 const isEnd = (type: string) => type === INPUT_TYPE || type === OUTPUT_TYPE
 const portOf = (handle: string | null | undefined) => Number((handle ?? '').replace(PORT_PREFIX, '')) || 0
 
+// Bypass all or Solo is in force: pedals that are silenced by it (not by their own stomp) are drawn muted.
+const audition = computed(() => store.bypassAll || store.soloId !== null)
+const isEmpty = computed(() => store.graph.nodes.every((n) => isEnd(n.type)))
+
 const flowNodes = computed<Node<PedalData>[]>(() =>
   store.graph.nodes.flatMap((node) => {
     const block = store.catalog.blocks.find((b) => b.id === node.type)
@@ -46,7 +53,7 @@ const flowNodes = computed<Node<PedalData>[]>(() =>
       id: node.id,
       type: isEnd(node.type) ? 'structural' : 'pedal',
       position: { x: node.x, y: node.y },
-      data: { node, block },
+      data: { node, block, muted: audition.value && block.stomp !== null && !store.viewOn(node.id), solo: store.soloId === node.id },
       selected: store.selection.includes(node.id),
       deletable: !isEnd(node.type),
     }]
@@ -94,13 +101,22 @@ function onConnectEnd() {
   if (pendingRefusal.value) showRefusal(pendingRefusal.value)
   pendingRefusal.value = ''
 }
-function onDragStop(e: { node: FlowNode }) {
-  store.moveNode(e.node.id, Math.round(e.node.position.x), Math.round(e.node.position.y))
+// A group drag reports every moved node in `nodes`; saving only `node` would leave the others at their old spot in the store.
+function onDragStop(e: { node: FlowNode; nodes?: FlowNode[] }) {
+  const moved = e.nodes?.length ? e.nodes : [e.node]
+  store.moveNodes(moved.map((n) => ({ id: n.id, x: Math.round(n.position.x), y: Math.round(n.position.y) })))
 }
 function onSelection(e: { nodes: FlowNode[]; edges: FlowEdge[] }) {
   store.select(e.nodes.map((n) => n.id))
-  selectedEdges.value = e.edges.map((x) => x.id)
+  // Assigning a new array, even with the same ids, would recompute the wires, re-apply them to Vue Flow, reset its selection and fire this again
+  // without end (the stack overflowed in the browser); so only a real change is stored.
+  const ids = e.edges.map((x) => x.id)
+  const same = ids.length === selectedEdges.value.length && ids.every((id) => selectedEdges.value.includes(id))
+  if (!same) selectedEdges.value = ids
 }
+// Vue Flow 1.48 has no selection-change event (a template listener for it silently never fires); the selected nodes and edges are reactive lists, so
+// the store follows those. Without this a click selected the node on screen but copy, duplicate and delete had nothing to act on.
+watch([getSelectedNodes, getSelectedEdges], ([nodes, edges]) => onSelection({ nodes, edges }))
 
 function addAt(type: string, x: number, y: number) {
   const id = store.addNode(type, Math.round(x), Math.round(y))
@@ -121,16 +137,12 @@ function onDragOver(e: DragEvent) {
   if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
 }
 
-const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))
-
 // Delete is handled here rather than by Vue Flow so Input and Output stay put and the store sees every removal.
 function onKey(e: KeyboardEvent) {
-  if ((e.key !== 'Delete' && e.key !== 'Backspace') || typing(e.target)) return
-  const nodes = store.selection.filter((id) => !isEnd(store.nodeOf(id)?.type ?? ''))
-  if (!nodes.length && !selectedEdges.value.length) return
+  if (handleShortcut(e, store)) return
+  if ((e.key !== 'Delete' && e.key !== 'Backspace') || isTextEntry(e.target)) return
+  if (!store.removeMany(store.selection, selectedEdges.value)) return
   e.preventDefault()
-  selectedEdges.value.forEach((id) => store.disconnect(id))
-  nodes.forEach((id) => store.removeNode(id))
   selectedEdges.value = []
   store.select([])
 }
@@ -142,7 +154,7 @@ function fitSoon() {
   clearTimeout(fitTimer)
   fitTimer = setTimeout(() => void fitView({ padding: FIT_PADDING }), FIT_DELAY_MS)
 }
-watch(() => store.loadRev, fitSoon)
+watch(() => [store.loadRev, store.fitRev], fitSoon)
 
 onMounted(() => {
   window.addEventListener('keydown', onKey)
@@ -166,15 +178,16 @@ defineExpose({ addAtCenter })
       :min-zoom="MIN_ZOOM"
       :max-zoom="MAX_ZOOM"
       :delete-key-code="null"
+      selection-key-code="Shift"
+      :multi-selection-key-code="MULTI_SELECT_KEYS"
       :is-valid-connection="isValidConnection"
       :default-edge-options="{ style: { stroke: 'var(--accent)', strokeWidth: 2 } }"
       @connect="onConnect"
       @connect-end="onConnectEnd"
       @node-drag-stop="onDragStop"
-      @selection-change="onSelection"
     >
       <template #node-pedal="p">
-        <PedalNode v-bind="p" @param="(label, v) => store.setParam(p.id, label, v)" @stomp="(on) => store.setOn(p.id, on)" />
+        <PedalNode v-bind="p" @param="(label, v) => store.setParam(p.id, label, v)" @stomp="(on) => store.setOn(p.id, on)" @solo="store.toggleSolo(p.id)" />
       </template>
       <template #node-structural="p">
         <StructuralNode v-bind="p" @param="(label, v) => store.setParam(p.id, label, v)" />
@@ -182,12 +195,24 @@ defineExpose({ addAtCenter })
       <Background :gap="GRID_GAP" pattern-color="var(--line)" />
       <Controls :show-interactive="false" />
     </VueFlow>
+    <div class="tools" role="toolbar" aria-label="Board tools">
+      <button type="button" class="tool" data-testid="tidy-btn" title="Arrange the pedals by signal order" @click="store.tidy()">Tidy</button>
+      <button type="button" class="tool" data-testid="bypass-all" :aria-pressed="store.bypassAll" title="Hear the dry signal without changing any pedal's saved state" @click="store.setBypassAll(!store.bypassAll)">Bypass all</button>
+      <span v-if="audition" class="audition" data-testid="audition-note" role="status">{{ store.bypassAll ? 'Every pedal bypassed (not saved)' : 'Solo: other pedals bypassed (not saved)' }}</span>
+    </div>
+    <p v-if="isEmpty" class="empty" data-testid="empty-hint">Drag a pedal from the left, or load a starting point.</p>
     <p v-if="refusal" class="refusal" role="status" data-testid="refusal">{{ refusal }}</p>
   </div>
 </template>
 
 <style scoped>
 .canvas { position: relative; min-height: 420px; height: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.tools { position: absolute; top: var(--s-2); left: var(--s-2); z-index: 5; display: flex; align-items: center; gap: var(--s-2); }
+.tool { min-height: var(--hit); padding: 0 var(--s-3); background: var(--raised); color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--r-md); font-size: var(--fs-md); cursor: pointer; }
+.tool:hover { background: var(--inset); }
+.tool[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.audition { color: var(--warn); font-size: var(--fs-sm); }
+.empty { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); margin: 0; color: var(--text-3); font-size: var(--fs-md); pointer-events: none; }
 .refusal { position: absolute; left: 50%; bottom: var(--s-4); transform: translateX(-50%); margin: 0; padding: var(--s-2) var(--s-3); background: var(--raised); border: 1px solid var(--warn-line); border-radius: var(--r-md); color: var(--text); font-size: var(--fs-sm); }
 :deep(.vue-flow) { background: var(--bg); }
 :deep(.vue-flow__edge-path) { stroke: var(--accent); stroke-width: 2; }
