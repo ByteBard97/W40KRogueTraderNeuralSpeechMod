@@ -17,6 +17,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from . import lab_audio, lab_text
+from .processed_steps import steps_for
 from .config import Config
 from .errors import ApiError
 from .jsonio import STATE_LOCK, read_json, write_json_atomic
@@ -233,7 +234,7 @@ def _render_one(cfg: Config, model, speaker: str, item: dict, recipe: dict, seed
     chunks, gaps, spoken = [], [], []
     for i, piece in enumerate(prep["pieces"]):
         check()
-        req = {"text": piece["text"], "reference_wav": ref["wav"], "seed": seed + i, "cfg": recipe["cfg"], "timesteps": recipe["timesteps"],
+        req = {"text": piece["text"], "reference_wav": ref["wav"], "seed": seed + i, "cfg": recipe["cfg"], "timesteps": steps_for(cfg, speaker, recipe["timesteps"]),
                "retry_badcase": recipe["retry_badcase"], "normalize": recipe["normalize"]}
         if recipe.get("retry_ratio"):
             req["retry_badcase_ratio_threshold"] = recipe["retry_ratio"]

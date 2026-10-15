@@ -19,6 +19,7 @@ const links = computed(() => [
   { to: '/matches', label: 'Matches', count: counts.matchesUndecided === null ? null : fmt(counts.matchesUndecided) },
   { to: '/casting', label: 'Casting', count: null },
   { to: '/voices', label: 'BG3 Voices', count: null },
+  { to: '/rt-voices', label: 'RT Voices', count: null },
   { to: '/assignments', label: 'Assignments', count: null },
   { to: '/lab', label: 'Render Lab', count: null },
   { to: '/qa', label: 'Render QA', count: counts.qaClips === null ? null : fmt(counts.qaClips) },

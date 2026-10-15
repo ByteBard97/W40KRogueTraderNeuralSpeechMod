@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import auto_cast, bg3_labels, casting, clone, design, lab, lab_opus, fx, fx_library, jobs, matches, pools, qa, speakers, store, summary
+from . import auto_cast, bg3_labels, rt_voices, casting, clone, design, lab, lab_opus, fx, fx_library, jobs, matches, pools, qa, speakers, store, summary
 from .errors import ApiError
 from .router import Router
 
@@ -111,6 +111,8 @@ def build_router() -> Router:
     r.add("POST", "/api/casting/labels", lambda q: bg3_labels.set_label(q.cfg, q.body["slug"], q.body["key"], q.body.get("value")))
     r.add("POST", "/api/casting/labels/backup", lambda q: {"backup": bg3_labels.backup(q.cfg)})
     r.add("POST", "/api/casting/register", lambda q: casting.register(q.cfg))
+    r.add("GET", "/api/rtvoices", lambda q: rt_voices.page(q.cfg))
+    r.add("POST", "/api/rtvoices/labels", lambda q: rt_voices.set_label(q.cfg, q.body["slug"], q.body["key"], q.body.get("value")))
     r.add("GET", "/api/assignments", lambda q: auto_cast.page(q.cfg))
     r.add("POST", "/api/assignments/run", lambda q: auto_cast.run(q.cfg))
     r.add("POST", "/api/assignments/override", lambda q: auto_cast.override(q.cfg, q.body["key"], q.body.get("bg3")))

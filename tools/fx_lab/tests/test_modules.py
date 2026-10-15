@@ -90,3 +90,74 @@ def test_dropout_is_the_same_each_run():
     x = tone(300, 4.0)
     p = {"Dropout_amount_0_off": 0.5, "Dropout_rate_per_s": 8, "Dropout_length_ms": 60}
     assert np.array_equal(run(x, p), run(x, p))
+
+
+def peak_hz(y, lo=100, hi=11000):
+    f, p = welch(y, SR, nperseg=16384)
+    m = (f > lo) & (f < hi)
+    return f[m][np.argmax(p[m])]
+
+
+def level_db(y, hz, bw=15):
+    f, p = welch(y, SR, nperseg=16384)
+    return 10 * np.log10(p[(f > hz - bw) & (f < hz + bw)].sum() + 1e-18)
+
+
+def test_frequency_shifter_moves_every_partial_the_same_number_of_hz_without_a_mirror_image():
+    x = tone(1000, 2.0)
+    up = run(x, {"Freq_shift_Hz_negative_shifts_down": 100, "Freq_shift_mix_0_off": 1})
+    assert abs(peak_hz(up) - 1100) < 8
+    assert level_db(up, 1100) - level_db(up, 900) > 25            # one sideband, not two
+    down = run(x, {"Freq_shift_Hz_negative_shifts_down": -100, "Freq_shift_mix_0_off": 1})
+    assert abs(peak_hz(down) - 900) < 8
+    harmonic = tone(300, 2.0) + 0.5 * tone(600, 2.0) + 0.3 * tone(900, 2.0)
+    y = run(harmonic, {"Freq_shift_Hz_negative_shifts_down": 40, "Freq_shift_mix_0_off": 1})
+    for hz in (340, 640, 940):                                      # 300/600/900 -> 340/640/940: no longer a harmonic series
+        assert level_db(y, hz) > level_db(y, hz - 40) + 20
+
+
+def test_frequency_shifter_is_off_at_mix_zero_and_keeps_level_when_on():
+    x = noise(4)
+    y0 = run(x, {"Freq_shift_Hz_negative_shifts_down": 80})
+    assert np.allclose(y0[SR // 4 :], x[SR // 4 :], atol=1e-4)           # the first 0.25 s holds the stomp switches' fade-in
+    y = run(x, {"Freq_shift_Hz_negative_shifts_down": 0, "Freq_shift_mix_0_off": 1})
+    assert abs(10 * np.log10(np.mean(y[SR:] ** 2) / np.mean(x[SR:] ** 2))) < 0.5      # an allpass pair: same loudness
+
+
+def test_metal_bank_rings_at_bar_mode_frequencies_and_at_harmonics_when_inharmonicity_is_zero():
+    x = noise(10)
+    bar = run(x, {"Metal_mix_0_off": 1, "Metal_base_Hz": 300, "Metal_inharmonicity_0_harmonic_1_metal_bar": 1, "Metal_Q_ring_length": 40})
+    assert response_db(bar, x, 300, 4) > 5 and response_db(bar, x, 826.8, 8) > 5 and response_db(bar, x, 1621, 15) > 5
+    assert response_db(bar, x, 600, 8) < 1.5                         # 600 Hz is a harmonic, not a bar mode
+    harm = run(x, {"Metal_mix_0_off": 1, "Metal_base_Hz": 300, "Metal_inharmonicity_0_harmonic_1_metal_bar": 0, "Metal_Q_ring_length": 40})
+    assert response_db(harm, x, 600, 4) > 5 and response_db(harm, x, 900, 6) > 5 and response_db(harm, x, 826.8, 8) < 1.5
+
+
+def test_metal_bank_leaves_the_voice_alone_when_off_and_stays_below_the_clip_level():
+    x = noise()
+    assert np.allclose(run(x, {"Metal_base_Hz": 500})[SR // 4 :], x[SR // 4 :], atol=1e-4)
+    y = run(x, {"Metal_mix_0_off": 1, "Metal_Q_ring_length": 80})
+    assert np.abs(y).max() < 0.95                                      # no clipping at the chain's +-1 ceiling even at the longest ring
+
+
+def test_comb_puts_peaks_at_multiples_of_the_reciprocal_delay():
+    x = noise(10)
+    y = run(x, {"Comb_mix_0_off": 1, "Comb_delay_ms": 2.0, "Comb_feedback": 0.7})        # 2 ms -> peaks at 500, 1000, 1500 ... Hz
+    for k in (1, 2, 3, 5):
+        assert response_db(y, x, 500 * k, 12) - response_db(y, x, 500 * k - 250, 12) > 8
+    odd = run(x, {"Comb_mix_0_off": 1, "Comb_delay_ms": 2.0, "Comb_feedback": -0.7})     # negative feedback: peaks at 250, 750, 1250 ...
+    for k in (0, 1, 2):
+        assert response_db(odd, x, 250 + 500 * k, 12) - response_db(odd, x, 500 * (k + 1), 12) > 8
+
+
+def test_comb_is_transparent_when_off_and_keeps_the_overall_level_of_noise():
+    x = noise()
+    assert np.allclose(run(x, {"Comb_feedback": 0.8})[SR // 4 :], x[SR // 4 :], atol=1e-4)
+    y = run(x, {"Comb_mix_0_off": 1, "Comb_delay_ms": 3, "Comb_feedback": 0.8})
+    assert 0.8 < np.sqrt(np.mean(y[SR:] ** 2) / np.mean(x[SR:] ** 2)) < 1.25
+
+
+def test_the_chain_passes_the_voice_through_unchanged_when_every_block_is_neutral():
+    x = noise(4)
+    y = run(x, {})
+    assert np.max(np.abs(y[SR // 4 :] - x[SR // 4 :])) < 1e-4          # an old phase-rotating high shelf made this 100% different

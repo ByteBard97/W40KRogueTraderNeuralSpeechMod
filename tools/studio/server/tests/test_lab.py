@@ -231,3 +231,14 @@ def test_opus_preview_encodes_decodes_and_reports_size(tmp_path):
         lab_opus.preview(cfg, "data/render/x.wav", 7)
     with pytest.raises(ApiError):
         lab_opus.preview(cfg, "../etc/passwd", 24)
+
+
+def test_a_processed_speaker_renders_with_twenty_steps_in_the_lab_too(stack):
+    cfg, model, be = stack
+    put(cfg.studio / "npc_processing.json", {NAME: True})
+    job = lab.start_render(cfg, model, {"speaker": NAME, "items": [{"guid": "c1~q1", "label": "t"}], "recipe": {"timesteps": 15}, "seeds": [5]})
+    for _ in range(100):
+        if lab.get_job(job["id"])["state"] not in ("queued", "running"):
+            break
+        time.sleep(0.05)
+    assert be.calls[0]["timesteps"] == 20

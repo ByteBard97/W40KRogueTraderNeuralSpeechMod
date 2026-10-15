@@ -51,12 +51,15 @@ def tail_seconds(params: dict) -> float:
 
 
 def trim_tail(y: np.ndarray, sr: int, keep_s: float = KEEP_AFTER_S, thr_db: float = SILENCE_DB) -> np.ndarray:
-    peak = float(np.max(np.abs(y))) if len(y) else 0.0
+    """Cut trailing silence. y is (n,) or (channels, n); the end is where the louder channel falls silent."""
+    level = np.abs(y).max(axis=0) if y.ndim == 2 else np.abs(y)
+    n = len(level)
+    peak = float(level.max()) if n else 0.0
     if peak <= 0:
         return y
-    live = np.nonzero(np.abs(y) > peak * 10 ** (thr_db / 20))[0]
-    end = min(len(y), int(live[-1]) + 1 + int(keep_s * sr)) if len(live) else len(y)
-    return y[:end]
+    live = np.nonzero(level > peak * 10 ** (thr_db / 20))[0]
+    end = min(n, int(live[-1]) + 1 + int(keep_s * sr)) if len(live) else n
+    return y[..., :end]
 
 
 def active_rms(v: np.ndarray, sr: int) -> float:
@@ -73,8 +76,8 @@ def active_rms(v: np.ndarray, sr: int) -> float:
 def limit_peaks(y: np.ndarray, sr: int, ceiling: float = PEAK_CEILING, window_s: float = 0.005) -> np.ndarray:
     """Look-ahead limiter: gain dips only around samples that would pass the ceiling, so the rest of the clip keeps its level.
     Min-filter the required gain over the window, then smooth it over the same window; the result never exceeds the ceiling."""
-    a = np.abs(y)
-    if not len(y) or a.max() <= ceiling:
+    a = np.abs(y).max(axis=0) if y.ndim == 2 else np.abs(y)       # stereo: one gain for both channels, set by the louder one
+    if not a.size or a.max() <= ceiling:
         return y
     w = max(3, int(window_s * sr))
     need = np.minimum(1.0, ceiling / np.maximum(a, 1e-9))
@@ -83,8 +86,9 @@ def limit_peaks(y: np.ndarray, sr: int, ceiling: float = PEAK_CEILING, window_s:
 
 
 def match_loudness(y: np.ndarray, ref: np.ndarray, sr: int) -> np.ndarray:
-    """Scale y to ref's active RMS, then limit the peaks that would pass the ceiling."""
-    y = y * (active_rms(ref, sr) / active_rms(y, sr))
+    """Scale y to ref's active RMS, then limit the peaks that would pass the ceiling. Stereo y: both channels together carry the loudness."""
+    power = np.sqrt((y ** 2).mean(axis=0)) if y.ndim == 2 else y          # its square is the mean power over the channels
+    y = y * (active_rms(ref, sr) / active_rms(power, sr))
     return limit_peaks(y, sr).astype(np.float32)
 
 
@@ -103,11 +107,20 @@ def unclip(code: str) -> str:
     return code.replace("max(-1) : min(1)", "max(-16) : min(16)")
 
 
+IDENTICAL = 1e-5      # left and right closer than this are the same signal: the clip stays mono
+
+
 def process_clip(x: np.ndarray, sr: int, steps: list[dict], dsp_codes: dict[str, str]) -> np.ndarray:
+    """The clip through each preset in turn. Mono (n,) unless a stereo block made the sides differ, then (2, n).
+    Between presets the signal is folded to mono again, so only the last preset's stereo survives."""
     y = x
     for st in steps:
-        y = dd_render.render(unclip(dsp_codes[st["dsp"]]), y, sr, st["params"], tail_s=tail_seconds(st["params"]))
+        if y.ndim == 2:
+            y = y.mean(axis=0)
+        y = dd_render.render(unclip(dsp_codes[st["dsp"]]), y, sr, st["params"], tail_s=tail_seconds(st["params"]), stereo=True)
         y = trim_tail(y, sr)
+        if np.abs(y[0] - y[1]).max() < IDENTICAL:
+            y = y[0]
     return match_loudness(y, x, sr)
 
 
@@ -136,8 +149,9 @@ def run(src: Path, out: Path, assign: dict, presets: dict, only: str | None = No
             continue
         x, sr = sf.read(str(src / e["wav"]), dtype="float32")
         x = x if x.ndim == 1 else x.mean(axis=1)
-        sf.write(str(dst), process_clip(x, sr, steps, dsp_codes), sr, subtype="PCM_16")
-        out_idx[guid] = {**e, "wav": f"wav/{guid}.wav", "fx_key": key, "fx": names}
+        y = process_clip(x, sr, steps, dsp_codes)
+        sf.write(str(dst), y.T if y.ndim == 2 else y, sr, subtype="PCM_16")
+        out_idx[guid] = {**e, "wav": f"wav/{guid}.wav", "fx_key": key, "fx": names, "channels": 2 if y.ndim == 2 else 1}
         done += 1
         if done % 100 == 0:
             idx_path.write_text(json.dumps(out_idx, ensure_ascii=False, indent=1), encoding="utf-8")

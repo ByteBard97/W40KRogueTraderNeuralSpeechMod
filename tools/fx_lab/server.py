@@ -13,12 +13,15 @@ import argparse
 import json
 import mimetypes
 import os
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+sys.path.insert(0, str(HERE))
+import reference  # noqa: E402
 EXPORT = ROOT / "data/render/export"
 PRESETS = ROOT / "data/fx_lab/presets.json"
 STATIC = {"/": HERE / "index.html", "/fx/": HERE / "index.html"}
@@ -87,6 +90,13 @@ class H(BaseHTTPRequestHandler):
             return self._send(json.dumps(sorted(p.name for p in (HERE / "faust").glob("*.dsp"))).encode())
         if path.startswith("/api/dsp/"):
             return self._file(HERE / "faust" / Path(path[9:]).name)
+        if path == "/api/ref/speakers":
+            return self._send(json.dumps(reference.speakers(ROOT)).encode())
+        if path == "/api/ref/ltas":
+            try:
+                return self._send(json.dumps(reference.ltas(ROOT, q.get("speaker", [""])[0])).encode())
+            except KeyError:
+                return self._send(b'{"error":"no game audio for that speaker"}', code=404)
         if path == "/api/scenarios":
             return self._file(HERE / "scenarios.json")
         if path == "/api/presets":

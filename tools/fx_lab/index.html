@@ -5,108 +5,167 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FX Lab</title>
 <style>
-:root{--bg:#14161a;--panel:#1d2026;--line:#2c313a;--fg:#e6e8eb;--dim:#8b93a1;--acc:#e0a33a;--bad:#e5655a}
-@media (prefers-color-scheme: light){:root{--bg:#f4f5f7;--panel:#fff;--line:#d8dce2;--fg:#1a1d22;--dim:#667085;--acc:#b9770e;--bad:#c0392b}}
+:root{
+  color-scheme:dark;
+  --bg:oklch(0.18 0.012 255);--panel:oklch(0.22 0.014 255);--raised:oklch(0.26 0.015 255);--line:oklch(0.31 0.015 255);
+  --text:oklch(0.89 0.01 255);--dim:oklch(0.69 0.018 255);--faint:oklch(0.54 0.018 255);
+  --accent:oklch(0.80 0.12 78);--accent-ink:oklch(0.20 0.03 78);--accent-dim:oklch(0.52 0.08 78);--bad:oklch(0.70 0.14 25);
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--r:6px;
+  --font:system-ui,-apple-system,"Segoe UI",Inter,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,sans-serif}
-header{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-h1{font-size:16px;margin:0 12px 0 0}
-main{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:16px;padding:16px}
-@media (max-width:800px){main{grid-template-columns:1fr}}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
-select,button,input[type=text],textarea{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit}
-button{cursor:pointer}button.primary{background:var(--acc);color:#111;border-color:var(--acc);font-weight:600}
-button:disabled{opacity:.5;cursor:default}
-.row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
-.dim{color:var(--dim);font-size:12px}
-.knobs{display:block}
-.grp{border:1px solid var(--line);border-radius:10px;padding:8px 10px 10px;background:rgba(255,255,255,.02)}
-.grp h3{margin:0 0 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);font-weight:600}
-.grp .cells{display:flex;gap:2px}
-.grp.bypassed{opacity:.4}
-.grp h3{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.stomp{display:inline-flex;flex-direction:column;align-items:center;gap:3px;padding:2px;background:none;border:none;cursor:pointer}
-.stomp .led{width:8px;height:8px;border-radius:50%;background:#3a2a1a;box-shadow:inset 0 0 2px #000}
-.stomp.on .led{background:#ff5a3c;box-shadow:0 0 6px 2px rgba(255,90,60,.7)}
-.stomp .pad{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8a8a8a,#3c3c3c 70%);border:2px solid #1a1a1a;box-shadow:0 2px 0 #000}
-.stomp:active .pad{transform:translateY(2px);box-shadow:none}
-.fxgrid{display:grid;grid-template-columns:repeat(5,auto);justify-content:start;gap:30px 38px;margin-top:12px;overflow-x:auto;padding:4px 4px 8px}
-.slot{position:relative;display:flex;align-items:center}
-.slot>.grp{width:100%;box-sizing:border-box}
-.slot>.grp .cells{justify-content:space-around}
-.arrow{position:absolute;color:var(--acc);font-size:22px;line-height:1}
-.arrow.r{right:-31px;top:50%;transform:translateY(-50%)}
-.arrow.l{left:-31px;top:50%;transform:translateY(-50%)}
-.arrow.d{bottom:-30px;left:50%;transform:translateX(-50%)}
-.net{font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:.03em}
-.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}
-.flow .arr{color:var(--acc);font-size:20px}
-.chip{border:1px dashed var(--line);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--dim)}
-.chip.op{border:none;font-size:18px;padding:0}
-.chip.dry{border-style:solid}
-.knob{display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 0;width:76px;user-select:none}
-.knob label{font-size:10px;color:var(--dim);text-align:center;line-height:1.2;min-height:26px;display:flex;align-items:center}
-.knob svg{width:52px;height:52px;cursor:ns-resize;touch-action:none}
-.knob .trk{stroke:var(--line)}.knob .arc{stroke:var(--acc)}.knob .ptr{stroke:var(--fg)}
-.knob input{width:58px;text-align:center;padding:3px 4px;font-variant-numeric:tabular-nums}
-.knob.off svg{opacity:.55}
-.scen{margin:6px 0 10px}.scen .dim{margin-top:4px}
-.lines{max-height:60vh;overflow:auto}
-.line{padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px}
-.line:hover{background:var(--bg)}.line.on{background:var(--bg);outline:1px solid var(--acc)}
-textarea{width:100%;height:320px;font:12px/1.4 ui-monospace,monospace;white-space:pre}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.45 var(--font)}
+button,select,input{font:inherit;color:var(--text)}
+select,input[type=text],input[type=number]{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:5px var(--s2);min-height:30px}
+select:hover,input[type=text]:hover,input[type=number]:hover{border-color:var(--faint)}
+button{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:5px var(--s3);min-height:30px;cursor:pointer}
+button:hover{background:var(--raised);border-color:var(--faint)}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+button.primary:hover{background:oklch(0.85 0.12 78)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dim{color:var(--dim)}.faint{color:var(--faint)}.mono{font-family:var(--mono)}
+/* top bar */
+.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:var(--s3) var(--s4);display:flex;flex-direction:column;gap:var(--s2)}
+.bar{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap}
+.brand{font-weight:600;letter-spacing:.02em;margin-right:var(--s2)}
+.sep{flex:1}
+.check{display:inline-flex;align-items:center;gap:var(--s2);color:var(--dim);cursor:pointer}
+.check input{accent-color:var(--accent)}
+#status{color:var(--dim);min-width:8ch}
+/* layout */
+.layout{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:var(--s4);padding:var(--s4);align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+.lines{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:var(--s2);max-height:calc(100vh - 150px);overflow-y:auto;overflow-x:hidden;position:sticky;top:96px}
+.lines h2{font-size:12px;font-weight:600;color:var(--dim);margin:var(--s1) var(--s2) var(--s2);text-transform:uppercase;letter-spacing:.06em}
+.line{padding:var(--s2);border-radius:var(--r);cursor:pointer;font-size:12.5px;color:var(--dim);overflow-wrap:anywhere}
+.line:hover{background:var(--raised);color:var(--text)}
+.line.on{background:var(--raised);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent-dim)}
+.work{display:flex;flex-direction:column;gap:var(--s4);min-width:0}
+/* tabs */
+.tabs{display:flex;gap:var(--s1);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{background:none;border:none;border-bottom:2px solid transparent;border-radius:0;padding:var(--s2) var(--s3);color:var(--dim);min-height:36px;display:inline-flex;align-items:center;gap:var(--s2)}
+.tab:hover{background:none;color:var(--text);border-color:transparent}
+.tab[aria-selected=true]{color:var(--text);border-bottom-color:var(--accent)}
+.dot{width:7px;height:7px;border-radius:50%;background:transparent;border:1px solid var(--faint)}
+.dot.lit{background:var(--accent);border-color:var(--accent)}
+/* blocks */
+.panel{display:flex;flex-direction:column;gap:var(--s3)}
+.block{background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.block.bypassed .ctrls,.block.bypassed .hint{opacity:.45}
+.bhead{display:flex;align-items:center;gap:var(--s3);padding:var(--s2) var(--s3);min-height:42px}
+.bname{background:none;border:none;padding:0;min-height:0;font-weight:600;display:inline-flex;align-items:center;gap:var(--s2);color:var(--text)}
+.bname:hover{background:none}
+.bname .chev{color:var(--faint);transition:transform .15s ease-out;display:inline-block}
+.block.open .chev{transform:rotate(90deg)}
+.bstate{color:var(--faint);font-size:12px}
+.switch{margin-left:auto;display:inline-flex;align-items:center;gap:var(--s2);color:var(--dim);font-size:12px;background:none;border:none;padding:0;min-height:0;cursor:pointer}
+.switch:hover{background:none}
+.switch .track{width:30px;height:16px;border-radius:8px;background:var(--raised);border:1px solid var(--line);position:relative}
+.switch .track::after{content:"";position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--faint);transition:transform .15s ease-out,background .15s}
+.switch[aria-checked=true] .track{background:var(--accent-dim);border-color:var(--accent-dim)}
+.switch[aria-checked=true] .track::after{transform:translateX(14px);background:var(--accent)}
+.block.idle:not(:hover):not(:focus-within) .switch{visibility:hidden}
+.hint{padding:0 var(--s3) var(--s2);color:var(--dim);font-size:12px;max-width:75ch}
+.ctrls{display:none;padding:var(--s1) var(--s3) var(--s3);grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--s2) var(--s5)}
+.block.open .ctrls{display:grid}
+.block:not(.open) .hint{display:none}
+.ctrl{display:grid;grid-template-columns:minmax(110px,170px) minmax(80px,1fr) 70px;align-items:center;gap:var(--s3)}
+.ctrl label{color:var(--dim);font-size:12.5px;line-height:1.25;overflow-wrap:anywhere}
+.ctrl.changed label{color:var(--text)}
+.ctrl input[type=range]{width:100%;accent-color:var(--accent);height:20px;margin:0}
+.ctrl input[type=number]{width:70px;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;padding:3px var(--s2);min-height:26px}
+/* monitor */
+.monitor{display:grid;grid-template-columns:minmax(0,2fr) minmax(220px,1fr);gap:var(--s4)}
+@media (max-width:900px){.monitor{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:var(--s3)}
+.card h2{font-size:12px;font-weight:600;color:var(--dim);margin:0 0 var(--s2);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap}
+.card h2 select{text-transform:none;letter-spacing:0;font-weight:400;font-size:12px;min-height:26px;padding:2px var(--s2)}
+canvas{display:block;width:100%;background:oklch(0.16 0.012 255);border-radius:var(--r)}
+#spec{height:170px}#scope{height:170px;aspect-ratio:1}
+.legend{display:flex;gap:var(--s4);margin-top:var(--s2);color:var(--dim);font-size:12px;flex-wrap:wrap}
+.legend i{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+.stats{display:grid;grid-template-columns:auto 1fr 1fr;gap:var(--s1) var(--s3);margin-top:var(--s2);font-size:12px}
+.stats .h{color:var(--faint)}
+.stats .n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+details.code{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:var(--s2) var(--s3)}
+details.code summary{cursor:pointer;color:var(--dim)}
+textarea{width:100%;height:320px;margin-top:var(--s2);background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:var(--s2);font:12px/1.4 var(--mono);white-space:pre}
 #err{color:var(--bad);white-space:pre-wrap;font-size:12px}
-.toggle{display:inline-flex;gap:6px;align-items:center}
+.row{display:flex;gap:var(--s2);align-items:center;flex-wrap:wrap;margin-top:var(--s2)}
 </style>
 </head>
 <body>
-<header>
-  <h1>FX Lab</h1>
-  <select id="speaker" title="Speaker"></select>
-  <select id="dsp" title="Effect graph (.dsp)"></select>
-  <button id="play" class="primary" disabled>Play loop</button>
-  <label class="toggle"><input type="checkbox" id="bypass"> Raw (bypass effect)</label>
-  <label class="toggle">Gap <input type="range" id="gap" min="0" max="2" step="0.1" value="0.6" style="width:90px"> <span id="gapv" class="dim">0.6s</span></label>
-  <span id="status" class="dim"></span>
-</header>
-<main>
-  <div class="card">
-    <div class="dim" style="margin-bottom:6px">Lines (click to loop)</div>
-    <div id="lines" class="lines"></div>
+<header class="top">
+  <div class="bar">
+    <span class="brand">FX Lab</span>
+    <select id="speaker" title="Speaker whose rendered lines to process"></select>
+    <select id="dsp" title="Effect graph (.dsp)"></select>
+    <button id="play" class="primary" disabled>Play loop</button>
+    <label class="check"><input type="checkbox" id="bypass"> Raw (bypass)</label>
+    <label class="check">Gap <input type="range" id="gap" min="0" max="2" step="0.1" value="0.6" style="width:90px;accent-color:var(--accent)"> <span id="gapv" class="dim mono">0.6s</span></label>
+    <span id="status"></span>
   </div>
-  <div>
-    <div class="card">
-      <div class="row"><strong>Controls</strong><span id="dspname" class="dim"></span>
-        <button id="reset">Reset to defaults</button>
-        <span style="flex:1"></span>
-        <input type="text" id="pname" placeholder="preset name" size="18">
-        <select id="plist"><option value="">Load preset…</option></select>
-        <button id="psave">Save preset</button></div>
-      <div class="scen row"><select id="scen"><option value="">Starting point (by FX label)…</option></select></div>
-      <div id="scendesc" class="dim"></div>
-      <div id="controls" class="knobs" style="margin-top:10px"></div>
-      <div id="err"></div>
+  <div class="bar">
+    <select id="scen" title="Starting points"><option value="">Starting point…</option></select>
+    <span id="scendesc" class="dim"></span>
+    <span class="sep"></span>
+    <select id="plist"><option value="">Load preset…</option></select>
+    <input type="text" id="pname" placeholder="preset name" size="16">
+    <button id="psave">Save preset</button>
+    <button id="reset" title="Put every control back to its default">Reset all</button>
+  </div>
+</header>
+<main class="layout">
+  <aside class="lines"><h2>Lines</h2><div id="lines"></div></aside>
+  <section class="work">
+    <div id="tabs" class="tabs" role="tablist" aria-label="Effect categories"></div>
+    <div id="panel" class="panel" role="tabpanel"></div>
+    <div id="err"></div>
+    <div class="monitor">
+      <div class="card">
+        <h2>Spectrum
+          <select id="refsp" title="Compare with the real game voice of this speaker"><option value="">no reference</option></select>
+          <button id="avgreset" style="min-height:26px;padding:2px var(--s2)">Reset average</button></h2>
+        <canvas id="spec" width="720" height="170"></canvas>
+        <div class="legend"><span style="color:var(--accent)"><i></i>your processed clip, averaged</span><span style="color:var(--dim)"><i style="border-top-style:dashed"></i>game voice, averaged</span></div>
+      </div>
+      <div class="card">
+        <h2>Stereo</h2>
+        <canvas id="scope" width="170" height="170"></canvas>
+        <div class="stats">
+          <span class="h"></span><span class="h n">yours</span><span class="h n">game</span>
+          <span>L/R correlation</span><span id="st-corr" class="n">-</span><span id="rf-corr" class="n">-</span>
+          <span>side / mid dB</span><span id="st-width" class="n">-</span><span id="rf-width" class="n">-</span>
+          <span>balance dB</span><span id="st-bal" class="n">-</span><span class="n faint"></span>
+        </div>
+      </div>
     </div>
-    <details class="card" style="margin-top:16px">
+    <details class="code">
       <summary>Faust code (edit, then Apply)</summary>
       <textarea id="code" spellcheck="false"></textarea>
       <div class="row"><button id="apply">Apply (recompile)</button><button id="savedsp">Save .dsp file</button>
         <span class="dim">Saving overwrites tools/fx_lab/faust/&lt;name&gt;.dsp</span></div>
     </details>
-  </div>
+  </section>
 </main>
 <script type="module">
 import { FaustDspGenerator } from '/faustwasm/index.js';
 
 const $ = id => document.getElementById(id);
 const ctx = new AudioContext({ latencyHint: 'interactive' });
-const state = { node: null, src: null, buf: null, dspName: null, params: {}, descriptors: [], presets: {}, gen: 0 };
-const dry = ctx.createGain(), wet = ctx.createGain();
-dry.connect(ctx.destination); wet.connect(ctx.destination); dry.gain.value = 0;
+const state = { node: null, src: null, buf: null, dspName: null, params: {}, descriptors: [], presets: {}, gen: 0, tab: 'Tone', open: new Set(), ref: null };
+const dry = ctx.createGain(), wet = ctx.createGain(), out = ctx.createGain();
+dry.connect(out); wet.connect(out); out.connect(ctx.destination); dry.gain.value = 0;
+// monitor taps: one analyser for the spectrum, one per channel for the stereo scope
+const anM = ctx.createAnalyser(); anM.fftSize = 8192; anM.smoothingTimeConstant = 0;
+const split = ctx.createChannelSplitter(2), anL = ctx.createAnalyser(), anR = ctx.createAnalyser(); anL.fftSize = anR.fftSize = 2048;
+out.connect(anM); out.connect(split); split.connect(anL, 0); split.connect(anR, 1);
 
 const api = async (u, opt) => (await fetch(u, opt)).json();
 const post = (u, b) => api(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
 const setStatus = t => $('status').textContent = t;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
 /* ---------- audio ---------- */
 async function loadClip(wav) {
@@ -148,7 +207,7 @@ function startSource() {
   if (!state.buf) return;
   const s = ctx.createBufferSource(); s.buffer = state.buf; s.loop = true;
   s.connect(dry); if (state.node) s.connect(state.node);
-  s.start(); state.src = s; $('play').textContent = 'Stop';
+  s.start(); state.src = s; $('play').textContent = 'Stop'; startMonitor();
 }
 function stopSource() { if (state.src) { try { state.src.stop(); } catch {} state.src.disconnect(); state.src = null; } $('play').textContent = 'Play loop'; }
 $('play').onclick = async () => { await ctx.resume(); state.src ? stopSource() : startSource(); };
@@ -157,7 +216,6 @@ function applyBypass() { const raw = $('bypass').checked; dry.gain.value = raw ?
 $('bypass').onchange = applyBypass;
 
 /* ---------- faust ---------- */
-const labelOf = d => d.label;
 async function compile(code) {
   const my = ++state.gen;
   $('err').textContent = '';
@@ -170,122 +228,156 @@ async function compile(code) {
   if (state.node) { try { state.node.disconnect(); } catch {} if (state.src) try { state.src.disconnect(state.node); } catch {} }
   state.node = node; node.connect(wet);
   if (state.src) state.src.connect(node);
-  state.descriptors = node.getDescriptors().filter(d => d.type !== 'button' || true);
+  state.descriptors = node.getDescriptors();
   for (const d of state.descriptors) {
     const v = d.shortname in state.params ? state.params[d.shortname] : initOf(d);
     state.params[d.shortname] = v; node.setParamValue(d.address, v);
   }
-  renderControls(); applyBypass();
+  openTouched(); render(); applyBypass();
   return true;
 }
 const initOf = d => d.type === 'checkbox' ? 1 : +d.init;     // Faust checkboxes have no init value: stomps default to on
-const SKEW = d => /\b(Hz|ms)\b/.test(d.label) ? 2 : 1;      // frequency / time knobs: finer at the low end
+const SKEW = d => /\b(Hz|ms)\b/.test(d.label) ? 2 : 1;      // frequency / time controls: finer at the low end
 const toT = (d, v) => Math.pow(Math.min(1, Math.max(0, (v - d.min) / (d.max - d.min))), 1 / SKEW(d));
 const fromT = (d, t) => { let v = d.min + (d.max - d.min) * Math.pow(t, SKEW(d)); if (d.step) v = Math.round(v / d.step) * d.step; return Math.min(d.max, Math.max(d.min, v)); };
 const decimals = d => { const st = String(d.step || 1); return st.includes('.') ? st.split('.')[1].length : 0; };
-function renderControls() {
-  const box = $('controls'); box.innerHTML = '';
-  const order = d => { const k = d.meta && d.meta[0] ? parseInt(Object.keys(d.meta[0])[0], 10) : NaN; return isNaN(k) ? 1e3 : k; };
-  const NS = 'http://www.w3.org/2000/svg', R = 20, C = 26, A0 = -135, A1 = 135;
-  const pt = (deg, r) => [C + r * Math.sin(deg * Math.PI / 180), C - r * Math.cos(deg * Math.PI / 180)];
-  const arc = (a0, a1) => { const [x0, y0] = pt(a0, R), [x1, y1] = pt(a1, R); return `M${x0} ${y0} A${R} ${R} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1} ${y1}`; };
-  // Signal flow of chain.dsp: input -> hp -> lp -> de-ess -> EQ -> pitch -> harmonizer -> low shelf -> vocoder -> compressor -> drive -> resonator -> crush -> ring -> tremolo -> chorus -> wow/flutter -> phaser -> dropout -> echo -> static -> reverb -> blend with raw -> output -> limiter
-  const GROUPS = [['Highpass', /^Highpass/], ['Lowpass', /^Lowpass/], ['De-esser', /^De_ess/], ['EQ', /^EQ_/], ['Pitch', /^Pitch/], ['Harmonizer', /^Harmonizer/], ['Low shelf', /^Low_shelf/], ['Vocoder', /^Vocoder/], ['Compressor', /^Compressor/], ['Drive', /^Drive/], ['Resonator', /^Resonator/], ['Bitcrush', /^Crush/],
-    ['Ring mod', /^Ring/], ['Tremolo', /^Tremolo/], ['Chorus', /^Chorus/], ['Wow / flutter', /^(Wow|Flutter)/], ['Phaser', /^Phaser/], ['Dropout', /^Dropout/], ['Echo', /^Echo/], ['Static', /^Static/], ['Reverb', /^Reverb/], ['Mix / Output', /^(Mix|Output)/], ['Limiter', /^Limiter/]];
-  const groups = new Map();
-  const groupOf = d => { const g = GROUPS.find(([, re]) => re.test(d.shortname)); return g ? g[0] : 'Other'; };
-  const cellsFor = name => {
-    if (!groups.has(name)) {
-      const g = document.createElement('div'); g.className = 'grp';
-      g.innerHTML = `<h3>${name}</h3><div class="cells"></div>`; groups.set(name, g);
-    }
-    return groups.get(name).querySelector('.cells');
-  };
-  const stomps = [];
-  for (const d of [...state.descriptors].sort((a, b) => order(a) - order(b))) {
-    if (d.type === 'checkbox') {          // stomp switch: sits in its block's header
-      const g = cellsFor(groupOf(d)).parentElement, sw = document.createElement('button'); sw.className = 'stomp'; sw.title = 'on / off';
-      sw.innerHTML = '<i class="led"></i><b class="pad"></b>';
-      const draw = () => { const on = +state.params[d.shortname] > 0.5; sw.classList.toggle('on', on); g.classList.toggle('bypassed', !on); };
-      sw.onclick = () => { const v = +state.params[d.shortname] > 0.5 ? 0 : 1; state.params[d.shortname] = v; state.node.setParamValue(d.address, v); draw(); };
-      g.querySelector('h3').append(sw); sw.redraw = draw; stomps.push(sw); continue;
-    }
-    if (!('min' in d)) continue;
-    const cell = document.createElement('div'); cell.className = 'knob';
-    const lab = document.createElement('label'); lab.textContent = d.label; lab.title = d.shortname;
-    const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 52 52');
-    svg.innerHTML = `<path class="trk" d="${arc(A0, A1)}" fill="none" stroke-width="4" stroke-linecap="round"/><path class="arc" fill="none" stroke-width="4" stroke-linecap="round"/><line class="ptr" stroke-width="2.5" stroke-linecap="round"/>`;
-    const num = document.createElement('input'); num.type = 'number'; num.min = d.min; num.max = d.max; num.step = d.step || 'any';
-    const draw = () => {
-      const v = state.params[d.shortname], t = toT(d, v), ang = A0 + t * (A1 - A0);
-      const [px, py] = pt(ang, R - 3), [qx, qy] = pt(ang, 6);
-      const ln = svg.querySelector('.ptr'); ln.setAttribute('x1', qx); ln.setAttribute('y1', qy); ln.setAttribute('x2', px); ln.setAttribute('y2', py);
-      svg.querySelector('.arc').setAttribute('d', t > 0.002 ? arc(A0, ang) : '');
-      num.value = (+v).toFixed(decimals(d));
-      cell.classList.toggle('off', +v === initOf(d));
-    };
-    const set = v => { v = Math.min(d.max, Math.max(d.min, v)); state.params[d.shortname] = v; state.node.setParamValue(d.address, v); draw(); };
-    num.onchange = () => { const v = parseFloat(num.value); if (!isNaN(v)) set(v); else draw(); };
-    let drag = null;
-    svg.onpointerdown = e => { svg.setPointerCapture(e.pointerId); drag = { y: e.clientY, t: toT(d, state.params[d.shortname]) }; };
-    svg.onpointermove = e => { if (!drag) return; const k = e.shiftKey ? 600 : 150; set(fromT(d, Math.min(1, Math.max(0, drag.t + (drag.y - e.clientY) / k)))); };
-    svg.onpointerup = svg.onpointercancel = () => { drag = null; };
-    svg.onwheel = e => { e.preventDefault(); set(fromT(d, Math.min(1, Math.max(0, toT(d, state.params[d.shortname]) - Math.sign(e.deltaY) * (e.shiftKey ? 0.005 : 0.02))))); };
-    svg.ondblclick = () => set(initOf(d));
-    cell.redraw = draw; cell.append(lab, svg, num); cellsFor(groupOf(d)).append(cell);
+
+/* ---------- blocks, tabs ---------- */
+// block name, shortname test, the words to drop from its labels, a hint for the less obvious ones
+const BLOCKS = [
+  ['Highpass', /^Highpass/, 'Highpass'], ['Lowpass', /^Lowpass/, 'Lowpass'], ['De-esser', /^De_ess/, 'De-ess'], ['EQ', /^EQ_/, 'EQ'], ['Low shelf', /^Low_shelf/, 'Low shelf'],
+  ['Compressor', /^Compressor/, 'Compressor'], ['Pitch', /^Pitch/, 'Pitch'], ['Harmonizer', /^Harmonizer/, 'Harmonizer'],
+  ['Freq shift', /^Freq_shift/, 'Freq shift', 'Moves every partial up or down by the same number of Hz, so a voice turns inharmonic without ring mod\'s mirrored copy. Metallic, eerie, still clear.'],
+  ['Vocoder', /^Vocoder/, 'Vocoder'], ['Wow / flutter', /^(Wow|Flutter)/, ''],
+  ['Resonator', /^Resonator/, 'Resonator'],
+  ['Metal bank', /^Metal/, 'Metal', 'Six narrow resonances at base x partial ratio, added to the voice. Inharmonicity 1 is a free metal bar (1 : 2.76 : 5.40 : 8.93 ...), 0 is the harmonic series.'],
+  ['Comb', /^Comb/, 'Comb', 'A feedback comb with a delay of a few ms: peaks at multiples of 1000/delay Hz. A hollow pipe or robot flange. Negative feedback gives odd multiples.'],
+  ['Ring mod', /^Ring/, 'Ring'], ['Drive', /^Drive/, 'Drive'], ['Bitcrush', /^Crush/, 'Crush'],
+  ['Tremolo', /^Tremolo/, 'Tremolo'], ['Chorus', /^Chorus/, 'Chorus'], ['Phaser', /^Phaser/, 'Phaser'],
+  ['Echo', /^Echo/, 'Echo'], ['Reverb', /^Reverb/, 'Reverb'], ['Static', /^Static/, 'Static'], ['Dropout', /^Dropout/, 'Dropout'],
+  ['Auto pan', /^Auto_pan/, 'Auto pan', 'Sweeps the left/right balance with a sine. From here on the signal is stereo.'],
+  ['Stereo chorus', /^Stereo_chorus/, 'Stereo chorus', 'A modulated delay on each side, the right LFO offset from the left. 180 degrees moves the two sides in opposite directions.'],
+  ['Stereo phaser', /^Stereo_phaser/, 'Stereo phaser', 'The phaser run on each side with the sweep of the right side offset from the left.'],
+  ['Bass spread', /^Bass_spread/, 'Bass spread', 'Below the crossover, each side\'s low band swings around the delay in opposite directions. The game\'s Pasqal differs left to right mostly in the bass.'],
+  ['Mix / Output', /^(Mix|Output)/, ''], ['Limiter', /^Limiter/, 'Limiter'],
+];
+const TABS = [['Tone', ['Highpass', 'Lowpass', 'De-esser', 'EQ', 'Low shelf', 'Compressor']],
+  ['Pitch & voice', ['Pitch', 'Harmonizer', 'Freq shift', 'Vocoder', 'Wow / flutter']],
+  ['Metal', ['Resonator', 'Metal bank', 'Comb', 'Ring mod', 'Drive', 'Bitcrush']],
+  ['Modulation', ['Tremolo', 'Chorus', 'Phaser']],
+  ['Space', ['Echo', 'Reverb', 'Static', 'Dropout']],
+  ['Stereo', ['Auto pan', 'Stereo chorus', 'Stereo phaser', 'Bass spread']],
+  ['Output', ['Mix / Output', 'Limiter']]];
+const blockOf = d => { const b = BLOCKS.find(([, re]) => re.test(d.shortname)); return b ? b[0] : 'Other'; };
+const orderOf = d => { const k = d.meta && d.meta[0] ? parseInt(Object.keys(d.meta[0])[0], 10) : NaN; return isNaN(k) ? 1e3 : k; };
+function blocks() {            // name -> {stomp, ctrls[]} for the loaded graph
+  const m = new Map();
+  for (const d of [...state.descriptors].sort((a, b) => orderOf(a) - orderOf(b))) {
+    const name = blockOf(d), b = m.get(name) || { stomp: null, ctrls: [] };
+    if (d.type === 'checkbox') b.stomp = d; else if ('min' in d) b.ctrls.push(d);
+    m.set(name, b);
   }
-  // 2D snake layout: rows alternate left-to-right and right-to-left (4 rows of up to 5). Each item: [name, row, col, arrow direction out of it].
-  const SLOTS = [['Input', 1, 1, 'r'], ['Highpass', 1, 2, 'r'], ['Lowpass', 1, 3, 'r'], ['De-esser', 1, 4, 'r'], ['EQ', 1, 5, 'd'],
-    ['Pitch', 2, 5, 'l'], ['Harmonizer', 2, 4, 'l'], ['Low shelf', 2, 3, 'l'], ['Vocoder', 2, 2, 'l'], ['Compressor', 2, 1, 'd'],
-    ['Drive', 3, 1, 'r'], ['Resonator', 3, 2, 'r'], ['Bitcrush', 3, 3, 'r'], ['Ring mod', 3, 4, 'r'], ['Tremolo', 3, 5, 'd'],
-    ['Chorus', 4, 5, 'l'], ['Wow / flutter', 4, 4, 'l'], ['Phaser', 4, 3, 'l'], ['Dropout', 4, 2, 'l'], ['Echo', 4, 1, 'd'],
-    ['Static', 5, 1, 'r'], ['Reverb', 5, 2, 'r'], ['Mix / Output', 5, 3, 'r'], ['Limiter', 5, 4, 'r'], ['Output', 5, 5, '']];
-  const grid = document.createElement('div'); grid.className = 'fxgrid';
-  const place = (el, row, col, dir) => {
-    const c = document.createElement('div'); c.className = 'slot'; c.style.gridRow = row; c.style.gridColumn = col;
-    c.append(el); if (dir) { const a = document.createElement('div'); a.className = 'arrow ' + dir; a.textContent = {r: '\u2192', l: '\u2190', d: '\u2193'}[dir]; c.append(a); }
-    grid.append(c);
-  };
-  const chip = (t, c) => { const e = document.createElement('div'); e.className = 'chip ' + (c || ''); e.innerHTML = t; return e; };
-  for (const [name, row, col, dir] of SLOTS) {
-    if (name === 'Input') place(chip('Input<br><span class="net">\u25B8 net: raw</span>'), row, col, dir);
-    else if (name === 'Output') place(chip('Output'), row, col, dir);
-    else if (groups.has(name)) {
-      if (name === 'Mix / Output') { const n = document.createElement('div'); n.className = 'net'; n.textContent = 'in: chain + net: raw'; groups.get(name).querySelector('h3').after(n); }
-      place(groups.get(name), row, col, dir);
-    }
-  }
-  if (groups.has('Other')) place(groups.get('Other'), 4, 1, '');
-  box.append(grid);
-  const note = document.createElement('div'); note.className = 'dim'; note.style.marginTop = '8px';
-  note.textContent = 'Signal runs along the arrows. "net: raw" is the unprocessed input, fed straight to Mix (0 = all raw, 1 = all chain). Click the footswitch on a block to bypass it (dimmed, LED off); LED on = in the chain.';
-  box.append(note);
-  box.querySelectorAll('.knob').forEach(k => k.redraw());
-  stomps.forEach(sw => sw.redraw());
+  return m;
 }
-const fmt = v => (Math.round(v * 1000) / 1000).toString();
-$('reset').onclick = () => { for (const d of state.descriptors) state.params[d.shortname] = initOf(d); renderControls(); for (const d of state.descriptors) state.node.setParamValue(d.address, initOf(d)); };
+const touched = b => b.ctrls.some(d => +state.params[d.shortname] !== initOf(d));
+const enabled = b => !b.stomp || +state.params[b.stomp.shortname] > 0.5;
+const lit = b => touched(b) && enabled(b);
+function openTouched() { for (const [n, b] of blocks()) if (touched(b)) state.open.add(n); }
+function setParam(d, v) { if ('min' in d) v = Math.min(d.max, Math.max(d.min, v)); state.params[d.shortname] = v; state.node.setParamValue(d.address, v); }      // switches have no range
+
+function render() {
+  const m = blocks();
+  const tabs = TABS.map(([t, names]) => [t, names.filter(n => m.has(n))]).filter(([, n]) => n.length);
+  const other = [...m.keys()].filter(n => !TABS.some(([, names]) => names.includes(n)));
+  if (other.length) tabs.push(['Other', other]);
+  if (!tabs.some(([t]) => t === state.tab)) state.tab = tabs[0][0];
+  const bar = $('tabs'); bar.innerHTML = '';
+  for (const [t, names] of tabs) {
+    const b = document.createElement('button'); b.className = 'tab'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', t === state.tab);
+    b.innerHTML = `${t}<i class="dot${names.some(n => lit(m.get(n))) ? ' lit' : ''}" title="something here is in use"></i>`;
+    b.onclick = () => { state.tab = t; render(); };
+    bar.append(b);
+  }
+  const panel = $('panel'); panel.innerHTML = '';
+  for (const name of tabs.find(([t]) => t === state.tab)[1]) panel.append(blockEl(name, m.get(name)));
+}
+function blockEl(name, b) {
+  const meta = BLOCKS.find(x => x[0] === name) || [name, null, '', ''];
+  const el = document.createElement('section'); el.className = 'block' + (state.open.has(name) ? ' open' : '') + (enabled(b) ? '' : ' bypassed') + (!state.open.has(name) && enabled(b) && !touched(b) ? ' idle' : '');
+  const head = document.createElement('div'); head.className = 'bhead';
+  const nm = document.createElement('button'); nm.className = 'bname'; nm.setAttribute('aria-expanded', state.open.has(name));
+  nm.innerHTML = `<span class="chev">▸</span>${name}<i class="dot${lit(b) ? ' lit' : ''}"></i>`;
+  nm.onclick = () => { state.open.has(name) ? state.open.delete(name) : state.open.add(name); render(); };
+  head.append(nm);
+  const st = document.createElement('span'); st.className = 'bstate'; st.textContent = !enabled(b) ? 'bypassed' : touched(b) ? '' : 'neutral';
+  head.append(st);
+  if (b.stomp) {
+    const sw = document.createElement('button'); sw.className = 'switch'; sw.setAttribute('role', 'switch'); sw.setAttribute('aria-checked', enabled(b)); sw.title = 'put this effect in the chain or bypass it';
+    sw.innerHTML = `<span>${enabled(b) ? 'in chain' : 'bypassed'}</span><i class="track"></i>`;
+    sw.onclick = () => { setParam(b.stomp, enabled(b) ? 0 : 1); render(); };
+    head.append(sw);
+  }
+  el.append(head);
+  if (meta[3]) { const h = document.createElement('div'); h.className = 'hint'; h.textContent = meta[3]; el.append(h); }
+  const grid = document.createElement('div'); grid.className = 'ctrls';
+  for (const d of b.ctrls) grid.append(ctrlEl(d, meta[2]));
+  el.append(grid);
+  return el;
+}
+function ctrlEl(d, strip) {
+  const row = document.createElement('div'); row.className = 'ctrl';
+  let text = d.label;
+  if (strip) { const t = text.replace(new RegExp('^' + strip.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&') + '\\s+', 'i'), ''); if (t.trim()) text = t; }
+  const lab = document.createElement('label'); lab.textContent = text; lab.title = d.label;
+  const rng = document.createElement('input'); rng.type = 'range'; rng.min = 0; rng.max = 1000; rng.step = 1; rng.setAttribute('aria-label', d.label);
+  const num = document.createElement('input'); num.type = 'number'; num.min = d.min; num.max = d.max; num.step = d.step || 'any'; num.setAttribute('aria-label', d.label + ' value');
+  const draw = () => {
+    const v = state.params[d.shortname]; rng.value = Math.round(toT(d, v) * 1000); num.value = (+v).toFixed(decimals(d));
+    row.classList.toggle('changed', +v !== initOf(d));
+  };
+  const apply = v => { setParam(d, v); draw(); refreshIndicators(); };
+  rng.oninput = () => apply(fromT(d, rng.value / 1000));
+  rng.onwheel = e => { e.preventDefault(); apply(fromT(d, Math.min(1, Math.max(0, toT(d, state.params[d.shortname]) - Math.sign(e.deltaY) * (e.shiftKey ? 0.004 : 0.02))))); };
+  rng.ondblclick = () => apply(initOf(d));
+  num.onchange = () => { const v = parseFloat(num.value); if (!isNaN(v)) apply(v); else draw(); };
+  row.append(lab, rng, num); draw();
+  return row;
+}
+function refreshIndicators() {      // dots and state text follow the controls without rebuilding the page under the user's hand
+  const m = blocks(), names = [...document.querySelectorAll('.block .bname')];
+  document.querySelectorAll('.block').forEach(el => {
+    const name = el.querySelector('.bname').textContent.replace('▸', '').trim(), b = m.get(name); if (!b) return;
+    el.querySelector('.bname .dot').classList.toggle('lit', lit(b));
+    el.querySelector('.bstate').textContent = !enabled(b) ? 'bypassed' : touched(b) ? '' : 'neutral';
+  });
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const names = (TABS.concat([['Other', [...m.keys()].filter(n => !TABS.some(([, x]) => x.includes(n)))]]).filter(([, n]) => n.some(x => m.has(x))))[i];
+    if (names) t.querySelector('.dot').classList.toggle('lit', names[1].some(n => m.has(n) && lit(m.get(n))));
+  });
+}
+$('reset').onclick = () => { for (const d of state.descriptors) setParam(d, initOf(d)); state.open.clear(); render(); };
 
 /* ---------- dsp files & presets ---------- */
 async function loadDsp(name) {
   state.dspName = name;
   const code = await (await fetch('/api/dsp/' + name)).text();
-  $('code').value = code; $('dspname').textContent = name; state.params = {};
+  $('code').value = code; state.params = {};
   await compile(code);
 }
 $('apply').onclick = () => compile($('code').value);
 $('savedsp').onclick = async () => { await post('/api/dsp/' + state.dspName, { code: $('code').value }); setStatus('saved ' + state.dspName); };
 $('dsp').onchange = () => loadDsp($('dsp').value);
-
+function applyParams(p) {            // a scenario or preset: set what it names, leave the rest at default
+  for (const d of state.descriptors) setParam(d, p[d.shortname] ?? initOf(d));
+  state.open.clear(); openTouched(); render();
+}
 async function loadScenarios() {
   const sc = (await api('/api/scenarios')).scenarios; state.scenarios = sc;
   const sel = $('scen');
   for (const x of sc) sel.append(new Option(x.name, x.name));
   sel.onchange = () => {
     const x = sc.find(v => v.name === sel.value); if (!x) { $('scendesc').textContent = ''; return; }
-    $('scendesc').textContent = x.desc;
-    for (const d of state.descriptors) state.params[d.shortname] = x.params[d.shortname] ?? initOf(d);
-    renderControls(); for (const d of state.descriptors) state.node.setParamValue(d.address, state.params[d.shortname]);
+    $('scendesc').textContent = x.desc; applyParams(x.params);
   };
 }
 async function refreshPresets() {
@@ -301,31 +393,100 @@ $('plist').onchange = async () => {
   const p = state.presets[$('plist').value]; if (!p) return;
   $('pname').value = $('plist').value;
   if (p.dsp !== state.dspName) { $('dsp').value = p.dsp; await loadDsp(p.dsp); }
-  for (const d of state.descriptors) if (d.shortname in p.params) state.params[d.shortname] = p.params[d.shortname];
-  renderControls(); for (const d of state.descriptors) state.node.setParamValue(d.address, state.params[d.shortname]);
+  applyParams(p.params);
 };
 
 /* ---------- speakers & lines ---------- */
 async function loadLines(speaker) {
   const lines = await api('/api/lines?speaker=' + encodeURIComponent(speaker));
   const box = $('lines'); box.innerHTML = '';
-  lines.forEach((l, i) => {
+  lines.forEach(l => {
     const d = document.createElement('div'); d.className = 'line'; d.textContent = l.text.replace(/\{\/?n\}/g, '') || l.guid;
     d.onclick = async () => { box.querySelectorAll('.on').forEach(e => e.classList.remove('on')); d.classList.add('on'); await ctx.resume(); await loadClip(l.wav); startSource(); $('play').disabled = false; };
     box.append(d);
   });
 }
+
+/* ---------- monitor: average spectrum against the game voice, stereo scope ---------- */
+const CENTRES = Array.from({ length: 25 }, (_, k) => 1000 * 2 ** ((k - 13) / 3)), EDGE = 2 ** (1 / 6);
+const LEVEL_LO = 100, LEVEL_HI = 8000, AVG = 0.04, Y_RANGE = 36;
+const mon = { power: new Float64Array(CENTRES.length), seen: false, corr: null, width: null, bal: null, raf: 0, ref: null };
+const fbuf = new Float32Array(anM.frequencyBinCount), lbuf = new Float32Array(2048), rbuf = new Float32Array(2048);
+function bandPower() {
+  anM.getFloatFrequencyData(fbuf); const hz = ctx.sampleRate / anM.fftSize, p = new Float64Array(CENTRES.length); let total = 0;
+  CENTRES.forEach((c, i) => { const lo = Math.ceil(c / EDGE / hz), hi = Math.floor(c * EDGE / hz); let s = 0, n = 0; for (let k = lo; k <= hi && k < fbuf.length; k++) { s += 10 ** (fbuf[k] / 10); n++; } p[i] = n ? s / n : 0; total += p[i]; });
+  return [p, total];
+}
+function relDb(p) {
+  const db = Array.from(p, v => v > 0 ? 10 * Math.log10(v) : null);
+  const ref = db.filter((v, i) => v !== null && CENTRES[i] >= LEVEL_LO && CENTRES[i] <= LEVEL_HI);
+  const mean = ref.reduce((a, b) => a + b, 0) / Math.max(1, ref.length);
+  return db.map(v => v === null ? null : v - mean);
+}
+function drawSpectrum() {
+  const cv = $('spec'), g = cv.getContext('2d'), W = cv.width = cv.clientWidth * devicePixelRatio, H = cv.height = cv.clientHeight * devicePixelRatio;
+  const X = f => 28 * devicePixelRatio + (W - 36 * devicePixelRatio) * Math.log(f / 40) / Math.log(14000 / 40), Y = d => H - 18 * devicePixelRatio - (H - 28 * devicePixelRatio) * (d + Y_RANGE) / (2 * Y_RANGE);
+  g.clearRect(0, 0, W, H); g.font = `${11 * devicePixelRatio}px ${css('--font')}`; g.fillStyle = css('--faint'); g.strokeStyle = css('--line'); g.lineWidth = 1;
+  for (const f of [100, 1000, 10000]) { g.beginPath(); g.moveTo(X(f), 6); g.lineTo(X(f), H - 18 * devicePixelRatio); g.stroke(); g.fillText(f >= 1000 ? f / 1000 + 'k' : f, X(f) - 8 * devicePixelRatio, H - 4 * devicePixelRatio); }
+  for (const d of [-24, -12, 0, 12, 24]) { g.beginPath(); g.moveTo(28 * devicePixelRatio, Y(d)); g.lineTo(W - 8 * devicePixelRatio, Y(d)); g.stroke(); g.fillText(d, 2, Y(d) + 4 * devicePixelRatio); }
+  const line = (vals, color, dash) => { g.beginPath(); g.setLineDash(dash ? [6 * devicePixelRatio, 4 * devicePixelRatio] : []); g.strokeStyle = color; g.lineWidth = 2 * devicePixelRatio; let on = false;
+    vals.forEach((v, i) => { if (v === null || v === undefined) { on = false; return; } const x = X(CENTRES[i]), y = Y(Math.max(-Y_RANGE, Math.min(Y_RANGE, v))); on ? g.lineTo(x, y) : g.moveTo(x, y); on = true; }); g.stroke(); g.setLineDash([]); };
+  if (mon.ref) line(mon.ref.db, css('--dim'), true);
+  if (mon.seen) line(relDb(mon.power), css('--accent'), false);
+}
+function drawScope() {
+  const cv = $('scope'), g = cv.getContext('2d'), S = cv.width = cv.clientWidth * devicePixelRatio; cv.height = S;
+  g.fillStyle = 'rgba(20,22,26,0.0)'; g.clearRect(0, 0, S, S);
+  g.strokeStyle = css('--line'); g.lineWidth = 1; g.beginPath(); g.moveTo(S / 2, 4); g.lineTo(S / 2, S - 4); g.moveTo(4, S / 2); g.lineTo(S - 4, S / 2); g.stroke();
+  g.fillStyle = css('--faint'); g.font = `${10 * devicePixelRatio}px ${css('--font')}`; g.fillText('mono', S / 2 + 4, 12 * devicePixelRatio); g.fillText('L', 6, S / 2 - 4); g.fillText('R', S - 14 * devicePixelRatio, S / 2 - 4);
+  g.fillStyle = css('--accent'); const r = S * 0.46;
+  for (let i = 0; i < lbuf.length; i += 2) { const x = (rbuf[i] - lbuf[i]) / Math.SQRT2, y = (rbuf[i] + lbuf[i]) / Math.SQRT2; g.globalAlpha = 0.5; g.fillRect(S / 2 + x * r * 1.6, S / 2 - y * r * 1.6, 2 * devicePixelRatio, 2 * devicePixelRatio); }
+  g.globalAlpha = 1;
+}
+function stereoStats() {
+  anL.getFloatTimeDomainData(lbuf); anR.getFloatTimeDomainData(rbuf);
+  let ll = 0, rr = 0, lr = 0, ss = 0, mm = 0;
+  for (let i = 0; i < lbuf.length; i++) { const l = lbuf[i], r = rbuf[i]; ll += l * l; rr += r * r; lr += l * r; ss += ((l - r) / 2) ** 2; mm += ((l + r) / 2) ** 2; }
+  if (ll + rr < 1e-6) return;
+  const upd = (k, v) => mon[k] = mon[k] === null ? v : mon[k] * 0.9 + v * 0.1;
+  upd('corr', lr / Math.sqrt(ll * rr + 1e-12)); upd('width', 10 * Math.log10(ss / (mm + 1e-12) + 1e-9)); upd('bal', 10 * Math.log10((ll + 1e-12) / (rr + 1e-12)));
+}
+function writeStats() {
+  const f = (v, d) => v === null || v === undefined ? '-' : v.toFixed(d);
+  $('st-corr').textContent = f(mon.corr, 2); $('st-width').textContent = f(mon.width, 1); $('st-bal').textContent = f(mon.bal, 1);
+  const s = mon.ref && mon.ref.stereo; $('rf-corr').textContent = s ? s.corr.toFixed(2) : (mon.ref ? 'mono' : '-'); $('rf-width').textContent = s ? s.side_mid_db.toFixed(1) : (mon.ref ? 'mono' : '-');
+}
+function tick() {
+  if (state.src) {
+    const [p, total] = bandPower();
+    if (total > 1e-9) { mon.power.forEach((v, i) => mon.power[i] = mon.seen ? v * (1 - AVG) + p[i] * AVG : p[i]); mon.seen = true; }
+    stereoStats();
+  }
+  drawSpectrum(); drawScope(); writeStats();
+  mon.raf = state.src ? requestAnimationFrame(tick) : 0;
+}
+function startMonitor() { if (!mon.raf) mon.raf = requestAnimationFrame(tick); }
+$('avgreset').onclick = () => { mon.power.fill(0); mon.seen = false; mon.corr = mon.width = mon.bal = null; drawSpectrum(); };
+$('refsp').onchange = async () => {
+  const sp = $('refsp').value; mon.ref = null;
+  if (sp) { setStatus('measuring ' + sp + '…'); mon.ref = await api('/api/ref/ltas?speaker=' + encodeURIComponent(sp)); setStatus(''); }
+  drawSpectrum(); writeStats();
+};
+new ResizeObserver(() => { drawSpectrum(); drawScope(); }).observe($('spec'));
+
 (async () => {
   const sp = await api('/api/speakers');
   for (const s of sp) $('speaker').append(new Option(`${s.speaker} (${s.count})`, s.speaker));
-  $('speaker').onchange = () => loadLines($('speaker').value);
+  $('speaker').onchange = () => { loadLines($('speaker').value); const m = [...$('refsp').options].find(o => o.value === $('speaker').value); if (m) { $('refsp').value = m.value; $('refsp').onchange(); } };
   const dsps = await api('/api/dsps');
   for (const n of dsps) $('dsp').append(new Option(n, n));
+  for (const r of await api('/api/ref/speakers')) $('refsp').append(new Option(`${r.speaker} (${r.clips})`, r.speaker));
   await refreshPresets(); await loadScenarios();
   await loadDsp(dsps.includes('chain.dsp') ? 'chain.dsp' : dsps[0]);
   $('dsp').value = state.dspName;
   const first = sp.find(s => s.speaker !== 'narrator') || sp[0];
-  $('speaker').value = first.speaker; await loadLines(first.speaker);
+  $('speaker').value = first.speaker; await loadLines(first.speaker); $('speaker').onchange();
+  drawSpectrum(); drawScope();
 })();
 </script>
 </body>

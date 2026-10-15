@@ -52,3 +52,37 @@ def test_limit_peaks_only_dips_around_the_peak():
 def test_active_rms_ignores_silence():
     x = np.concatenate([tone(0.5, 0.4), np.zeros(SR * 2, dtype=np.float32)])
     assert abs(batch.active_rms(x, SR) - 0.4 / np.sqrt(2)) < 0.02
+
+
+# ---- stereo ----
+CHAIN = (Path(__file__).resolve().parents[1] / "faust/chain.dsp").read_text(encoding="utf-8")
+
+
+def speechlike(sr=24000, seconds=2.0, seed=1):
+    return (np.random.default_rng(seed).laplace(0, 0.05, int(sr * seconds))).astype(np.float32)
+
+
+def test_a_preset_without_stereo_blocks_still_gives_a_mono_clip():
+    x = speechlike()
+    y = batch.process_clip(x, 24000, [{"dsp": "chain.dsp", "params": {"Ring_Hz": 40, "Ring_mix": 0.3}}], {"chain.dsp": CHAIN})
+    assert y.ndim == 1
+
+
+def test_a_preset_with_a_stereo_block_gives_two_channels_that_differ_and_match_the_loudness_of_the_raw_clip():
+    x = speechlike()
+    y = batch.process_clip(x, 24000, [{"dsp": "chain.dsp", "params": {"Stereo_chorus_mix_0_off": 1, "Stereo_chorus_depth_ms": 4}}], {"chain.dsp": CHAIN})
+    assert y.shape[0] == 2 and np.abs(y[0] - y[1]).max() > 0.01
+    stereo_rms = batch.active_rms(np.sqrt((y[0] ** 2 + y[1] ** 2) / 2), 24000)
+    assert abs(stereo_rms / batch.active_rms(x, 24000) - 1) < 0.03                      # same loudness as the raw clip, both channels together
+    assert np.abs(y).max() <= batch.PEAK_CEILING + 1e-4
+
+
+def test_limiter_and_tail_trim_work_on_both_channels():
+    sr = 24000
+    y = np.zeros((2, sr), dtype=np.float32)
+    y[0, 1000], y[1, 3000] = 1.5, 0.2
+    out = batch.limit_peaks(y, sr)
+    assert np.abs(out).max() <= batch.PEAK_CEILING + 1e-4 and abs(out[1, 3000]) < 0.2 + 1e-6 and abs(out[1, 3000]) > 0.05      # only the peak side dips
+    z = np.zeros((2, sr), dtype=np.float32)
+    z[1, 2000] = 0.5
+    assert batch.trim_tail(z, sr).shape[1] < sr // 2                                     # the quiet end goes whichever channel carried the sound

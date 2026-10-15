@@ -1,6 +1,6 @@
 import type {
   MatchFilter, MatchValue, QaFacets, QaFilter, QaPage, QaRun, QaVerdictBody, MatchesPage, FxLabels, FxPresetInfo, FxPreview, FxWritten, FxUsage, FxDiff, FxBackup, FxRestored, OverrideBody, OverrideResult, NewSlotBody, PoolSlot, PoolSummary, QueueEntry, RoutesPage, SpotSample,
-  AssignmentsPage, Bg3Voice, LabelValue, LabelsInfo, VoiceLabels, CastAudition, CastPage, CastRegistered, CloneRequest, RegisterAllResult, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
+  AssignmentsPage, RtVoicesPage, Bg3Voice, LabelValue, LabelsInfo, VoiceLabels, CastAudition, CastPage, CastRegistered, CloneRequest, RegisterAllResult, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
 } from './types'
 import type { JobView } from './jobs'
 import type { LabJob, LabLexiconHit, LabLines, LabOptions, LabPrepared, LabRealClip, LabOpusPreview, LabRecipe, LabRenderBody, LabSpeaker, LabTake } from './labTypes'
@@ -86,6 +86,8 @@ export const api = {
     return request<QaPage>(`/api/qa/clips?${qs}`)
   },
   qaVerdict: (body: QaVerdictBody) => post<object>('/api/qa/verdict', body),
+  rtVoices: () => request<RtVoicesPage>('/api/rtvoices'),
+  rtVoiceLabelSet: (slug: string, key: string, value: LabelValue | null) => post<VoiceLabels>('/api/rtvoices/labels', { slug, key, value }),
   assignments: () => request<AssignmentsPage>('/api/assignments'),
   assignmentsRun: () => post<Record<string, number>>('/api/assignments/run'),
   assignmentOverride: (key: string, bg3: string | null) => post<object>('/api/assignments/override', { key, bg3 }),

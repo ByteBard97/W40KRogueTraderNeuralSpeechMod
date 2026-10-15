@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import type { Bg3Voice, LabelDef, LabelValue } from '../api/types'
 import { useCastingStore } from '../stores/casting'
 import { DO_NOT_USE, filterVoices, type LabelFilters, type VoiceSort } from '../utils/castVoices'
 import { fileUrl } from '../utils/fileUrl'
@@ -6,9 +7,11 @@ import { useAudioPlayer } from './useAudioPlayer'
 
 export type LabelingView = 'todo' | 'done' | 'all'
 
-/** State of the BG3 label page: which voices are listed, which is selected, and the "label it, then move on" flow. */
-export function useVoiceLabeling() {
-  const store = useCastingStore()
+/** What the label page needs from a store of voices: the BG3 voices (casting store) and the Rogue Trader voices (rtVoices store) both fit. */
+export interface LabelStore { voices: Bg3Voice[]; schema: LabelDef[]; setLabel: (slug: string, key: string, value: LabelValue | null) => Promise<void> }
+
+/** State of a label page: which voices are listed, which is selected, and the "label it, then move on" flow. */
+export function useVoiceLabeling<S extends LabelStore = ReturnType<typeof useCastingStore>>(store: S = useCastingStore() as unknown as S) {
   const audio = useAudioPlayer()
   const view = ref<LabelingView>('todo')
   const query = ref('')
@@ -72,6 +75,7 @@ export function useVoiceLabeling() {
 
   /** The "do not use" key: mark the selected voice and move straight on; on a voice already marked, take the mark off and stay. */
   async function toggleSkip() {
+    if (!store.schema.some((d) => d.key === 'reserve')) return          // only the BG3 voices have a "use" label
     const skipped = current.value?.mine.reserve === DO_NOT_USE
     await label('reserve', skipped ? null : DO_NOT_USE, true)
   }

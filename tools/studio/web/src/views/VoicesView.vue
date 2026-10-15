@@ -14,9 +14,14 @@ import { useVoiceLabeling, type LabelingView } from '../composables/useVoiceLabe
 import type { VoiceSort } from '../utils/castVoices'
 import { fileUrl } from '../utils/fileUrl'
 import { isTypingTarget } from '../utils/keys'
+import { useCastingStore } from '../stores/casting'
+import { useRtVoicesStore } from '../stores/rtVoices'
 
-const L = useVoiceLabeling()
+const props = withDefaults(defineProps<{ source?: 'bg3' | 'rt' }>(), { source: 'bg3' })
+const rt = props.source === 'rt'
+const L = useVoiceLabeling(rt ? useRtVoicesStore() : useCastingStore())
 const { store } = L
+const hasSkip = computed(() => store.schema.some((d) => d.key === 'reserve'))
 onMounted(() => { if (!store.voices.length) store.load(); document.addEventListener('keydown', onKey) })
 onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
 
@@ -37,8 +42,9 @@ function onKey(e: KeyboardEvent) {
   <div class="page voices">
     <div class="page-head">
       <div class="titles">
-        <h1 class="page-title">BG3 Voices</h1>
-        <span class="page-sub">Label each BG3 voice once (gender, age, class, processing, pitch, and anything extra). Then the Casting page can filter to, say, a low-class young woman with a high voice.</span>
+        <h1 class="page-title">{{ rt ? 'RT Voices' : 'BG3 Voices' }}</h1>
+        <span v-if="rt" class="page-sub">Label each Rogue Trader voice that has game audio: how it sounds, and above all whether it is processed. Processed voices clone with more steps. These use the same words as the BG3 labels, so the two can be compared.</span>
+        <span v-else class="page-sub">Label each BG3 voice once (gender, age, class, processing, pitch, and anything extra). Then the Casting page can filter to, say, a low-class young woman with a high voice.</span>
       </div>
       <div v-if="store.progress" class="progress">
         <b>{{ store.progress.complete }}</b> of {{ store.progress.total }} fully labelled ({{ pct }}%)
@@ -80,7 +86,7 @@ function onKey(e: KeyboardEvent) {
             <Btn size="sm" variant="primary" @click="L.nextIncomplete()">Next to label</Btn>
             <label class="opt"><input v-model="L.autoAdvance.value" type="checkbox" /> Move on when all five are set</label>
             <label class="opt"><input v-model="L.autoplay.value" type="checkbox" /> Play on select</label>
-            <span class="hint">Up / Down or J / K to move · X marks do not use</span>
+            <span class="hint">Up / Down or J / K to move<template v-if="hasSkip"> · X marks do not use</template></span>
           </footer>
         </section>
       </div>

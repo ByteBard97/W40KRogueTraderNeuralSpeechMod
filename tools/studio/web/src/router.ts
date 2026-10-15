@@ -22,6 +22,7 @@ export const router = createRouter({
     { path: '/qa', component: QaView },
     { path: '/casting', component: CastingView },
     { path: '/voices', component: VoicesView },
+    { path: '/rt-voices', component: VoicesView, props: { source: 'rt' } },
     { path: '/assignments', component: AssignmentsView },
     { path: '/lab', component: LabView },
     // Dev only (or a build with VITE_STYLEGUIDE=1): every shared component on one page.

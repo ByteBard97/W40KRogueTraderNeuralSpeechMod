@@ -1,6 +1,6 @@
 // Render a Faust .dsp over a raw float32 mono file with the same FaustWasm engine the FX Lab page uses (no browser needed).
 // Used by null_test.py to check that the browser runtime and DawDreamer agree.
-//   node render_wasm.mjs <file.dsp> <in.f32> <sampleRate> <params.json> <out.f32> [tailSeconds]
+//   node render_wasm.mjs <file.dsp> <in.f32> <sampleRate> <params.json> <out.f32> [tailSeconds]   (out.f32 = left channel then right channel)
 // params.json is {shortname: value}; anything not listed keeps its default (checkboxes default to 1 = on, like the page).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,5 +26,6 @@ for (const d of proc.getDescriptors()) {
 const raw = fs.readFileSync(inFile);
 const x = new Float32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
 const padded = new Float32Array(x.length + tail); padded.set(x);
-const [y] = proc.render([padded], padded.length);
-fs.writeFileSync(outFile, Buffer.from(y.buffer, y.byteOffset, y.byteLength));
+// the chain has two output channels; they are written one after the other (left, then right)
+const ys = proc.render([padded], padded.length);
+fs.writeFileSync(outFile, Buffer.concat(ys.map(y => Buffer.from(y.buffer, y.byteOffset, y.byteLength))));

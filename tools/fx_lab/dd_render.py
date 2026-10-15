@@ -46,12 +46,16 @@ class _Engine:
         for idx, key, is_box, default in self.params:
             self.fx.set_parameter(idx, float(params[key]) if key in params else (1.0 if is_box else default))
         self.engine.render(n / self.sr)
-        return self.engine.get_audio()[0].astype(np.float32)[:n]
+        return self.engine.get_audio().astype(np.float32)[:, :n]
 
 
-def render(dsp_code: str, x: np.ndarray, sr: int, params: dict | None = None, tail_s: float = 0.0) -> np.ndarray:
-    """Process x (mono float32) through dsp_code. Output length is len(x) + tail_s seconds."""
+def render(dsp_code: str, x: np.ndarray, sr: int, params: dict | None = None, tail_s: float = 0.0, stereo: bool = False) -> np.ndarray:
+    """Process x (mono float32) through dsp_code. Output length is len(x) + tail_s seconds.
+
+    The chain has two output channels (left = right while the stereo blocks are off). By default the left channel is returned as a 1-D
+    array, as before; with stereo=True the result is shape (2, n)."""
     key = (dsp_code, sr)
     if key not in _ENGINES:
         _ENGINES[key] = _Engine(dsp_code, sr)
-    return _ENGINES[key].render(np.asarray(x, dtype=np.float32), params or {}, tail_s)
+    y = _ENGINES[key].render(np.asarray(x, dtype=np.float32), params or {}, tail_s)
+    return y if stereo else y[0]

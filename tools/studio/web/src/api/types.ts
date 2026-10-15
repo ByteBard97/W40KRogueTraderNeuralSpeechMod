@@ -544,3 +544,4 @@ export interface AssignmentItem {
   alts: AssignmentAlt[]; missing?: string[]; learned?: Record<string, string>; samples: string[]; research: AssignmentResearch | null
 }
 export interface AssignmentsPage { generated_at: string | null; summary: Record<string, number>; items: AssignmentItem[] }
+export interface RtVoicesPage { voices: Bg3Voice[]; schema: LabelDef[]; progress: LabelProgress }

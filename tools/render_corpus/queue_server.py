@@ -21,6 +21,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from jobqueue import JobQueue
+import processed
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -80,6 +81,8 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/lease":
             b = json.loads(self._body() or b"{}")
             self.queue.renew(b["worker"])
+            if b["worker"] in blocked_workers():
+                return self._send(json.dumps({"jobs": []}).encode())
             jobs = self.queue.lease(b["worker"], b["engine"], int(b.get("n", 2)))
             return self._send(json.dumps({"jobs": jobs}).encode())
         if u.path == "/result":
@@ -110,8 +113,16 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
-def load_jobs(path: Path) -> list[dict]:
-    return [json.loads(ln) for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+def blocked_workers() -> set[str]:
+    """Worker names in data/render/blocked_workers.txt (one per line, read on every lease) get no jobs: a worker whose code or setup is not right."""
+    p = ROOT / "data/render/blocked_workers.txt"
+    return {ln.strip() for ln in p.read_text(encoding="utf-8").splitlines() if ln.strip() and not ln.startswith("#")} if p.is_file() else set()
+
+
+def load_jobs(path: Path, root: Path = ROOT) -> list[dict]:
+    """The jobs in a file, with processed speakers' recipes already at the higher step count (see processed.py)."""
+    jobs = [json.loads(ln) for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    return processed.apply(jobs, processed.load(root))
 
 
 def watch(queue: JobQueue, folder: Path, loaded: set[str], every_s: float) -> None:
