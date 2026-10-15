@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '../api/client'
-import type { AssignmentItem, AssignmentsPage, Bg3Voice } from '../api/types'
+import { useToasts } from '../composables/useToasts'
+import type { AssignmentItem, AssignmentsPage, Bg3Voice, RegisterPreview } from '../api/types'
 
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -19,6 +20,9 @@ export const useAssignmentsStore = defineStore('assignments', () => {
   const error = ref<string | null>(null)
   const loading = ref(false)
   const running = ref(false)
+  const toasts = useToasts()
+  const registerPreview = ref<RegisterPreview | null>(null)
+  const registerBusy = ref(false)
 
   const items = computed(() => page.value?.items ?? [])
   const visible = computed(() => {
@@ -74,5 +78,37 @@ export const useAssignmentsStore = defineStore('assignments', () => {
     }
   }
 
-  return { page, voices, selected, status, kind, query, error, loading, running, items, visible, current, summary, voiceOf, load, select, rerun, override }
+  /** Ask what registering would do. The preview is shown for confirmation; nothing is written yet. */
+  async function previewRegister() {
+    registerBusy.value = true
+    error.value = null
+    try {
+      registerPreview.value = await api.assignmentsRegisterPreview()
+    } catch (e) {
+      error.value = msg(e)
+    } finally {
+      registerBusy.value = false
+    }
+  }
+
+  const cancelRegister = () => { registerPreview.value = null }
+
+  /** Write the voices into the prompt bank (the server backs prompts.json up first) and report the result in a toast. */
+  async function confirmRegister() {
+    if (registerBusy.value) return                      // a second Enter or click while the first is writing
+    registerBusy.value = true
+    try {
+      const r = await api.assignmentsRegister()
+      registerPreview.value = null
+      const n = r.registered.length
+      toasts.ok(`Registered ${n} voice${n === 1 ? '' : 's'}${r.unchanged ? `, ${r.unchanged} already there` : ''}${r.skipped.length ? `, ${r.skipped.length} skipped` : ''}${r.backup ? `. Backup: ${r.backup}` : ''}.`)
+    } catch (e) {
+      error.value = msg(e)
+      toasts.error(`Register failed: ${msg(e)}`)
+    } finally {
+      registerBusy.value = false
+    }
+  }
+
+  return { registerPreview, registerBusy, previewRegister, cancelRegister, confirmRegister, page, voices, selected, status, kind, query, error, loading, running, items, visible, current, summary, voiceOf, load, select, rerun, override }
 })

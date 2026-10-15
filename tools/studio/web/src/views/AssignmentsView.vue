@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import AssignmentDetail from '../components/assignments/AssignmentDetail.vue'
 import AssignmentList from '../components/assignments/AssignmentList.vue'
+import RegisterPanel from '../components/assignments/RegisterPanel.vue'
 import EmptyState from '../components/shared/EmptyState.vue'
 import Btn from '../components/ui/Btn.vue'
 import InlineError from '../components/ui/InlineError.vue'
@@ -29,10 +30,13 @@ const counts = computed(() => store.summary)
       <div class="progress">
         <b>{{ counts.assigned ?? 0 }}</b> have a voice · <b>{{ counts.needs_info ?? 0 }}</b> need more information
         <Btn size="sm" :disabled="store.running" @click="store.rerun()">{{ store.running ? 'Working…' : 'Work them out again' }}</Btn>
+        <Btn size="sm" variant="primary" :disabled="store.registerBusy || !!store.registerPreview" data-register-open @click="store.previewRegister()">{{ store.registerBusy && !store.registerPreview ? 'Checking…' : 'Register these voices' }}</Btn>
       </div>
     </div>
 
     <InlineError v-if="store.error" title="Assignments problem"> {{ store.error }} <Btn size="sm" @click="store.load()">Retry</Btn></InlineError>
+
+    <RegisterPanel v-if="store.registerPreview" :preview="store.registerPreview" @confirm="store.confirmRegister()" @cancel="store.cancelRegister()" />
 
     <Skeleton v-if="firstLoad" :rows="6" />
     <div v-else-if="store.page" class="split">

@@ -1,6 +1,6 @@
 import type {
   MatchFilter, MatchValue, QaFacets, QaFilter, QaPage, QaRun, QaVerdictBody, MatchesPage, FxLabels, FxPresetInfo, FxPreview, FxWritten, FxUsage, FxDiff, FxBackup, FxRestored, OverrideBody, OverrideResult, NewSlotBody, PoolSlot, PoolSummary, QueueEntry, RoutesPage, SpotSample,
-  AssignmentsPage, PedalboardBlocks, PedalboardGraphInfo, PedalboardSaveBody, PedalboardSaved, PedalboardStarter, RtVoicesPage, Bg3Voice, LabelValue, LabelsInfo, VoiceLabels, CastAudition, CastPage, CastRegistered, CloneRequest, RegisterAllResult, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
+  AssignmentsPage, RegisterPreview, RegisterResult, PedalboardBlocks, PedalboardGraphInfo, PedalboardSaveBody, PedalboardSaved, PedalboardStarter, RtVoicesPage, Bg3Voice, LabelValue, LabelsInfo, VoiceLabels, CastAudition, CastPage, CastRegistered, CloneRequest, RegisterAllResult, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
 } from './types'
 import type { Graph } from '../pedalboard/types'
 import type { JobView } from './jobs'
@@ -92,6 +92,8 @@ export const api = {
   assignments: () => request<AssignmentsPage>('/api/assignments'),
   assignmentsRun: () => post<Record<string, number>>('/api/assignments/run'),
   assignmentOverride: (key: string, bg3: string | null) => post<object>('/api/assignments/override', { key, bg3 }),
+  assignmentsRegisterPreview: () => request<RegisterPreview>('/api/assignments/register-preview'),
+  assignmentsRegister: () => post<RegisterResult>('/api/assignments/register'),
   casting: () => request<CastPage>('/api/casting'),
   castingVoices: () => request<Bg3Voice[]>('/api/casting/bg3'),
   castAssign: (speaker: string, bg3: string | null) => post<{ speaker: string; bg3: string | null }>('/api/casting/assign', { speaker, bg3 }),

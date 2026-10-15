@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import { useAssignmentsStore } from './assignments'
 
-vi.mock('../api/client', () => ({ api: { assignments: vi.fn(), assignmentsRun: vi.fn(), assignmentOverride: vi.fn(), castingVoices: vi.fn() } }))
+vi.mock('../api/client', () => ({ api: { assignments: vi.fn(), assignmentsRun: vi.fn(), assignmentOverride: vi.fn(), castingVoices: vi.fn(), assignmentsRegisterPreview: vi.fn(), assignmentsRegister: vi.fn() } }))
+import { useToasts } from '../composables/useToasts'
 
 const item = (key: string, over: Record<string, unknown> = {}) => ({
   key, kind: 'character', name: key, gender: 'male', species: 'human', age: null, role: 'guard', description: '', lines: 10, conversation: null,
@@ -53,5 +54,41 @@ describe('assignments store', () => {
     vi.mocked(api.assignmentOverride).mockRejectedValue(new Error('unknown voice'))
     await s.override('a', 'zzz')
     expect(s.error).toBe('unknown voice')
+  })
+
+  const preview = { counts: { assigned: 3, not_assigned: 1, add: 2, update: 0, unchanged: 0, skipped: 1, processed: 1 }, items: [], skipped: [{ key: 'x', bg3: 'v1', reason: 'no clip' }] }
+
+  it('register: the preview is fetched first, cancel drops it without writing', async () => {
+    const s = useAssignmentsStore()
+    vi.mocked(api.assignmentsRegisterPreview).mockResolvedValue(preview as never)
+    await s.previewRegister()
+    expect(s.registerPreview?.counts.add).toBe(2)
+    s.cancelRegister()
+    expect(s.registerPreview).toBeNull()
+    expect(api.assignmentsRegister).not.toHaveBeenCalled()
+  })
+
+  it('register: confirming writes once, clears the preview and toasts the result', async () => {
+    const s = useAssignmentsStore()
+    useToasts().clear()
+    vi.mocked(api.assignmentsRegisterPreview).mockResolvedValue(preview as never)
+    vi.mocked(api.assignmentsRegister).mockResolvedValue({ registered: ['a', 'b'], unchanged: 0, skipped: [{ key: 'x', bg3: 'v1', reason: 'r' }], backup: 'prompts.1.bak.json' })
+    await s.previewRegister()
+    await Promise.all([s.confirmRegister(), s.confirmRegister()])
+    expect(api.assignmentsRegister).toHaveBeenCalledTimes(1)
+    expect(s.registerPreview).toBeNull()
+    expect(useToasts().toasts.value[0].message).toContain('Registered 2 voices, 1 skipped')
+  })
+
+  it('register: a failure keeps the preview and shows an error toast', async () => {
+    const s = useAssignmentsStore()
+    useToasts().clear()
+    vi.mocked(api.assignmentsRegisterPreview).mockResolvedValue(preview as never)
+    vi.mocked(api.assignmentsRegister).mockRejectedValue(new Error('disk full'))
+    await s.previewRegister()
+    await s.confirmRegister()
+    expect(s.registerPreview).not.toBeNull()
+    expect(s.error).toBe('disk full')
+    expect(useToasts().toasts.value[0].kind).toBe('err')
   })
 })

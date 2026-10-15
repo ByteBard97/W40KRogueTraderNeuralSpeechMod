@@ -544,6 +544,11 @@ export interface AssignmentItem {
   alts: AssignmentAlt[]; missing?: string[]; learned?: Record<string, string>; samples: string[]; research: AssignmentResearch | null
 }
 export interface AssignmentsPage { generated_at: string | null; summary: Record<string, number>; items: AssignmentItem[] }
+export interface RegisterPlanItem { key: string; bg3: string; voice_name: string; clip: string; processed: boolean; steps: number | null; action: 'add' | 'update' | 'unchanged' }
+export interface RegisterSkipped { key: string; bg3: string; reason: string }
+export interface RegisterCounts { assigned: number; not_assigned: number; add: number; update: number; unchanged: number; skipped: number; processed: number }
+export interface RegisterPreview { counts: RegisterCounts; items: RegisterPlanItem[]; skipped: RegisterSkipped[] }
+export interface RegisterResult { registered: string[]; unchanged: number; skipped: RegisterSkipped[]; backup: string | null }
 export interface RtVoicesPage { voices: Bg3Voice[]; schema: LabelDef[]; progress: LabelProgress }
 
 // Pedalboard (routes /api/pedalboard/*). Graph and catalog shapes live in src/pedalboard/types.ts.
