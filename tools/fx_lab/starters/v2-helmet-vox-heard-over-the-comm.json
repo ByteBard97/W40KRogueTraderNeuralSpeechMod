@@ -1,0 +1,168 @@
+{
+ "category": "Helmet",
+ "description": "Astartes helmet voice then pushed through a comm band with a little hiss.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "pitch",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "pitch",
+    "target": "lowshelf",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "lowshelf",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "compressor",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "drive",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "echo",
+    "target": "static",
+    "targetPort": 0
+   },
+   {
+    "id": "e9",
+    "source": "static",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v2-helmet-vox-heard-over-the-comm",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 300
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 3600
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "pitch",
+    "on": true,
+    "params": {
+     "Pitch semitones": -2
+    },
+    "type": "pitch",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "lowshelf",
+    "on": true,
+    "params": {
+     "Low shelf dB (200 Hz)": 3
+    },
+    "type": "lowshelf",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 5,
+     "Compressor ratio (1 off)": 8,
+     "Compressor threshold dB": -28
+    },
+    "type": "compressor",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.3
+    },
+    "type": "drive",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.5,
+     "Echo mix": 0.2,
+     "Echo ms": 3
+    },
+    "type": "echo",
+    "x": 260,
+    "y": 415
+   },
+   {
+    "id": "static",
+    "on": true,
+    "params": {
+     "Static level dB (-60 off)": -30,
+     "Static tail ms": 1200
+    },
+    "type": "static",
+    "x": 520,
+    "y": 415
+   },
+   {
+    "id": "output",
+    "params": {
+     "Limiter threshold dB (0 off)": -3,
+     "Output dB": -1.9
+    },
+    "type": "output",
+    "x": 780,
+    "y": 415
+   }
+  ],
+  "version": 1
+ },
+ "name": "v2 Helmet + vox (heard over the comm)"
+}

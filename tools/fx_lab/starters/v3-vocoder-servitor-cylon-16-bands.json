@@ -1,0 +1,116 @@
+{
+ "category": "Test",
+ "description": "Channel vocoder, 16 bands, 110 Hz pulse carrier with some noise for consonants, thin band, squeezed. The Cylon-style flat mechanical voice. Best with a monotone source line.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "vocoder",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "vocoder",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "compressor",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "drive",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v3-vocoder-servitor-cylon-16-bands",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 150
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 6000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "vocoder",
+    "on": true,
+    "params": {
+     "Vocoder mix (0 off)": 1
+    },
+    "type": "vocoder",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 3,
+     "Compressor ratio (1 off)": 6,
+     "Compressor threshold dB": -24
+    },
+    "type": "compressor",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.15
+    },
+    "type": "drive",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -3
+    },
+    "type": "output",
+    "x": 1560,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "v3 Vocoder: servitor / Cylon (16 bands)"
+}

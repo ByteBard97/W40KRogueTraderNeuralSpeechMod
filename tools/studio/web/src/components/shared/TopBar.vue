@@ -22,6 +22,7 @@ const links = computed(() => [
   { to: '/rt-voices', label: 'RT Voices', count: null },
   { to: '/assignments', label: 'Assignments', count: null },
   { to: '/lab', label: 'Render Lab', count: null },
+  { to: '/pedalboard', label: 'Pedalboard', count: null },
   { to: '/qa', label: 'Render QA', count: counts.qaClips === null ? null : fmt(counts.qaClips) },
 ])
 </script>

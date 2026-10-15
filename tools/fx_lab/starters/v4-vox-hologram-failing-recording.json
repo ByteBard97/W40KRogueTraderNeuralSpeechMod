@@ -1,0 +1,153 @@
+{
+ "category": "Vox",
+ "description": "Wow and flutter for the failing tape or projector, narrow band, crunch, hiss and random dropouts.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "compressor",
+    "target": "bitcrush",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "bitcrush",
+    "target": "wowflutter",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "wowflutter",
+    "target": "dropout",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "dropout",
+    "target": "static",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "static",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v4-vox-hologram-failing-recording",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 400
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 4500
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 4,
+     "Compressor ratio (1 off)": 6,
+     "Compressor threshold dB": -28
+    },
+    "type": "compressor",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "bitcrush",
+    "on": true,
+    "params": {
+     "Crush bits (16 off)": 10,
+     "Crush hold samples": 2
+    },
+    "type": "bitcrush",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "wowflutter",
+    "on": true,
+    "params": {
+     "Flutter cents": 10,
+     "Wow cents": 25
+    },
+    "type": "wowflutter",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "dropout",
+    "on": true,
+    "params": {
+     "Dropout amount (0 off)": 0.3,
+     "Dropout length ms": 70,
+     "Dropout rate per s": 4
+    },
+    "type": "dropout",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "static",
+    "on": true,
+    "params": {
+     "Static level dB (-60 off)": -24,
+     "Static tail ms": 1500
+    },
+    "type": "static",
+    "x": 260,
+    "y": 415
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": 0.4
+    },
+    "type": "output",
+    "x": 520,
+    "y": 415
+   }
+  ],
+  "version": 1
+ },
+ "name": "v4 Vox: hologram / failing recording"
+}

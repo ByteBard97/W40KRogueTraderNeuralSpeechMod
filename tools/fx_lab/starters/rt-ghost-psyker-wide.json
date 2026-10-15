@@ -1,0 +1,176 @@
+{
+ "category": "Rogue Trader",
+ "description": "A doubled, drifting voice that moves between the ears, with a slow phase sweep that differs per side.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "lowpass",
+    "target": "chorus",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "chorus",
+    "target": "phaser",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "phaser",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "echo",
+    "target": "reverb",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "reverb",
+    "target": "stereochorus",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "stereochorus",
+    "target": "stereophaser",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "stereophaser",
+    "target": "bassspread",
+    "targetPort": 0
+   },
+   {
+    "id": "e9",
+    "source": "bassspread",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "rt-ghost-psyker-wide",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 9000
+    },
+    "type": "lowpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "chorus",
+    "on": true,
+    "params": {
+     "Chorus depth ms": 4,
+     "Chorus mix (0 off)": 0.5,
+     "Chorus rate Hz": 0.5
+    },
+    "type": "chorus",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "phaser",
+    "on": true,
+    "params": {
+     "Phaser feedback": 0.3,
+     "Phaser mix (0 off)": 0.6,
+     "Phaser rate Hz": 0.2
+    },
+    "type": "phaser",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.3,
+     "Echo mix": 0.25,
+     "Echo ms": 380
+    },
+    "type": "echo",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "reverb",
+    "on": true,
+    "params": {
+     "Reverb damping": 0.55,
+     "Reverb mix": 0.3,
+     "Reverb size": 0.92
+    },
+    "type": "reverb",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "stereochorus",
+    "on": true,
+    "params": {
+     "Stereo chorus depth ms": 5,
+     "Stereo chorus mix (0 off)": 0.45,
+     "Stereo chorus rate Hz": 0.35
+    },
+    "type": "stereochorus",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "stereophaser",
+    "on": true,
+    "params": {
+     "Stereo phaser mix (0 off)": 0.35,
+     "Stereo phaser rate Hz": 0.12
+    },
+    "type": "stereophaser",
+    "x": 260,
+    "y": 477
+   },
+   {
+    "id": "bassspread",
+    "on": true,
+    "params": {
+     "Bass spread delay ms": 6,
+     "Bass spread mix (0 off)": 0.4,
+     "Bass spread motion depth": 0.8,
+     "Bass spread motion rate Hz": 0.3
+    },
+    "type": "bassspread",
+    "x": 520,
+    "y": 477
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -7.8
+    },
+    "type": "output",
+    "x": 780,
+    "y": 477
+   }
+  ],
+  "version": 1
+ },
+ "name": "RT Ghost / psyker (wide)"
+}

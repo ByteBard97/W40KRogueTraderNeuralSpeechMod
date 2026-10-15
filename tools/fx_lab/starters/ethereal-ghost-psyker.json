@@ -1,0 +1,103 @@
+{
+ "category": "Ethereal",
+ "description": "Long soft reverb, faint waver, a slow echo. The true 'rises before the word' swell is the offline reverse reverb, not in this page.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "tremolo",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "tremolo",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "echo",
+    "target": "reverb",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "reverb",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "ethereal-ghost-psyker",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 150
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "tremolo",
+    "on": true,
+    "params": {
+     "Tremolo Hz": 5,
+     "Tremolo depth": 0.15
+    },
+    "type": "tremolo",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.4,
+     "Echo mix": 0.25,
+     "Echo ms": 140
+    },
+    "type": "echo",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "reverb",
+    "on": true,
+    "params": {
+     "Reverb damping": 0.4,
+     "Reverb mix": 0.5,
+     "Reverb size": 0.88
+    },
+    "type": "reverb",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -2.5
+    },
+    "type": "output",
+    "x": 1300,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "Ethereal: ghost / psyker"
+}

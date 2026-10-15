@@ -1,0 +1,132 @@
+{
+ "category": "Monstrous",
+ "description": "Four semitones down, chest weight, heavy drive, compressed, with the top rolled off. Pitch shift is not formant-preserving, so check consonants.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "pitch",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "pitch",
+    "target": "lowshelf",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "lowshelf",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "compressor",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "drive",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v2-monstrous-brute-ork-giant",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 70
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 6500
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "pitch",
+    "on": true,
+    "params": {
+     "Pitch semitones": -4
+    },
+    "type": "pitch",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "lowshelf",
+    "on": true,
+    "params": {
+     "Low shelf dB (200 Hz)": 4
+    },
+    "type": "lowshelf",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 4,
+     "Compressor ratio (1 off)": 6,
+     "Compressor threshold dB": -24
+    },
+    "type": "compressor",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.55
+    },
+    "type": "drive",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -8.3
+    },
+    "type": "output",
+    "x": 260,
+    "y": 415
+   }
+  ],
+  "version": 1
+ },
+ "name": "v2 Monstrous: brute (Ork, giant)"
+}

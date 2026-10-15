@@ -1,0 +1,167 @@
+{
+ "category": "Rogue Trader",
+ "description": "The flat Dalek-style drone with a slow drift between the ears and a low band that wanders.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "compressor",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "drive",
+    "target": "bitcrush",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "bitcrush",
+    "target": "ringmod",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "ringmod",
+    "target": "autopan",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "autopan",
+    "target": "bassspread",
+    "targetPort": 0
+   },
+   {
+    "id": "e9",
+    "source": "bassspread",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "rt-servitor-flat-buzz-drifting",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 200
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 4000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 6,
+     "Compressor ratio (1 off)": 10,
+     "Compressor threshold dB": -26
+    },
+    "type": "compressor",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.3
+    },
+    "type": "drive",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "bitcrush",
+    "on": true,
+    "params": {
+     "Crush bits (16 off)": 11
+    },
+    "type": "bitcrush",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "ringmod",
+    "on": true,
+    "params": {
+     "Ring Hz": 30,
+     "Ring mix": 0.9
+    },
+    "type": "ringmod",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "autopan",
+    "on": true,
+    "params": {
+     "Auto pan depth (0 off)": 0.3,
+     "Auto pan rate Hz": 0.4
+    },
+    "type": "autopan",
+    "x": 260,
+    "y": 415
+   },
+   {
+    "id": "bassspread",
+    "on": true,
+    "params": {
+     "Bass spread delay ms": 5,
+     "Bass spread mix (0 off)": 0.6
+    },
+    "type": "bassspread",
+    "x": 520,
+    "y": 415
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -0.5
+    },
+    "type": "output",
+    "x": 780,
+    "y": 415
+   }
+  ],
+  "version": 1
+ },
+ "name": "RT Servitor (flat buzz, drifting)"
+}

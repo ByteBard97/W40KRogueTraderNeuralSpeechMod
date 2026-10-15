@@ -1,0 +1,157 @@
+{
+ "category": "Machine",
+ "description": "Voice-box buzz under a human voice: band-limited, squeezed, 60 Hz ring at low mix, a tiny slapback. Reports 1-3. Starting point.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "compressor",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "drive",
+    "target": "ringmod",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "ringmod",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "echo",
+    "target": "mix2",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "input",
+    "target": "mix2",
+    "targetPort": 1
+   },
+   {
+    "id": "e9",
+    "source": "mix2",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v2-machine-tech-priest-partly-human",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 300
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 6000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 3,
+     "Compressor ratio (1 off)": 4,
+     "Compressor threshold dB": -22
+    },
+    "type": "compressor",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.15
+    },
+    "type": "drive",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "ringmod",
+    "on": true,
+    "params": {
+     "Ring Hz": 60,
+     "Ring mix": 0.3
+    },
+    "type": "ringmod",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.1,
+     "Echo mix": 0.12,
+     "Echo ms": 20
+    },
+    "type": "echo",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "mix2",
+    "params": {
+     "Level A dB": -0.91515,
+     "Level B dB": -20.0
+    },
+    "type": "mix2",
+    "x": 260,
+    "y": 415
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -0.7
+    },
+    "type": "output",
+    "x": 520,
+    "y": 415
+   }
+  ],
+  "version": 1
+ },
+ "name": "v2 Machine: tech-priest (partly human)"
+}

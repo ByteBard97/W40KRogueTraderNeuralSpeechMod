@@ -1,0 +1,169 @@
+{
+ "category": "Rogue Trader",
+ "description": "The field radio with the faintest left/right movement so it does not sit dead centre.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "compressor",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "drive",
+    "target": "bitcrush",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "bitcrush",
+    "target": "static",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "static",
+    "target": "autopan",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "autopan",
+    "target": "stereochorus",
+    "targetPort": 0
+   },
+   {
+    "id": "e9",
+    "source": "stereochorus",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "rt-vox-caster-field-radio-light-width",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 300
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 3000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 6,
+     "Compressor ratio (1 off)": 14,
+     "Compressor threshold dB": -34
+    },
+    "type": "compressor",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.4
+    },
+    "type": "drive",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "bitcrush",
+    "on": true,
+    "params": {
+     "Crush bits (16 off)": 10,
+     "Crush hold samples": 2
+    },
+    "type": "bitcrush",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "static",
+    "on": true,
+    "params": {
+     "Static level dB (-60 off)": -28,
+     "Static tail ms": 1500
+    },
+    "type": "static",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "autopan",
+    "on": true,
+    "params": {
+     "Auto pan depth (0 off)": 0.08,
+     "Auto pan rate Hz": 0.3
+    },
+    "type": "autopan",
+    "x": 260,
+    "y": 415
+   },
+   {
+    "id": "stereochorus",
+    "on": true,
+    "params": {
+     "Stereo chorus depth ms": 1.5,
+     "Stereo chorus mix (0 off)": 0.15
+    },
+    "type": "stereochorus",
+    "x": 520,
+    "y": 415
+   },
+   {
+    "id": "output",
+    "params": {
+     "Limiter threshold dB (0 off)": -3,
+     "Output dB": -0.9
+    },
+    "type": "output",
+    "x": 780,
+    "y": 415
+   }
+  ],
+  "version": 1
+ },
+ "name": "RT Vox-caster (field radio, light width)"
+}

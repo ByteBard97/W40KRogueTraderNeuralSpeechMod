@@ -1,0 +1,102 @@
+{
+ "category": "Space",
+ "description": "Deliberately restrained: a short pre-echo and a modest hall. The game's own Wwise reverb will add more, so keep this light.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "echo",
+    "target": "reverb",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "reverb",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v2-cavernous-light-hall",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 120
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 8000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.2,
+     "Echo mix": 0.12,
+     "Echo ms": 60
+    },
+    "type": "echo",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "reverb",
+    "on": true,
+    "params": {
+     "Reverb damping": 0.6,
+     "Reverb mix": 0.22,
+     "Reverb size": 0.85
+    },
+    "type": "reverb",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -6.8
+    },
+    "type": "output",
+    "x": 1300,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "v2 Cavernous: light hall"
+}

@@ -1,0 +1,72 @@
+{
+ "category": "Test",
+ "description": "Carrier is all noise: a breathy whisper with the words intact, plus reverb. For psychic / Veil voices.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "vocoder",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "vocoder",
+    "target": "reverb",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "reverb",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v3-vocoder-ghost-whisper-noise-carrier",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "vocoder",
+    "on": true,
+    "params": {
+     "Vocoder attack ms": 8,
+     "Vocoder bands (8 16 24 32)": 24,
+     "Vocoder carrier noise": 1,
+     "Vocoder consonant pass (4.5 kHz+)": 0.2,
+     "Vocoder mix (0 off)": 0.85,
+     "Vocoder release ms": 60
+    },
+    "type": "vocoder",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "reverb",
+    "on": true,
+    "params": {
+     "Reverb mix": 0.25,
+     "Reverb size": 0.85
+    },
+    "type": "reverb",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": 2
+    },
+    "type": "output",
+    "x": 780,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "v3 Vocoder: ghost whisper (noise carrier)"
+}

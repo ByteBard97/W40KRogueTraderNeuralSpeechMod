@@ -1,0 +1,120 @@
+{
+ "category": "Machine",
+ "description": "Thin, crushed, slow buzz: a lobotomised drone. Mix below 1 keeps the words readable.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "bitcrush",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "bitcrush",
+    "target": "ringmod",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "ringmod",
+    "target": "mix2",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "input",
+    "target": "mix2",
+    "targetPort": 1
+   },
+   {
+    "id": "e7",
+    "source": "mix2",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "machine-servitor",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 150
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 3500
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "bitcrush",
+    "on": true,
+    "params": {
+     "Crush bits (16 off)": 8,
+     "Crush hold samples": 3
+    },
+    "type": "bitcrush",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "ringmod",
+    "on": true,
+    "params": {
+     "Ring Hz": 35,
+     "Ring mix": 0.7
+    },
+    "type": "ringmod",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "mix2",
+    "params": {
+     "Level A dB": -1.9382,
+     "Level B dB": -13.9794
+    },
+    "type": "mix2",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {},
+    "type": "output",
+    "x": 1560,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "Machine: servitor"
+}

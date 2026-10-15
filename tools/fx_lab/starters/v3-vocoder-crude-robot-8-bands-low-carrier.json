@@ -1,0 +1,103 @@
+{
+ "category": "Test",
+ "description": "Eight bands and an 80 Hz carrier: blunt, clearly synthetic, still readable.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "vocoder",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "vocoder",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "drive",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v3-vocoder-crude-robot-8-bands-low-carrier",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 200
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 5000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "vocoder",
+    "on": true,
+    "params": {
+     "Vocoder bands (8 16 24 32)": 8,
+     "Vocoder carrier Hz": 80,
+     "Vocoder carrier noise": 0.2,
+     "Vocoder consonant pass (4.5 kHz+)": 0.4,
+     "Vocoder mix (0 off)": 1,
+     "Vocoder pulse width": 0.5
+    },
+    "type": "vocoder",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.2
+    },
+    "type": "drive",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -3
+    },
+    "type": "output",
+    "x": 1300,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "v3 Vocoder: crude robot (8 bands, low carrier)"
+}

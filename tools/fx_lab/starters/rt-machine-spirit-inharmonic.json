@@ -1,0 +1,169 @@
+{
+ "category": "Rogue Trader",
+ "description": "Frequency-shifted partials, a metal-bar ring and a hollow comb, with the two sides phasing slowly against each other.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "lowpass",
+    "target": "freqshift",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "freqshift",
+    "target": "metal",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "metal",
+    "target": "comb",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "comb",
+    "target": "ringmod",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "ringmod",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "echo",
+    "target": "stereochorus",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "stereochorus",
+    "target": "stereophaser",
+    "targetPort": 0
+   },
+   {
+    "id": "e9",
+    "source": "stereophaser",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "rt-machine-spirit-inharmonic",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 7000
+    },
+    "type": "lowpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "freqshift",
+    "on": true,
+    "params": {
+     "Freq shift Hz (negative shifts down)": 35,
+     "Freq shift mix (0 off)": 0.6
+    },
+    "type": "freqshift",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "metal",
+    "on": true,
+    "params": {
+     "Metal Q (ring length)": 40,
+     "Metal base Hz": 210,
+     "Metal mix (0 off)": 0.5
+    },
+    "type": "metal",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "comb",
+    "on": true,
+    "params": {
+     "Comb delay ms": 2.2,
+     "Comb feedback": 0.6,
+     "Comb mix (0 off)": 0.25
+    },
+    "type": "comb",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "ringmod",
+    "on": true,
+    "params": {
+     "Ring Hz": 110,
+     "Ring mix": 0.5
+    },
+    "type": "ringmod",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.55,
+     "Echo mix": 0.5,
+     "Echo ms": 18
+    },
+    "type": "echo",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "stereochorus",
+    "on": true,
+    "params": {
+     "Stereo chorus mix (0 off)": 0.2
+    },
+    "type": "stereochorus",
+    "x": 260,
+    "y": 353
+   },
+   {
+    "id": "stereophaser",
+    "on": true,
+    "params": {
+     "Stereo phaser mix (0 off)": 0.4,
+     "Stereo phaser rate Hz": 0.15
+    },
+    "type": "stereophaser",
+    "x": 520,
+    "y": 353
+   },
+   {
+    "id": "output",
+    "params": {},
+    "type": "output",
+    "x": 780,
+    "y": 353
+   }
+  ],
+  "version": 1
+ },
+ "name": "RT Machine spirit (inharmonic)"
+}

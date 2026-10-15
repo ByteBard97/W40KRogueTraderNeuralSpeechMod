@@ -1,0 +1,114 @@
+{
+ "category": "Vox",
+ "description": "Narrow and crunchy, a little tremolo for a dropping signal.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "drive",
+    "target": "bitcrush",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "bitcrush",
+    "target": "tremolo",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "tremolo",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "vox-channel-ship-intercom",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 500
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 2800
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.2
+    },
+    "type": "drive",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "bitcrush",
+    "on": true,
+    "params": {
+     "Crush bits (16 off)": 10,
+     "Crush hold samples": 2
+    },
+    "type": "bitcrush",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "tremolo",
+    "on": true,
+    "params": {
+     "Tremolo Hz": 9,
+     "Tremolo depth": 0.1
+    },
+    "type": "tremolo",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {},
+    "type": "output",
+    "x": 1560,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "Vox channel: ship intercom"
+}

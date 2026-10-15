@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import auto_cast, bg3_labels, rt_voices, casting, clone, design, lab, lab_opus, fx, fx_library, jobs, matches, pedalboard, pools, qa, reference_api, speakers, store, summary
+from . import auto_cast, bg3_labels, rt_voices, casting, clone, design, lab, lab_opus, fx, fx_library, jobs, matches, pedalboard, pools, qa, reference_api, speakers, starters, store, summary
 from .errors import ApiError
 from .router import Router
 
@@ -119,6 +119,7 @@ def build_router() -> Router:
     r.add("GET", "/api/pedalboard/graphs", lambda q: pedalboard.list_graphs(q.cfg))
     r.add("GET", "/api/pedalboard/graphs/{name}", lambda q: pedalboard.load_graph(q.cfg, q.params["name"]))
     r.add("POST", "/api/pedalboard/graphs", lambda q: pedalboard.save_graph(q.cfg, q.body))
+    r.add("GET", "/api/pedalboard/starters", lambda q: starters.list_starters(q.cfg))
     r.add("GET", "/api/assignments", lambda q: auto_cast.page(q.cfg))
     r.add("POST", "/api/assignments/run", lambda q: auto_cast.run(q.cfg))
     r.add("POST", "/api/assignments/override", lambda q: auto_cast.override(q.cfg, q.body["key"], q.body.get("bg3")))

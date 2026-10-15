@@ -1,0 +1,86 @@
+{
+ "category": "Space",
+ "description": "Big bright-then-dark reverb and a slap echo so the room itself rings.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "echo",
+    "target": "reverb",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "reverb",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "cavernous-vast-hall",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 80
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.35,
+     "Echo mix": 0.2,
+     "Echo ms": 220
+    },
+    "type": "echo",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "reverb",
+    "on": true,
+    "params": {
+     "Reverb damping": 0.45,
+     "Reverb mix": 0.5,
+     "Reverb size": 0.92
+    },
+    "type": "reverb",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -4
+    },
+    "type": "output",
+    "x": 1040,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "Cavernous: vast hall"
+}

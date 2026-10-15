@@ -1,0 +1,132 @@
+{
+ "category": "Helmet",
+ "description": "The helmet box then a narrower, driven channel on top.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "lowshelf",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "lowshelf",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "drive",
+    "target": "bitcrush",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "bitcrush",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "echo",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "helmet-vox-astartes-over-comms",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 350
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 3800
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "lowshelf",
+    "on": true,
+    "params": {
+     "Low shelf dB (200 Hz)": 2
+    },
+    "type": "lowshelf",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.3
+    },
+    "type": "drive",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "bitcrush",
+    "on": true,
+    "params": {
+     "Crush bits (16 off)": 12
+    },
+    "type": "bitcrush",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.3,
+     "Echo mix": 0.25,
+     "Echo ms": 7
+    },
+    "type": "echo",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -2
+    },
+    "type": "output",
+    "x": 260,
+    "y": 291
+   }
+  ],
+  "version": 1
+ },
+ "name": "Helmet + vox (astartes over comms)"
+}

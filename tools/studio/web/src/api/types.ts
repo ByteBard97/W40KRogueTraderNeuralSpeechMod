@@ -545,3 +545,21 @@ export interface AssignmentItem {
 }
 export interface AssignmentsPage { generated_at: string | null; summary: Record<string, number>; items: AssignmentItem[] }
 export interface RtVoicesPage { voices: Bg3Voice[]; schema: LabelDef[]; progress: LabelProgress }
+
+// Pedalboard (routes /api/pedalboard/*). Graph and catalog shapes live in src/pedalboard/types.ts.
+export interface PedalboardBlocks { lib: string; catalog: import('../pedalboard/types').Catalog }
+export interface PedalboardGraphInfo { name: string; updated: number | string }
+export interface PedalboardStarter {
+  slug: string
+  name: string
+  description: string
+  category: string
+  graph: import('../pedalboard/types').Graph
+}
+export interface PedalboardSaveBody {
+  graph: import('../pedalboard/types').Graph
+  code: string
+  params: Record<string, number>
+  notes?: string
+}
+export interface PedalboardSaved { name: string; dsp: string; saved: boolean }

@@ -9,6 +9,7 @@ import CastingView from './views/CastingView.vue'
 import VoicesView from './views/VoicesView.vue'
 import AssignmentsView from './views/AssignmentsView.vue'
 import LabView from './views/LabView.vue'
+import PedalboardView from './views/PedalboardView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -25,6 +26,7 @@ export const router = createRouter({
     { path: '/rt-voices', component: VoicesView, props: { source: 'rt' } },
     { path: '/assignments', component: AssignmentsView },
     { path: '/lab', component: LabView },
+    { path: '/pedalboard', component: PedalboardView },
     // Dev only (or a build with VITE_STYLEGUIDE=1): every shared component on one page.
     ...(import.meta.env.DEV || import.meta.env.VITE_STYLEGUIDE ? [{ path: '/styleguide', component: () => import('./views/StyleguideView.vue') }] : []),
   ],

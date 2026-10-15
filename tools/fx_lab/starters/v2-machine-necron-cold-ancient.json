@@ -1,0 +1,169 @@
+{
+ "category": "Machine",
+ "description": "Down two semitones, tight resonant comb (7 ms, rings near 140 Hz), faint high ring, subtle crush, long dark tomb reverb. Check the comb does not howl on vowels.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "pitch",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "pitch",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "compressor",
+    "target": "bitcrush",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "bitcrush",
+    "target": "ringmod",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "ringmod",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "echo",
+    "target": "reverb",
+    "targetPort": 0
+   },
+   {
+    "id": "e9",
+    "source": "reverb",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v2-machine-necron-cold-ancient",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 120
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 7000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "pitch",
+    "on": true,
+    "params": {
+     "Pitch semitones": -2
+    },
+    "type": "pitch",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 2,
+     "Compressor ratio (1 off)": 3,
+     "Compressor threshold dB": -22
+    },
+    "type": "compressor",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "bitcrush",
+    "on": true,
+    "params": {
+     "Crush bits (16 off)": 11
+    },
+    "type": "bitcrush",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "ringmod",
+    "on": true,
+    "params": {
+     "Ring Hz": 150,
+     "Ring mix": 0.15
+    },
+    "type": "ringmod",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.65,
+     "Echo mix": 0.45,
+     "Echo ms": 7
+    },
+    "type": "echo",
+    "x": 260,
+    "y": 415
+   },
+   {
+    "id": "reverb",
+    "on": true,
+    "params": {
+     "Reverb damping": 0.7,
+     "Reverb mix": 0.18,
+     "Reverb size": 0.92
+    },
+    "type": "reverb",
+    "x": 520,
+    "y": 415
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": 0.5
+    },
+    "type": "output",
+    "x": 780,
+    "y": 415
+   }
+  ],
+  "version": 1
+ },
+ "name": "v2 Machine: Necron (cold, ancient)"
+}

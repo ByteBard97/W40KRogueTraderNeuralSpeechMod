@@ -1,0 +1,133 @@
+{
+ "category": "Monstrous",
+ "description": "Pitched down, heavy lows, driven, a touch of ring and small-room reverb. Mix stays 1 because pitch shifting delays the wet path.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "lowpass",
+    "target": "pitch",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "pitch",
+    "target": "lowshelf",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "lowshelf",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "drive",
+    "target": "ringmod",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "ringmod",
+    "target": "reverb",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "reverb",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "monstrous-daemon-huge-creature",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 5500
+    },
+    "type": "lowpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "pitch",
+    "on": true,
+    "params": {
+     "Pitch semitones": -5
+    },
+    "type": "pitch",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "lowshelf",
+    "on": true,
+    "params": {
+     "Low shelf dB (200 Hz)": 6
+    },
+    "type": "lowshelf",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.4
+    },
+    "type": "drive",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "ringmod",
+    "on": true,
+    "params": {
+     "Ring Hz": 40,
+     "Ring mix": 0.15
+    },
+    "type": "ringmod",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "reverb",
+    "on": true,
+    "params": {
+     "Reverb damping": 0.6,
+     "Reverb mix": 0.2,
+     "Reverb size": 0.35
+    },
+    "type": "reverb",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -3.5
+    },
+    "type": "output",
+    "x": 260,
+    "y": 291
+   }
+  ],
+  "version": 1
+ },
+ "name": "Monstrous: daemon / huge creature"
+}

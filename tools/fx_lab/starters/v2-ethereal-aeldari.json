@@ -1,0 +1,104 @@
+{
+ "category": "Ethereal",
+ "description": "Subtle: de-essed, faint chorus, slow phaser, a bright hall at low mix. Formant shift is not available yet.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "deesser",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "deesser",
+    "target": "chorus",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "chorus",
+    "target": "phaser",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "phaser",
+    "target": "reverb",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "reverb",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v2-ethereal-aeldari",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "deesser",
+    "on": true,
+    "params": {
+     "De-ess threshold dB (0 off)": -28
+    },
+    "type": "deesser",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "chorus",
+    "on": true,
+    "params": {
+     "Chorus depth ms": 2,
+     "Chorus mix (0 off)": 0.25,
+     "Chorus rate Hz": 0.4
+    },
+    "type": "chorus",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "phaser",
+    "on": true,
+    "params": {
+     "Phaser feedback": 0.3,
+     "Phaser mix (0 off)": 0.4,
+     "Phaser rate Hz": 0.15
+    },
+    "type": "phaser",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "reverb",
+    "on": true,
+    "params": {
+     "Reverb damping": 0.35,
+     "Reverb mix": 0.18,
+     "Reverb size": 0.8
+    },
+    "type": "reverb",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -2.0
+    },
+    "type": "output",
+    "x": 1300,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "v2 Ethereal: Aeldari"
+}

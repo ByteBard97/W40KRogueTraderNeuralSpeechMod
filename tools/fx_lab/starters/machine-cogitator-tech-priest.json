@@ -1,0 +1,99 @@
+{
+ "category": "Machine",
+ "description": "Light metallic ring plus a short echo: a human voice with machine in it.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "lowpass",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "drive",
+    "target": "ringmod",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "ringmod",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "echo",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "machine-cogitator-tech-priest",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 6000
+    },
+    "type": "lowpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.2
+    },
+    "type": "drive",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "ringmod",
+    "on": true,
+    "params": {
+     "Ring Hz": 70,
+     "Ring mix": 0.35
+    },
+    "type": "ringmod",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.3,
+     "Echo mix": 0.3,
+     "Echo ms": 35
+    },
+    "type": "echo",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {},
+    "type": "output",
+    "x": 1300,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "Machine: cogitator / tech-priest"
+}

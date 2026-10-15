@@ -1,0 +1,32 @@
+{
+ "category": "Clean",
+ "description": "No processing.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "clean",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {},
+    "type": "output",
+    "x": 260,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "Clean"
+}

@@ -1,0 +1,152 @@
+{
+ "category": "Vox",
+ "description": "Archival playback: band-limited, slow wobble, crunch, steady hiss, a touch of overdrive. Wow/flutter is only approximated by tremolo for now.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "compressor",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "drive",
+    "target": "bitcrush",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "bitcrush",
+    "target": "tremolo",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "tremolo",
+    "target": "static",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "static",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v2-vox-data-slate-hologram",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 400
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 4500
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 4,
+     "Compressor ratio (1 off)": 6,
+     "Compressor threshold dB": -28
+    },
+    "type": "compressor",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.2
+    },
+    "type": "drive",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "bitcrush",
+    "on": true,
+    "params": {
+     "Crush bits (16 off)": 9,
+     "Crush hold samples": 2
+    },
+    "type": "bitcrush",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "tremolo",
+    "on": true,
+    "params": {
+     "Tremolo Hz": 3.5,
+     "Tremolo depth": 0.18
+    },
+    "type": "tremolo",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "static",
+    "on": true,
+    "params": {
+     "Static level dB (-60 off)": -24,
+     "Static tail ms": 2500
+    },
+    "type": "static",
+    "x": 260,
+    "y": 415
+   },
+   {
+    "id": "output",
+    "params": {
+     "Limiter threshold dB (0 off)": -3,
+     "Output dB": -0.1
+    },
+    "type": "output",
+    "x": 520,
+    "y": 415
+   }
+  ],
+  "version": 1
+ },
+ "name": "v2 Vox: data-slate / hologram"
+}

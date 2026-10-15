@@ -1,0 +1,239 @@
+{
+ "category": "Rogue Trader",
+ "description": "Mid scoop and weight at the bottom like the game's Pasqal, a little metal ring, and a bass band that differs between the ears and moves.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "eq",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "eq",
+    "target": "harmonizer",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "harmonizer",
+    "target": "lowshelf",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "lowshelf",
+    "target": "vocoder",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "vocoder",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "compressor",
+    "target": "resonator",
+    "targetPort": 0
+   },
+   {
+    "id": "e9",
+    "source": "resonator",
+    "target": "metal",
+    "targetPort": 0
+   },
+   {
+    "id": "e10",
+    "source": "metal",
+    "target": "reverb",
+    "targetPort": 0
+   },
+   {
+    "id": "e11",
+    "source": "reverb",
+    "target": "stereochorus",
+    "targetPort": 0
+   },
+   {
+    "id": "e12",
+    "source": "stereochorus",
+    "target": "bassspread",
+    "targetPort": 0
+   },
+   {
+    "id": "e13",
+    "source": "bassspread",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "rt-tech-priest-pasqal-target-stereo",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 150
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 7000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "eq",
+    "on": true,
+    "params": {
+     "EQ mid Q": 0.8,
+     "EQ mid freq Hz": 450,
+     "EQ mid gain dB": -6
+    },
+    "type": "eq",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "harmonizer",
+    "on": true,
+    "params": {
+     "Harmonizer voice 1 level": 0.5,
+     "Harmonizer voice 2 level": 0.35
+    },
+    "type": "harmonizer",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "lowshelf",
+    "on": true,
+    "params": {
+     "Low shelf dB (200 Hz)": 4
+    },
+    "type": "lowshelf",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "vocoder",
+    "on": true,
+    "params": {
+     "Vocoder carrier Hz": 90,
+     "Vocoder carrier noise": 0.2,
+     "Vocoder mix (0 off)": 0.6
+    },
+    "type": "vocoder",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 3,
+     "Compressor ratio (1 off)": 5,
+     "Compressor threshold dB": -24
+    },
+    "type": "compressor",
+    "x": 260,
+    "y": 787
+   },
+   {
+    "id": "resonator",
+    "on": true,
+    "params": {
+     "Resonator mix (0 off)": 0.25
+    },
+    "type": "resonator",
+    "x": 520,
+    "y": 787
+   },
+   {
+    "id": "metal",
+    "on": true,
+    "params": {
+     "Metal base Hz": 260,
+     "Metal mix (0 off)": 0.25
+    },
+    "type": "metal",
+    "x": 780,
+    "y": 787
+   },
+   {
+    "id": "reverb",
+    "on": true,
+    "params": {
+     "Reverb mix": 0.12,
+     "Reverb size": 0.55
+    },
+    "type": "reverb",
+    "x": 1040,
+    "y": 787
+   },
+   {
+    "id": "stereochorus",
+    "on": true,
+    "params": {
+     "Stereo chorus depth ms": 2,
+     "Stereo chorus mix (0 off)": 0.12,
+     "Stereo chorus rate Hz": 0.8
+    },
+    "type": "stereochorus",
+    "x": 1300,
+    "y": 787
+   },
+   {
+    "id": "bassspread",
+    "on": true,
+    "params": {
+     "Bass spread mix (0 off)": 1,
+     "Bass spread motion depth": 0.6,
+     "Bass spread motion rate Hz": 1.0
+    },
+    "type": "bassspread",
+    "x": 1560,
+    "y": 787
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": 1.8
+    },
+    "type": "output",
+    "x": 260,
+    "y": 1264
+   }
+  ],
+  "version": 1
+ },
+ "name": "RT Tech-priest (Pasqal target, stereo)"
+}

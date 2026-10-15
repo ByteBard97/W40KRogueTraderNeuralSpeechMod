@@ -1,0 +1,132 @@
+{
+ "category": "Helmet",
+ "description": "Boxy mid-range, a little bass build-up, a tiny resonant echo like a small shell.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "lowshelf",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "lowshelf",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "drive",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "echo",
+    "target": "reverb",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "reverb",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "helmet-sealed-suit",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 200
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 5000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "lowshelf",
+    "on": true,
+    "params": {
+     "Low shelf dB (200 Hz)": 3
+    },
+    "type": "lowshelf",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.1
+    },
+    "type": "drive",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.35,
+     "Echo mix": 0.3,
+     "Echo ms": 7
+    },
+    "type": "echo",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "reverb",
+    "on": true,
+    "params": {
+     "Reverb damping": 0.7,
+     "Reverb mix": 0.12,
+     "Reverb size": 0.2
+    },
+    "type": "reverb",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {},
+    "type": "output",
+    "x": 260,
+    "y": 291
+   }
+  ],
+  "version": 1
+ },
+ "name": "Helmet: sealed suit"
+}

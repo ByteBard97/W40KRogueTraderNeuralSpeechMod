@@ -1,0 +1,118 @@
+{
+ "category": "Vox",
+ "description": "Clean-ish ship comm: 500 Hz to 8 kHz, radio-AGC squeeze (14:1), light drive, faint voice-gated hiss. Middleware-style numbers.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "compressor",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "drive",
+    "target": "static",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "static",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v2-vox-ship-intercom",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 500
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 8000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 6,
+     "Compressor ratio (1 off)": 14,
+     "Compressor threshold dB": -36
+    },
+    "type": "compressor",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.25
+    },
+    "type": "drive",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "static",
+    "on": true,
+    "params": {
+     "Static level dB (-60 off)": -38,
+     "Static tail ms": 1200
+    },
+    "type": "static",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Limiter threshold dB (0 off)": -3,
+     "Output dB": -0.8
+    },
+    "type": "output",
+    "x": 1560,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "v2 Vox: ship intercom"
+}

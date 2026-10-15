@@ -1,7 +1,8 @@
 import type {
   MatchFilter, MatchValue, QaFacets, QaFilter, QaPage, QaRun, QaVerdictBody, MatchesPage, FxLabels, FxPresetInfo, FxPreview, FxWritten, FxUsage, FxDiff, FxBackup, FxRestored, OverrideBody, OverrideResult, NewSlotBody, PoolSlot, PoolSummary, QueueEntry, RoutesPage, SpotSample,
-  AssignmentsPage, RtVoicesPage, Bg3Voice, LabelValue, LabelsInfo, VoiceLabels, CastAudition, CastPage, CastRegistered, CloneRequest, RegisterAllResult, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
+  AssignmentsPage, PedalboardBlocks, PedalboardGraphInfo, PedalboardSaveBody, PedalboardSaved, PedalboardStarter, RtVoicesPage, Bg3Voice, LabelValue, LabelsInfo, VoiceLabels, CastAudition, CastPage, CastRegistered, CloneRequest, RegisterAllResult, LiveTake, Line, ModelState, SpeakerDetail, SpeakerSummary, Take, Verdict, VoiceProfile,
 } from './types'
+import type { Graph } from '../pedalboard/types'
 import type { JobView } from './jobs'
 import type { LabJob, LabLexiconHit, LabLines, LabOptions, LabPrepared, LabRealClip, LabOpusPreview, LabRecipe, LabRenderBody, LabSpeaker, LabTake } from './labTypes'
 
@@ -113,4 +114,9 @@ export const api = {
   labRealClips: (q: string, limit = 12) => request<LabRealClip[]>(`/api/lab/real-clips?q=${encodeURIComponent(q)}&limit=${limit}`),
   labOpus: (wav: string, kbps: number) => post<LabOpusPreview>('/api/lab/opus', { wav, kbps }),
   labLexicon: (q: string) => request<LabLexiconHit[]>(`/api/lab/lexicon?q=${encodeURIComponent(q)}`),
+  pedalboardBlocks: () => request<PedalboardBlocks>('/api/pedalboard/blocks'),
+  pedalboardGraphs: () => request<PedalboardGraphInfo[]>('/api/pedalboard/graphs'),
+  pedalboardGraph: (name: string) => request<Graph>(`/api/pedalboard/graphs/${encodeURIComponent(name)}`),
+  pedalboardSave: (body: PedalboardSaveBody) => post<PedalboardSaved>('/api/pedalboard/graphs', body),
+  pedalboardStarters: () => request<PedalboardStarter[]>('/api/pedalboard/starters'),
 }

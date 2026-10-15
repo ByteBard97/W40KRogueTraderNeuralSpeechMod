@@ -1,0 +1,151 @@
+{
+ "category": "Vox",
+ "description": "The v2 field radio with the transmission cutting out now and then (after the speaker sim, as the reports advise).",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "compressor",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "drive",
+    "target": "bitcrush",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "bitcrush",
+    "target": "dropout",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "dropout",
+    "target": "static",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "static",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v4-vox-field-radio-with-dropouts",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 300
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 3000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 6,
+     "Compressor ratio (1 off)": 14,
+     "Compressor threshold dB": -34
+    },
+    "type": "compressor",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.4
+    },
+    "type": "drive",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "bitcrush",
+    "on": true,
+    "params": {
+     "Crush bits (16 off)": 10,
+     "Crush hold samples": 2
+    },
+    "type": "bitcrush",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "dropout",
+    "on": true,
+    "params": {
+     "Dropout amount (0 off)": 0.25
+    },
+    "type": "dropout",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "static",
+    "on": true,
+    "params": {
+     "Static level dB (-60 off)": -28,
+     "Static tail ms": 1500
+    },
+    "type": "static",
+    "x": 260,
+    "y": 415
+   },
+   {
+    "id": "output",
+    "params": {
+     "Limiter threshold dB (0 off)": -3,
+     "Output dB": -0.8
+    },
+    "type": "output",
+    "x": 520,
+    "y": 415
+   }
+  ],
+  "version": 1
+ },
+ "name": "v4 Vox: field radio with dropouts"
+}

@@ -1,0 +1,159 @@
+{
+ "category": "Rogue Trader",
+ "description": "The layered daemon with its low layer swinging between the ears.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "eq",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "eq",
+    "target": "harmonizer",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "harmonizer",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "compressor",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "drive",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "echo",
+    "target": "stereochorus",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "stereochorus",
+    "target": "bassspread",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "bassspread",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "rt-daemon-layered-wide",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "eq",
+    "on": true,
+    "params": {
+     "EQ low Q": 0.8,
+     "EQ low freq Hz": 160,
+     "EQ low gain dB": 4
+    },
+    "type": "eq",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "harmonizer",
+    "on": true,
+    "params": {
+     "Harmonizer voice 1 level": 0.6,
+     "Harmonizer voice 1 semitones": -7,
+     "Harmonizer voice 2 level": 0.5,
+     "Harmonizer voice 2 semitones": -12
+    },
+    "type": "harmonizer",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 3,
+     "Compressor ratio (1 off)": 5,
+     "Compressor threshold dB": -22
+    },
+    "type": "compressor",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.5
+    },
+    "type": "drive",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.3,
+     "Echo mix": 0.25,
+     "Echo ms": 35
+    },
+    "type": "echo",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "stereochorus",
+    "on": true,
+    "params": {
+     "Stereo chorus depth ms": 4,
+     "Stereo chorus mix (0 off)": 0.25
+    },
+    "type": "stereochorus",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "bassspread",
+    "on": true,
+    "params": {
+     "Bass spread delay ms": 8,
+     "Bass spread mix (0 off)": 0.7,
+     "Bass spread motion depth": 0.8,
+     "Bass spread motion rate Hz": 0.5
+    },
+    "type": "bassspread",
+    "x": 260,
+    "y": 787
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -9.1
+    },
+    "type": "output",
+    "x": 520,
+    "y": 787
+   }
+  ],
+  "version": 1
+ },
+ "name": "RT Daemon (layered, wide)"
+}

@@ -1,0 +1,242 @@
+{
+ "category": "Rogue Trader",
+ "description": "Cold ancient voice with a little downward frequency shift, a metal ring and a slow wide phase.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "pitch",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "pitch",
+    "target": "freqshift",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "freqshift",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "compressor",
+    "target": "metal",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "metal",
+    "target": "bitcrush",
+    "targetPort": 0
+   },
+   {
+    "id": "e8",
+    "source": "bitcrush",
+    "target": "ringmod",
+    "targetPort": 0
+   },
+   {
+    "id": "e9",
+    "source": "ringmod",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e10",
+    "source": "echo",
+    "target": "reverb",
+    "targetPort": 0
+   },
+   {
+    "id": "e11",
+    "source": "reverb",
+    "target": "stereochorus",
+    "targetPort": 0
+   },
+   {
+    "id": "e12",
+    "source": "stereochorus",
+    "target": "stereophaser",
+    "targetPort": 0
+   },
+   {
+    "id": "e13",
+    "source": "stereophaser",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "rt-necron-cold-wide",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 120
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 7000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "pitch",
+    "on": true,
+    "params": {
+     "Pitch semitones": -2
+    },
+    "type": "pitch",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "freqshift",
+    "on": true,
+    "params": {
+     "Freq shift Hz (negative shifts down)": -18,
+     "Freq shift mix (0 off)": 0.35
+    },
+    "type": "freqshift",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 2,
+     "Compressor ratio (1 off)": 3,
+     "Compressor threshold dB": -22
+    },
+    "type": "compressor",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "metal",
+    "on": true,
+    "params": {
+     "Metal Q (ring length)": 55,
+     "Metal base Hz": 140,
+     "Metal inharmonicity (0 harmonic, 1 metal bar)": 0.7,
+     "Metal mix (0 off)": 0.3
+    },
+    "type": "metal",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "bitcrush",
+    "on": true,
+    "params": {
+     "Crush bits (16 off)": 11
+    },
+    "type": "bitcrush",
+    "x": 260,
+    "y": 415
+   },
+   {
+    "id": "ringmod",
+    "on": true,
+    "params": {
+     "Ring Hz": 150,
+     "Ring mix": 0.15
+    },
+    "type": "ringmod",
+    "x": 520,
+    "y": 415
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.65,
+     "Echo mix": 0.45,
+     "Echo ms": 7
+    },
+    "type": "echo",
+    "x": 780,
+    "y": 415
+   },
+   {
+    "id": "reverb",
+    "on": true,
+    "params": {
+     "Reverb damping": 0.7,
+     "Reverb mix": 0.18,
+     "Reverb size": 0.92
+    },
+    "type": "reverb",
+    "x": 1040,
+    "y": 415
+   },
+   {
+    "id": "stereochorus",
+    "on": true,
+    "params": {
+     "Stereo chorus delay ms": 20,
+     "Stereo chorus depth ms": 6,
+     "Stereo chorus mix (0 off)": 0.2,
+     "Stereo chorus rate Hz": 0.15,
+     "Stereo chorus right offset deg": 90
+    },
+    "type": "stereochorus",
+    "x": 1300,
+    "y": 415
+   },
+   {
+    "id": "stereophaser",
+    "on": true,
+    "params": {
+     "Stereo phaser mix (0 off)": 0.25,
+     "Stereo phaser rate Hz": 0.08
+    },
+    "type": "stereophaser",
+    "x": 1560,
+    "y": 415
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": 0.5
+    },
+    "type": "output",
+    "x": 260,
+    "y": 954
+   }
+  ],
+  "version": 1
+ },
+ "name": "RT Necron (cold, wide)"
+}

@@ -1,0 +1,83 @@
+{
+ "category": "Machine",
+ "description": "Higher ring rate and a tight ringing echo: an inhuman presence in the machine.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "lowpass",
+    "target": "ringmod",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "ringmod",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "echo",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "machine-machine-spirit",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 7000
+    },
+    "type": "lowpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "ringmod",
+    "on": true,
+    "params": {
+     "Ring Hz": 110,
+     "Ring mix": 0.5
+    },
+    "type": "ringmod",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.55,
+     "Echo mix": 0.5,
+     "Echo ms": 18
+    },
+    "type": "echo",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {},
+    "type": "output",
+    "x": 1040,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "Machine: machine spirit"
+}

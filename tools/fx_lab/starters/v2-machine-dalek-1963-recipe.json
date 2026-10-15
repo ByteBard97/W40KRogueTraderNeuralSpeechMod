@@ -1,0 +1,99 @@
+{
+ "category": "Machine",
+ "description": "The documented one: 30 Hz ring at 100%, mid band, diode-ish distortion. Keep vowels long in the source line.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "drive",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "drive",
+    "target": "ringmod",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "ringmod",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v2-machine-dalek-1963-recipe",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 300
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 3000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "drive",
+    "on": true,
+    "params": {
+     "Drive": 0.35
+    },
+    "type": "drive",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "ringmod",
+    "on": true,
+    "params": {
+     "Ring Hz": 30,
+     "Ring mix": 1
+    },
+    "type": "ringmod",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": -3.8
+    },
+    "type": "output",
+    "x": 1300,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "v2 Machine: Dalek (1963 recipe)"
+}

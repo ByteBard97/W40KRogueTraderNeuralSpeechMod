@@ -1,0 +1,135 @@
+{
+ "category": "Machine",
+ "description": "Layers for a dense multi-voice texture: voice at -12 and +7 semitones, a 16-band vocoder at 60% on a 90 Hz carrier, a little metal-box ring, squeezed. A starting point for matching the in-game Pasqal sound, not matched yet. Mix 1 (the layers are delayed on purpose).",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "lowpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "lowpass",
+    "target": "harmonizer",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "harmonizer",
+    "target": "vocoder",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "vocoder",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e6",
+    "source": "compressor",
+    "target": "resonator",
+    "targetPort": 0
+   },
+   {
+    "id": "e7",
+    "source": "resonator",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v4-machine-pasqal-style-stack-starting-point",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 150
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "lowpass",
+    "on": true,
+    "params": {
+     "Lowpass Hz (0 off)": 7000
+    },
+    "type": "lowpass",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "harmonizer",
+    "on": true,
+    "params": {
+     "Harmonizer voice 1 level": 0.5,
+     "Harmonizer voice 2 level": 0.35
+    },
+    "type": "harmonizer",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "vocoder",
+    "on": true,
+    "params": {
+     "Vocoder carrier Hz": 90,
+     "Vocoder carrier noise": 0.2,
+     "Vocoder mix (0 off)": 0.6
+    },
+    "type": "vocoder",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 3,
+     "Compressor ratio (1 off)": 5,
+     "Compressor threshold dB": -24
+    },
+    "type": "compressor",
+    "x": 1300,
+    "y": 0
+   },
+   {
+    "id": "resonator",
+    "on": true,
+    "params": {
+     "Resonator mix (0 off)": 0.25
+    },
+    "type": "resonator",
+    "x": 1560,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": 1.8
+    },
+    "type": "output",
+    "x": 260,
+    "y": 601
+   }
+  ],
+  "version": 1
+ },
+ "name": "v4 Machine: Pasqal-style stack (starting point)"
+}

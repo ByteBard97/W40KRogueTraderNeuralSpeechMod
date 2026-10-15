@@ -1,0 +1,105 @@
+{
+ "category": "Test",
+ "description": "24 bands at 60% wet over the dry voice: a human voice with a machine layer on it, words stay clear. Carrier 70 Hz.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "highpass",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "highpass",
+    "target": "vocoder",
+    "targetPort": 0
+   },
+   {
+    "id": "e3",
+    "source": "vocoder",
+    "target": "compressor",
+    "targetPort": 0
+   },
+   {
+    "id": "e4",
+    "source": "compressor",
+    "target": "echo",
+    "targetPort": 0
+   },
+   {
+    "id": "e5",
+    "source": "echo",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "v3-vocoder-tech-priest-blend-24-bands-60-wet",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "highpass",
+    "on": true,
+    "params": {
+     "Highpass Hz (0 off)": 250
+    },
+    "type": "highpass",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "vocoder",
+    "on": true,
+    "params": {
+     "Vocoder bands (8 16 24 32)": 24,
+     "Vocoder carrier Hz": 70,
+     "Vocoder consonant pass (4.5 kHz+)": 0.2,
+     "Vocoder mix (0 off)": 0.6
+    },
+    "type": "vocoder",
+    "x": 520,
+    "y": 0
+   },
+   {
+    "id": "compressor",
+    "on": true,
+    "params": {
+     "Compressor makeup dB": 2,
+     "Compressor ratio (1 off)": 4,
+     "Compressor threshold dB": -22
+    },
+    "type": "compressor",
+    "x": 780,
+    "y": 0
+   },
+   {
+    "id": "echo",
+    "on": true,
+    "params": {
+     "Echo feedback": 0.15,
+     "Echo mix": 0.12,
+     "Echo ms": 18
+    },
+    "type": "echo",
+    "x": 1040,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {
+     "Output dB": 3
+    },
+    "type": "output",
+    "x": 1300,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "v3 Vocoder: tech-priest blend (24 bands, 60% wet)"
+}

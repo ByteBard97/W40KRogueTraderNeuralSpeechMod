@@ -53,6 +53,9 @@ controlKey(nodeId, label): string
 A preset entry in `data/fx_lab/presets.json` stays `{dsp, params, notes}` (existing format) and gains `graph`:
 `{"dsp": "presets/<name>.dsp", "params": {<key>: value}, "graph": {...}, "notes": ""}`. `dsp` is a path under `tools/fx_lab/faust/`; the saved `.dsp` is the generated program. Batch uses `dsp` and `params` only.
 
+### Starting points (read-only graphs shipped in the repo)
+`tools/fx_lab/starters/<slug>.json` = `{"name": "...", "description": "...", "category": "Machine"|"Vox"|"Helmet"|"Ethereal"|"Monstrous"|"Rogue Trader"|"Test", "graph": {<graph.json>}}`; `GET /api/pedalboard/starters` -> the list `[{slug, name, description, category, graph}]`. They are templates: loading one into the editor copies it; saving always writes a user graph under a name. Node ids in migrated starters are the block ids (`highpass`, `metal`, ...).
+
 ### Studio server (Python, `studio_server/pedalboard.py`)
 `GET /api/pedalboard/blocks` -> `{lib: "<blocks.lib text>", catalog: {...}}`; `GET /api/pedalboard/graphs` -> `[{name, updated}]`; `GET /api/pedalboard/graphs/{name}` -> graph; `POST /api/pedalboard/graphs` `{graph, code, params, notes}` saves `data/fx_lab/graphs/<name>.json`, writes `tools/fx_lab/faust/presets/<name>.dsp` and the preset entry; names `^[A-Za-z0-9_-]{1,60}$`; writes are atomic.
 

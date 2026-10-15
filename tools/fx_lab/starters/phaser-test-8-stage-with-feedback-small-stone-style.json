@@ -1,0 +1,53 @@
+{
+ "category": "Test",
+ "description": "Eight stages, positive feedback: a deeper, more resonant swirl.",
+ "graph": {
+  "edges": [
+   {
+    "id": "e1",
+    "source": "input",
+    "target": "phaser",
+    "targetPort": 0
+   },
+   {
+    "id": "e2",
+    "source": "phaser",
+    "target": "output",
+    "targetPort": 0
+   }
+  ],
+  "name": "phaser-test-8-stage-with-feedback-small-stone-style",
+  "nodes": [
+   {
+    "id": "input",
+    "type": "input",
+    "x": 0,
+    "y": 0
+   },
+   {
+    "id": "phaser",
+    "on": true,
+    "params": {
+     "Phaser feedback": 0.6,
+     "Phaser mix (0 off)": 1,
+     "Phaser rate Hz": 0.35,
+     "Phaser stages (2 4 6 8)": 8,
+     "Phaser sweep high Hz": 4500,
+     "Phaser sweep low Hz": 150
+    },
+    "type": "phaser",
+    "x": 260,
+    "y": 0
+   },
+   {
+    "id": "output",
+    "params": {},
+    "type": "output",
+    "x": 520,
+    "y": 0
+   }
+  ],
+  "version": 1
+ },
+ "name": "Phaser test: 8-stage with feedback (Small Stone style)"
+}
