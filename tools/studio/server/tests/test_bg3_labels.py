@@ -92,6 +92,49 @@ def test_a_voice_in_between_can_carry_several_values_of_a_category_label(_cfg):
 
 
 def test_a_several_valued_required_label_counts_as_set(_cfg):
-    for key, val in (("gender", ["male", "female"]), ("age", ["youth", "adult"]), ("class", "low"), ("processing", "natural"), ("pitch", ["middle", "low"])):
+    for key, val in (("gender", ["male", "female"]), ("age", ["youth", "adult"]), ("class", "low"), ("processing", "natural"), ("pitch", "low-middle")):
         bg3_labels.set_label(_cfg, "gortash", key, val)
     assert next(v for v in casting.bg3_voices(_cfg) if v["slug"] == "gortash")["complete"] is True
+
+
+def test_class_and_pitch_have_five_steps_both_running_low_to_high(_cfg):
+    steps = ["low", "low-middle", "middle", "middle-high", "high"]
+    assert bg3_labels.BY_KEY["class"]["options"] == steps
+    assert bg3_labels.BY_KEY["pitch"]["options"] == steps
+    assert bg3_labels.set_label(_cfg, "gortash", "class", "low-middle") == {"class": "low-middle"}
+    with pytest.raises(ApiError):
+        bg3_labels.set_label(_cfg, "gortash", "pitch", ["low", "middle"])          # in-between is its own button now
+
+
+def test_two_neighbouring_picks_become_the_in_between_step():
+    f = bg3_labels.between_value
+    assert f("class", ["low", "middle"]) == "low-middle"
+    assert f("class", ["middle", "high"]) == "middle-high"
+    assert f("pitch", ["middle", "low"]) == "low-middle"              # click order does not matter
+    assert f("pitch", ["high", "middle"]) == "middle-high"
+    assert f("pitch", ["low", "high"]) is None                       # not neighbours: left for the owner to decide
+    assert f("class", "middle") is None and f("age", ["youth", "adult"]) is None
+
+
+def test_migration_converts_saved_labels_and_backs_up_first(_cfg):
+    bg3_labels.path(_cfg).parent.mkdir(parents=True, exist_ok=True)
+    bg3_labels.path(_cfg).write_text(json.dumps({
+        "a": {"class": ["low", "middle"], "pitch": ["high", "middle"], "gender": "male"},
+        "b": {"class": "high", "pitch": ["middle", "low"]},
+        "c": {"pitch": ["low", "high"]},
+    }))
+    report = bg3_labels.migrate_between_values(_cfg)
+    got = bg3_labels.read_all(_cfg)
+    assert got["a"] == {"class": "low-middle", "pitch": "middle-high", "gender": "male"}
+    assert got["b"] == {"class": "high", "pitch": "low-middle"}
+    assert got["c"] == {"pitch": ["low", "high"]}
+    assert report == {"converted": 3, "left": ["c: pitch"], "backup": report["backup"]} and report["backup"]
+    assert bg3_labels.migrate_between_values(_cfg)["converted"] == 0           # safe to run twice
+
+
+def test_do_not_use_counts_as_fully_labelled(_cfg):
+    assert bg3_labels.is_complete({"reserve": "do not use"}) is True
+    assert bg3_labels.is_complete({"reserve": "free"}) is False
+    bg3_labels.set_label(_cfg, "gortash", "reserve", "do not use")
+    assert next(v for v in casting.bg3_voices(_cfg) if v["slug"] == "gortash")["complete"] is True
+    assert bg3_labels.progress(_cfg, [{"slug": "gortash"}, {"slug": "other"}])["complete"] == 1

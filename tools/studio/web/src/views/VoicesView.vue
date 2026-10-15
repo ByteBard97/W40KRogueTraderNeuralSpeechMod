@@ -29,6 +29,7 @@ function onKey(e: KeyboardEvent) {
   if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return
   if (e.key === 'ArrowDown' || e.key === 'j') { e.preventDefault(); L.move(1) }
   else if (e.key === 'ArrowUp' || e.key === 'k') { e.preventDefault(); L.move(-1) }
+  else if (e.key === 'x' || e.key === 'X') { e.preventDefault(); void L.toggleSkip() }
 }
 </script>
 
@@ -79,7 +80,7 @@ function onKey(e: KeyboardEvent) {
             <Btn size="sm" variant="primary" @click="L.nextIncomplete()">Next to label</Btn>
             <label class="opt"><input v-model="L.autoAdvance.value" type="checkbox" /> Move on when all five are set</label>
             <label class="opt"><input v-model="L.autoplay.value" type="checkbox" /> Play on select</label>
-            <span class="hint">Up / Down or J / K to move</span>
+            <span class="hint">Up / Down or J / K to move · X marks do not use</span>
           </footer>
         </section>
       </div>

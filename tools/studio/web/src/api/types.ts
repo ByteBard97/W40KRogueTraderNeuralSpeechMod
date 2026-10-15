@@ -533,3 +533,14 @@ export type VoiceLabels = Record<string, LabelValue | undefined>
 export interface LabelDef { key: string; label: string; kind: 'single' | 'multi' | 'text' | 'rating'; options: string[]; required: boolean; allow_several?: boolean }
 export interface LabelProgress { total: number; complete: number; started: number }
 export interface LabelsInfo { schema: LabelDef[]; progress: LabelProgress }
+
+export type AssignmentStatus = 'assigned' | 'needs_info' | 'no_voice'
+export interface AssignmentAlt { bg3: string; score: number | null; name: string }
+export interface AssignmentResearch { conversation: string | null; comment: string; lines: { say: string; after: string }[]; narration: string[]; nearby: string }
+export interface AssignmentItem {
+  key: string; kind: 'character' | 'group'; name: string; guessed_name?: string | null; gender: string | null; species: string | null; age: string | null
+  role: string; description: string; lines: number; conversation: string | null; status: AssignmentStatus
+  bg3?: string; voice_name?: string | null; owner?: boolean; processed?: boolean; steps?: number; score?: number | null; reasons?: string[]
+  alts: AssignmentAlt[]; missing?: string[]; learned?: Record<string, string>; samples: string[]; research: AssignmentResearch | null
+}
+export interface AssignmentsPage { generated_at: string | null; summary: Record<string, number>; items: AssignmentItem[] }

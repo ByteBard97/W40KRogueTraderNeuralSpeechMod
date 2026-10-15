@@ -7,6 +7,7 @@ import MatchesView from './views/MatchesView.vue'
 import QaView from './views/QaView.vue'
 import CastingView from './views/CastingView.vue'
 import VoicesView from './views/VoicesView.vue'
+import AssignmentsView from './views/AssignmentsView.vue'
 import LabView from './views/LabView.vue'
 
 export const router = createRouter({
@@ -21,6 +22,7 @@ export const router = createRouter({
     { path: '/qa', component: QaView },
     { path: '/casting', component: CastingView },
     { path: '/voices', component: VoicesView },
+    { path: '/assignments', component: AssignmentsView },
     { path: '/lab', component: LabView },
     // Dev only (or a build with VITE_STYLEGUIDE=1): every shared component on one page.
     ...(import.meta.env.DEV || import.meta.env.VITE_STYLEGUIDE ? [{ path: '/styleguide', component: () => import('./views/StyleguideView.vue') }] : []),

@@ -5,7 +5,20 @@ export type VoiceSort = 'lines' | 'name'
 /** Label key -> the values to keep. A voice passes a label when it has any of them; labels combine with "and". */
 export type LabelFilters = Record<string, string[]>
 
-const has = (v: LabelValue | undefined, wanted: string[]) => (Array.isArray(v) ? v.some((x) => wanted.includes(x)) : v !== undefined && wanted.includes(v))
+export const DO_NOT_USE = 'do not use'
+/** The in-between steps of class and pitch, and the two levels each sits between. */
+const BETWEEN: Record<string, string[]> = { 'low-middle': ['low', 'middle'], 'middle-high': ['middle', 'high'] }
+
+/** A voice passes a label filter when any of its values is wanted; an in-between step also passes for either level next to it. */
+const has = (v: LabelValue | undefined, wanted: string[]) => {
+  const values = v === undefined ? [] : Array.isArray(v) ? v : [v]
+  return values.some((x) => wanted.includes(x) || (BETWEEN[x] ?? []).some((n) => wanted.includes(n)))
+}
+
+/** Fully labelled: every required label is set, or the voice is marked "do not use" and needs nothing more. */
+export function labelsComplete(mine: Record<string, LabelValue | undefined>, schema: LabelDef[]): boolean {
+  return mine.reserve === DO_NOT_USE || schema.filter((d) => d.required).every((d) => mine[d.key] !== undefined && mine[d.key] !== '')
+}
 
 /** BG3 voices matching the search text, gender and label filters, in the chosen order. Ties in line count fall back to the name. */
 export function filterVoices(voices: Bg3Voice[], query: string, gender: GenderFilter, sort: VoiceSort, labels: LabelFilters = {}): Bg3Voice[] {

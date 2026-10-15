@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Bg3Voice, LabelDef } from '../../api/types'
-import { labelSummary, requiredDone } from '../../utils/castVoices'
+import { DO_NOT_USE, labelSummary, requiredDone } from '../../utils/castVoices'
 import StatusDot from '../ui/StatusDot.vue'
 
 /** The BG3 voices to label: a dot for "fully labelled", and what has been set so far. */
@@ -15,7 +15,7 @@ const required = (s: LabelDef[]) => s.filter((d) => d.required).length
       <button type="button" class="row" :class="{ sel: v.slug === selected }" :aria-current="v.slug === selected ? 'true' : undefined" @click="$emit('select', v.slug)">
         <StatusDot :status="v.complete ? 'good' : 'idle'" :label="v.complete ? 'Fully labelled' : 'Not fully labelled'" />
         <span class="who"><b>{{ v.name }}</b><span class="meta">{{ v.lines.toLocaleString() }} lines<template v-if="labelSummary(v)"> · {{ labelSummary(v) }}</template></span></span>
-        <span class="n">{{ requiredDone(v, schema) }}/{{ required(schema) }}</span>
+        <span class="n">{{ v.mine?.reserve === DO_NOT_USE ? 'skip' : `${requiredDone(v, schema)}/${required(schema)}` }}</span>
       </button>
     </li>
   </ul>

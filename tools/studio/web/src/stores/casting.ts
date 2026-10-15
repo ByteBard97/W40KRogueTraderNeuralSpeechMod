@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { api } from '../api/client'
 import type { Bg3Voice, CastAudition, CastCharacter, CastPage, LabelDef, LabelProgress, LabelValue } from '../api/types'
+import { labelsComplete } from '../utils/castVoices'
 
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -97,7 +98,7 @@ export const useCastingStore = defineStore('casting', () => {
     const empty = value === null || value === '' || (Array.isArray(value) && !value.length)
     v.mine = { ...v.mine, [key]: empty ? undefined : value }
     if (!empty) v.labels = { ...v.labels, [key]: value }
-    v.complete = schema.value.filter((d) => d.required).every((d) => v.mine[d.key] !== undefined && v.mine[d.key] !== '')
+    v.complete = labelsComplete(v.mine, schema.value)
     try {
       const mine = await api.castLabelSet(slug, key, empty ? null : value)
       v.mine = mine

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Bg3Voice } from '../api/types'
-import { filterVoices, filtersForCharacter, labelSummary, requiredDone } from './castVoices'
+import { filterVoices, filtersForCharacter, labelSummary, labelsComplete, requiredDone } from './castVoices'
 import type { LabelDef } from '../api/types'
 
 const v = (name: string, lines: number, gender: string): Bg3Voice => ({ slug: name, name, lines, minutes: 1, gender, f0: null, non_human: false, refs: [], used_by: [], labels: {}, mine: {}, complete: false })
@@ -77,5 +77,32 @@ describe('label filters', () => {
   it('turns a character into filters (young becomes youth)', () => {
     expect(filtersForCharacter({ gender: 'female', age: 'young' })).toEqual({ gender: ['female'], age: ['youth'] })
     expect(filtersForCharacter({ gender: null, age: null })).toEqual({})
+  })
+})
+
+describe('in-between class and pitch', () => {
+  const list = [lab('a', { pitch: 'low' }), lab('b', { pitch: 'low-middle' }), lab('c', { pitch: 'middle' }), lab('d', { pitch: 'middle-high' }), lab('e', { pitch: 'high' })]
+  const names = (f: string[]) => filterVoices(list, '', 'all', 'name', { pitch: f }).map((x) => x.name)
+
+  it('finds an in-between voice under both of its neighbours, as a voice with two picks was found before', () => {
+    expect(names(['low'])).toEqual(['a', 'b'])
+    expect(names(['middle'])).toEqual(['b', 'c', 'd'])
+    expect(names(['high'])).toEqual(['d', 'e'])
+  })
+
+  it('finds only the in-between voices when that step itself is chosen', () => {
+    expect(names(['low-middle'])).toEqual(['b'])
+  })
+})
+
+describe('labelsComplete', () => {
+  const schema = [{ key: 'gender', label: 'Gender', kind: 'single', options: ['male'], required: true }, { key: 'reserve', label: 'Use', kind: 'single', options: [], required: false }] as LabelDef[]
+  it('needs every required label', () => {
+    expect(labelsComplete({}, schema)).toBe(false)
+    expect(labelsComplete({ gender: 'male' }, schema)).toBe(true)
+  })
+  it('counts a voice marked do not use as done', () => {
+    expect(labelsComplete({ reserve: 'do not use' }, schema)).toBe(true)
+    expect(labelsComplete({ reserve: 'free' }, schema)).toBe(false)
   })
 })

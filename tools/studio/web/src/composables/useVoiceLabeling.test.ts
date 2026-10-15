@@ -47,4 +47,19 @@ describe('useVoiceLabeling', () => {
     await L.label('age', 'old')
     expect(L.current.value?.slug).toBe('a')
   })
+
+  it('x marks the voice do not use and moves on even with auto advance off; again it clears the mark', async () => {
+    const L = useVoiceLabeling()
+    L.autoAdvance.value = false
+    L.select('a')
+    await L.toggleSkip()
+    expect(api.castLabelSet).toHaveBeenCalledWith('a', 'reserve', 'do not use')
+    expect(L.current.value?.slug).toBe('b')
+    L.select('a')
+    vi.mocked(api.castingVoices).mockResolvedValue([{ ...voice('a', 300, { reserve: 'do not use' }), complete: true }, voice('b', 200), voice('c', 100)] as never)
+    await useCastingStore().load()
+    await L.toggleSkip()
+    expect(api.castLabelSet).toHaveBeenLastCalledWith('a', 'reserve', null)
+    expect(L.current.value?.slug).toBe('a')                   // undoing stays put
+  })
 })

@@ -14,14 +14,20 @@ from .config import Config
 from .errors import ApiError
 from .jsonio import STATE_LOCK, read_json, write_json_atomic
 
+# Class and pitch are five steps, low to high; the two in between are for a voice that sits between two levels.
+LEVELS = ["low", "low-middle", "middle", "middle-high", "high"]
+BETWEEN = {frozenset(("low", "middle")): "low-middle", frozenset(("middle", "high")): "middle-high"}
+LEVEL_KEYS = ("class", "pitch")
+DO_NOT_USE = "do not use"
+
 # key, label, kind ("single" | "multi" | "text" | "rating"), options, required, and allow_several: a voice in an in-between spot may carry
 # more than one value of a "single" label (youth and adult); a filter then finds it under either. "multi" always allows several.
 SCHEMA: list[dict] = [
     {"key": "gender", "allow_several": True, "label": "Gender", "kind": "single", "options": ["male", "female", "neuter"], "required": True},
     {"key": "age", "allow_several": True, "label": "Age", "kind": "single", "options": ["child", "youth", "adult", "old"], "required": True},
-    {"key": "class", "allow_several": True, "label": "Class", "kind": "single", "options": ["low", "middle", "high"], "required": True},
+    {"key": "class", "label": "Class", "kind": "single", "options": LEVELS, "required": True},
     {"key": "processing", "allow_several": True, "label": "Processing", "kind": "single", "options": ["natural", "processed"], "required": True},
-    {"key": "pitch", "allow_several": True, "label": "Pitch", "kind": "single", "options": ["high", "middle", "low"], "required": True},
+    {"key": "pitch", "label": "Pitch", "kind": "single", "options": LEVELS, "required": True},
     {"key": "accent", "allow_several": True, "label": "Accent", "kind": "single", "required": False,
      "options": ["received (RP)", "other British", "American", "Scots / Irish", "other"]},
     {"key": "species", "allow_several": True, "label": "Sounds like", "kind": "single", "required": False,
@@ -68,6 +74,9 @@ def effective(voice: dict, mine: dict) -> dict:
 
 
 def is_complete(mine: dict) -> bool:
+    """Fully labelled: the five required labels are set, or the voice is marked "do not use" (nothing more to say about it)."""
+    if mine.get("reserve") == DO_NOT_USE:
+        return True
     return all(mine.get(k) not in (None, "", []) for k in REQUIRED)
 
 
@@ -88,6 +97,35 @@ def check(key: str, value) -> object:
         raise ApiError(400, f"{key} has no option {bad[0]!r}")
     ordered = [o for o in d["options"] if o in vals]
     return ordered if d["kind"] == "multi" or len(ordered) > 1 else ordered[0]      # one value stays a plain string
+
+
+def between_value(key: str, value) -> str | None:
+    """The in-between step for two neighbouring levels picked together on class or pitch, else None."""
+    if key not in LEVEL_KEYS or not isinstance(value, list):
+        return None
+    return BETWEEN.get(frozenset(value))
+
+
+def migrate_between_values(cfg: Config) -> dict:
+    """Turn the old two-button answers on class and pitch (low+middle, middle+high) into the in-between step.
+
+    Backs the file up first. Anything that is not two neighbouring levels is left as it was and reported.
+    """
+    with STATE_LOCK:
+        labels = read_all(cfg)
+        changes, left = [], []
+        for slug, mine in labels.items():
+            for key in LEVEL_KEYS:
+                if isinstance(mine.get(key), list):
+                    new = between_value(key, mine[key])
+                    (changes.append((mine, key, new)) if new else left.append(f"{slug}: {key}"))
+        if not changes:
+            return {"converted": 0, "left": left, "backup": None}
+        saved = backup(cfg)
+        for mine, key, new in changes:
+            mine[key] = new
+        write_json_atomic(path(cfg), labels)
+    return {"converted": len(changes), "left": left, "backup": saved}
 
 
 def set_label(cfg: Config, slug: str, key: str, value) -> dict:

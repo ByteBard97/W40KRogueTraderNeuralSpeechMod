@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { useCastingStore } from '../stores/casting'
-import { filterVoices, type LabelFilters, type VoiceSort } from '../utils/castVoices'
+import { DO_NOT_USE, filterVoices, type LabelFilters, type VoiceSort } from '../utils/castVoices'
 import { fileUrl } from '../utils/fileUrl'
 import { useAudioPlayer } from './useAudioPlayer'
 
@@ -57,18 +57,24 @@ export function useVoiceLabeling() {
   }
 
   /** Label the selected voice; once its five required labels are all set, move on to the next one still to do (after it in the list). */
-  async function label(key: string, value: Parameters<typeof store.setLabel>[2]) {
+  async function label(key: string, value: Parameters<typeof store.setLabel>[2], forceAdvance = false) {
     const slug = current.value?.slug
     if (!slug) return
     const order = rows.value.map((v) => v.slug)        // the order as it was, before this voice drops out of the "to label" view
     const was = current.value?.complete
     selected.value = slug
     await store.setLabel(slug, key, value)
-    if (autoAdvance.value && !was && store.voices.find((v) => v.slug === slug)?.complete) {
+    if ((autoAdvance.value || forceAdvance) && !was && store.voices.find((v) => v.slug === slug)?.complete) {
       const next = nextAfter(slug, order)
       if (next) select(next.slug)
     }
   }
 
-  return { store, view, query, sort, filters, selected, autoAdvance, autoplay, rows, current, select, move, nextIncomplete, label, play }
+  /** The "do not use" key: mark the selected voice and move straight on; on a voice already marked, take the mark off and stay. */
+  async function toggleSkip() {
+    const skipped = current.value?.mine.reserve === DO_NOT_USE
+    await label('reserve', skipped ? null : DO_NOT_USE, true)
+  }
+
+  return { store, view, query, sort, filters, selected, autoAdvance, autoplay, rows, current, select, move, nextIncomplete, label, toggleSkip, play }
 }
