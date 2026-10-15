@@ -73,3 +73,10 @@ tools/studio/web/vite.mock.tmp.config.ts
 # Game art and voice extractions (copyrighted, local use only)
 data/portraits/
 data/bg3_voices/
+
+# Playwright suite output (traces and screenshots) is never committed
+tools/studio/web/playwright-report/
+tools/studio/web/test-results/
+
+# Static pedalboard demo build output
+tools/studio/web/dist-demo/

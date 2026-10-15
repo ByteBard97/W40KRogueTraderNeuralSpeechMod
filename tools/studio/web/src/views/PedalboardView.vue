@@ -9,6 +9,7 @@ import PresetBar from '../components/pedalboard/PresetBar.vue'
 import TransportBar from '../components/pedalboard/TransportBar.vue'
 import { useGraphEngine, type EngineControl } from '../composables/useGraphEngine'
 import { useToasts } from '../composables/useToasts'
+import { installPedalboardQaHook } from '../qa/pedalboardQaHook'
 import { usePedalboardStore } from '../stores/pedalboard'
 
 // Waits for a burst of edits (dropping a pedal, then wiring it) to settle so the compiler runs once.
@@ -17,6 +18,7 @@ const RECOMPILE_DEBOUNCE_MS = 300
 const store = usePedalboardStore()
 const engine = useGraphEngine()
 const toasts = useToasts()
+onBeforeUnmount(installPedalboardQaHook({ store, engine })) // dev or ?qa only; read-only window for e2e/
 
 const canvas = ref<InstanceType<typeof PedalboardCanvas> | null>(null)
 const refSpeakerList = ref<RefSpeaker[]>([])
@@ -121,16 +123,21 @@ onBeforeUnmount(() => {
       :valid="store.valid"
       :issues="store.issueTexts"
       :saving="store.saving"
+      :can-undo="store.undoCount > 0"
+      :can-redo="store.redoCount > 0"
       @load-starter="store.loadStarter($event)"
       @load-saved="store.loadSaved($event)"
       @save="save"
       @new="store.newGraph()"
+      @undo="store.undo()"
+      @redo="store.redo()"
     />
     <p v-if="engine.status.value === 'error'" class="engine-error" role="alert" data-testid="engine-error">{{ engine.error.value }}</p>
     <div class="board">
       <Palette :blocks="store.catalog.blocks" @add="canvas?.addAtCenter($event)" />
       <PedalboardCanvas ref="canvas" />
     </div>
+    <p class="legend" data-testid="legend">Every wire carries left and right. Stereo pedals make the two sides differ; watch the Stereo panel.</p>
     <MonitorPanel :taps="engine.taps" :reference="reference" :running="engine.playing.value" />
   </div>
 </template>
@@ -140,5 +147,6 @@ onBeforeUnmount(() => {
 .pedalboard { max-width: none; }
 .board { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--s-3); height: 72vh; min-height: 520px; }
 .board > :first-child { min-height: 0; }
+.legend { margin: 0; color: var(--text-3); font-size: var(--fs-sm); }
 .engine-error { margin: 0; padding: var(--s-2) var(--s-3); border: 1px solid var(--bad-line); background: var(--bad-tint); border-radius: var(--r-md); color: var(--text-2); font-family: var(--font-mono); font-size: var(--fs-sm); white-space: pre-wrap; }
 </style>

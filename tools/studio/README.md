@@ -41,6 +41,28 @@ disabled and say why.
 `server/tests/run_mock_stack.py <dir>` serves the app on a throwaway fake repo with a mock model, for browser checks
 that need no GPU and no real data.
 
+## Browser suite (`npm run e2e`)
+
+    cd tools/studio/web && npm run e2e                       # whole suite, about 40 s
+    npx playwright test e2e/pedalboard-save.spec.ts          # one spec
+    npx playwright test -g "stomp"                           # one test by title
+
+It builds the web app into `web/node_modules/.e2e-dist` when a source file is newer (the real `dist` and the running Studio are not touched),
+starts `server/tests/run_mock_stack.py --pedalboard` on a free port with a fresh directory under the system temp folder, runs Playwright
+Test against it and stops the server. It never reads or writes the real `data/`: the block library and the starters are copied into the
+fake root, so a Save in a test lands only there (the vendored FaustWasm under `tools/fx_lab/vendor` is served from the repo, read-only).
+Needs the system `python3` (numpy for the game-voice reference) and a Chromium: it uses the one the Playwright MCP downloaded under
+`~/.cache/ms-playwright`, otherwise run `npx playwright install chromium`.
+
+Covered: the pedalboard loads with no console errors or failed requests, the palette (31 pedals, 7 categories), a starter's 14 nodes,
+13 drawn wires, no overlap, inside the canvas, readable zoom, compile once, playback with a stereo reading and a spectrum, knobs do not
+recompile, adding and wiring recompiles once (also for a burst of changes), a taken input refuses a wire, the stomp switch, save and
+reload round trip on disk, the nav link, and the Casting, BG3 Voices, RT Voices and Assignments pages loading without errors.
+Tests read page state through `window.__pedalboard` (`src/qa/pedalboardQaHook.ts`), which exists only in dev or with `?qa` in the URL.
+
+Traces and failure screenshots go to `web/test-results/` and `web/playwright-report/` (both git-ignored; open a trace with
+`npx playwright show-trace <trace.zip>`). Each run leaves its temp directory behind under the system temp folder, named `rt-studio-e2e-*`.
+
 ## Where state lives
 
 - `data/studio/<slug>/profile.json`, `takes.json`, `active.json`, `fx/`

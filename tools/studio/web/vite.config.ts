@@ -1,5 +1,5 @@
 import vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 const API_PORT = 8930
 
@@ -12,5 +12,6 @@ export default defineConfig({
       '/fx-file': `http://127.0.0.1:${API_PORT}`,
     },
   },
-  test: { environment: 'happy-dom', globals: true },
+  // e2e/ holds Playwright specs, which vitest would otherwise pick up by their .spec.ts names.
+  test: { environment: 'happy-dom', globals: true, exclude: [...configDefaults.exclude, 'e2e/**'] },
 })
