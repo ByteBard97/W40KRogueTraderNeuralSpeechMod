@@ -48,6 +48,12 @@ def lines_for(index: dict, speaker: str, limit: int = 300) -> list[dict]:
     return out
 
 
+def flat_presets(presets: dict) -> dict:
+    """The presets this page can edit. Ones saved from the pedalboard hold a graph and a program under presets/, with per-pedal control keys
+    the flat chain page cannot show; they are used by the batch script and the Studio, and left out of this page's list."""
+    return {name: p for name, p in presets.items() if "graph" not in p}
+
+
 def save_preset(presets: dict, name: str, body: dict) -> dict:
     """Re-saving a name overwrites it. Pure, for tests."""
     presets[name] = {"dsp": body["dsp"], "params": body.get("params", {}), "notes": body.get("notes", "")}
@@ -100,7 +106,8 @@ class H(BaseHTTPRequestHandler):
         if path == "/api/scenarios":
             return self._file(HERE / "scenarios.json")
         if path == "/api/presets":
-            return self._send(PRESETS.read_bytes() if PRESETS.exists() else b"{}")
+            saved = json.loads(PRESETS.read_text(encoding="utf-8")) if PRESETS.exists() else {}
+            return self._send(json.dumps(flat_presets(saved)).encode())
         if path.startswith("/wav/"):
             p = (EXPORT / path[5:]).resolve()
             if EXPORT.resolve() not in p.parents:

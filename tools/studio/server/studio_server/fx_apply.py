@@ -31,7 +31,8 @@ def apply(src: Path, dst: Path, names: list[str]) -> None:
     x, sr = sf.read(str(src), dtype="float32")
     x = x if x.ndim == 1 else x.mean(axis=1)
     dst.parent.mkdir(parents=True, exist_ok=True)
-    sf.write(str(dst), batch.process_clip(x, sr, steps, codes), sr, subtype="PCM_16")
+    y = batch.process_clip(x, sr, steps, codes)                 # (n,) normally, (2, n) when a stereo block made the sides differ
+    sf.write(str(dst), y.T if y.ndim == 2 else y, sr, subtype="PCM_16")
 
 
 if __name__ == "__main__":
