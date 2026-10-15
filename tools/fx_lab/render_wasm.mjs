@@ -18,9 +18,12 @@ const gen = new FaustMonoDspGenerator();
 await gen.compile(new FaustCompiler(new LibFaust(mod)), 'fx', fs.readFileSync(dspFile, 'utf8'), '-ftz 2');
 const proc = await gen.createOfflineProcessor(sr, 128);
 
+// Key = the full address with the root stripped, in shortname form (same as dd_render.key_of). Never d.shortname: Faust shortens it to the
+// shortest unique suffix, so it changes when a second block with the same label is added.
+const keyOf = d => d.address.split('/').slice(2).join('/').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 const params = JSON.parse(fs.readFileSync(paramsFile, 'utf8'));
 for (const d of proc.getDescriptors()) {
-  const v = d.shortname in params ? params[d.shortname] : (d.type === 'checkbox' ? 1 : +d.init);
+  const v = keyOf(d) in params ? params[keyOf(d)] : (d.type === 'checkbox' ? 1 : +d.init);
   proc.setParamValue(d.address, v);
 }
 const raw = fs.readFileSync(inFile);

@@ -1,7 +1,7 @@
 """Render a Faust .dsp over a mono signal with DawDreamer (the batch-side runtime of the FX Lab).
 
-Run under tools/fx_lab/.venv-fx/bin/python (dawdreamer, numpy, soundfile). Parameters are keyed by control shortname,
-the same keys the page and data/fx_lab/presets.json use. Checkboxes (the per-stage on/off stomps) default to on, as in
+Run under tools/fx_lab/.venv-fx/bin/python (dawdreamer, numpy, soundfile). Parameters are keyed by control key (key_of: the
+full address with the root stripped, in shortname form), the same keys the page and data/fx_lab/presets.json use. Checkboxes (the per-stage on/off stomps) default to on, as in
 the page; every other control defaults to its Faust init value and is reset to it before each render.
 
 Compiling the Faust code costs about 1.5 s, so engines are cached per (code, sample rate) and only the input signal and
@@ -24,6 +24,24 @@ def short(label: str) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "_", label).strip("_")
 
 
+def key_of(d: dict) -> str:
+    """The parameter key: the control's full address with the root segment stripped, in shortname form.
+
+    DawDreamer names a control '/<root>/n1/Ring_Hz' and its 'label' is only the last segment, so two blocks holding the same label
+    collide if keyed by label. A flat control ('/<root>/Highpass Hz (0 off)') gets the same key as before. Matches the browser engine's key
+    (tools/fx_lab/render_wasm.mjs keyOf), never its 'shortname' field, which Faust shortens to the shortest unique suffix."""
+    path = d["name"].split("/", 2)[2] if d["name"].startswith("/") and d["name"].count("/") >= 2 else d["label"]
+    return short(path)
+
+
+def list_params(dsp_code: str, sr: int) -> list[str]:
+    """Every control key of a program, in DawDreamer's order."""
+    key = (dsp_code, sr)
+    if key not in _ENGINES:
+        _ENGINES[key] = _Engine(dsp_code, sr)
+    return [p[1] for p in _ENGINES[key].params]
+
+
 def is_checkbox(d: dict) -> bool:
     return d["min"] == 0 and d["max"] == 1 and d["numSteps"] == 2
 
@@ -36,7 +54,7 @@ class _Engine:
         self.fx = self.engine.make_faust_processor("fx")
         self.fx.set_dsp_string(code)
         self.engine.load_graph([(self.src, []), (self.fx, ["in"])])
-        self.params = [(d["index"], short(d["label"]), is_checkbox(d), float(d["value"])) for d in self.fx.get_parameters_description()]
+        self.params = [(d["index"], key_of(d), is_checkbox(d), float(d["value"])) for d in self.fx.get_parameters_description()]
 
     def render(self, x: np.ndarray, params: dict, tail_s: float) -> np.ndarray:
         n = len(x) + int(round(tail_s * self.sr))
